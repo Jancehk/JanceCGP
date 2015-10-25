@@ -1,0 +1,20 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 10.00
+# Visual Studio 2008
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cpss", "cpss.vcproj", "{99874023-6D56-4EC0-8CF0-95CBFB20218C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{99874023-6D56-4EC0-8CF0-95CBFB20218C}.Debug|Win32.ActiveCfg = Debug|Win32
+		{99874023-6D56-4EC0-8CF0-95CBFB20218C}.Debug|Win32.Build.0 = Debug|Win32
+		{99874023-6D56-4EC0-8CF0-95CBFB20218C}.Release|Win32.ActiveCfg = Release|Win32
+		{99874023-6D56-4EC0-8CF0-95CBFB20218C}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

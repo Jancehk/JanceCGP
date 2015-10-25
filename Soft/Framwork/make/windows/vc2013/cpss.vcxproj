@@ -1,0 +1,155 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="12.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{9AF8B74F-77B5-4781-BC59-14374C1B1843}</ProjectGuid>
+    <RootNamespace>cpss</RootNamespace>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>StaticLibrary</ConfigurationType>
+    <PlatformToolset>v120</PlatformToolset>
+    <UseOfMfc>false</UseOfMfc>
+    <CharacterSet>MultiByte</CharacterSet>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="$(VCTargetsPath)Microsoft.CPP.UpgradeFromVC60.props" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>12.0.30501.0</_ProjectFileVersion>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <OutDir>.\Debug\</OutDir>
+    <IntDir>.\Debug\</IntDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <OutDir>.\Release\</OutDir>
+    <IntDir>.\Release\</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <Optimization>Disabled</Optimization>
+      <AdditionalIncludeDirectories>../../../cpss/vk/include;../../../cpss/public/include;../../../cpss/com/include;../../../cpss/vos/include;../../../cpss/fs/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;_DEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <MinimalRebuild>true</MinimalRebuild>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <PrecompiledHeaderOutputFile>.\Debug/cpss.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>.\Debug/</AssemblerListingLocation>
+      <ObjectFileName>.\Debug/</ObjectFileName>
+      <ProgramDataBaseFileName>.\Debug/</ProgramDataBaseFileName>
+      <BrowseInformation>true</BrowseInformation>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0804</Culture>
+    </ResourceCompile>
+    <Lib>
+      <OutputFile>..\..\..\lib\cpss.lib</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Lib>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Debug/cpss.bsc</OutputFile>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <AdditionalIncludeDirectories>../../../cpss/vk/include;../../../cpss/public/include;../../../cpss/com/include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;NDEBUG;_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <StringPooling>true</StringPooling>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <PrecompiledHeaderOutputFile>.\Release/cpss.pch</PrecompiledHeaderOutputFile>
+      <AssemblerListingLocation>.\Release/</AssemblerListingLocation>
+      <ObjectFileName>.\Release/</ObjectFileName>
+      <ProgramDataBaseFileName>.\Release/</ProgramDataBaseFileName>
+      <WarningLevel>Level3</WarningLevel>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </ClCompile>
+    <ResourceCompile>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Culture>0x0804</Culture>
+    </ResourceCompile>
+    <Lib>
+      <OutputFile>.\Release\cpss.lib</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+    </Lib>
+    <Bscmake>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <OutputFile>.\Release/cpss.bsc</OutputFile>
+    </Bscmake>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="..\..\..\cpss\com\source\cpss_com_app.c" />
+    <ClCompile Include="..\..\..\cpss\com\source\cpss_com_pid.c" />
+    <ClCompile Include="..\..\..\cpss\fs\source\cpss_fs_ftp.c" />
+    <ClCompile Include="..\..\..\cpss\fs\source\cpss_fs_telnet.c" />
+    <ClCompile Include="..\..\..\cpss\public\source\cpss_linux_entery.c" />
+    <ClCompile Include="..\..\..\cpss\public\source\cpss_public.c" />
+    <ClCompile Include="..\..\..\cpss\vk\source\cpss_tm_timer.c" />
+    <ClCompile Include="..\..\..\cpss\vk\source\cpss_vk_file.c" />
+    <ClCompile Include="..\..\..\cpss\vk\source\cpss_vk_print.c" />
+    <ClCompile Include="..\..\..\cpss\vk\source\cpss_vk_shell.c" />
+    <ClCompile Include="..\..\..\cpss\vk\source\cpss_vk_socket.c" />
+    <ClCompile Include="..\..\..\cpss\vk\source\cpss_vk_thread.c" />
+    <ClCompile Include="..\..\..\cpss\vk\source\cpss_vk_tm_sntp.c" />
+    <ClCompile Include="..\..\..\cpss\vos\source\cpss_vos_framwork.c" />
+    <ClCompile Include="..\..\..\cpss\vos\source\cpss_vos_mem.c" />
+    <ClCompile Include="..\..\..\cpss\vos\source\cpss_vos_sem.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\..\cpss\com\include\cpss_com_app.h" />
+    <ClInclude Include="..\..\..\cpss\com\include\cpss_com_pid.h" />
+    <ClInclude Include="..\..\..\cpss\fs\include\cpss_fs_ftp.h" />
+    <ClInclude Include="..\..\..\cpss\fs\include\cpss_fs_telnet.h" />
+    <ClInclude Include="..\..\..\cpss\public\include\cpss_common.h" />
+    <ClInclude Include="..\..\..\cpss\public\include\cpss_config.h" />
+    <ClInclude Include="..\..\..\cpss\public\include\cpss_linux_config.h" />
+    <ClInclude Include="..\..\..\cpss\public\include\cpss_linux_entery.h" />
+    <ClInclude Include="..\..\..\cpss\public\include\cpss_msg.h" />
+    <ClInclude Include="..\..\..\cpss\public\include\cpss_public.h" />
+    <ClInclude Include="..\..\..\cpss\vk\include\cpss_tm_timer.h" />
+    <ClInclude Include="..\..\..\cpss\vk\include\cpss_vk_file.h" />
+    <ClInclude Include="..\..\..\cpss\vk\include\cpss_vk_print.h" />
+    <ClInclude Include="..\..\..\cpss\vk\include\cpss_vk_shell.h" />
+    <ClInclude Include="..\..\..\cpss\vk\include\cpss_vk_socket.h" />
+    <ClInclude Include="..\..\..\cpss\vk\include\cpss_vk_thread.h" />
+    <ClInclude Include="..\..\..\cpss\vk\include\cpss_vk_tm_sntp.h" />
+    <ClInclude Include="..\..\..\cpss\vos\include\cpss_vos_framwork.h" />
+    <ClInclude Include="..\..\..\cpss\vos\include\cpss_vos_mem.h" />
+    <ClInclude Include="..\..\..\cpss\vos\include\cpss_vos_sem.h" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

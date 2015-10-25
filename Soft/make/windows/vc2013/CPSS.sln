@@ -1,0 +1,46 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 2013
+VisualStudioVersion = 12.0.31101.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "cpss", "..\..\..\Framwork\make\windows\vc2013\cpss.vcxproj", "{9AF8B74F-77B5-4781-BC59-14374C1B1843}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "xcap", "..\..\..\xcap\make\windows\vc2013\xcap.vcxproj", "{C15590F7-1B75-4CEC-BECC-FA94435E7111}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "CJanceDBdll", "..\..\..\DBDll\make\windows\vc2013\CJanceDBdll.vcxproj", "{69760CF2-96D0-49DD-94BF-8695D958EA62}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "money", "..\..\..\money\make\windows\vc2013\money.vcxproj", "{C05E431A-1482-4530-916E-1EFC2801C3C1}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DBsvr", "..\..\..\DBSvr\make\windows\vc2013\DBsvr.vcxproj", "{BBEA5B00-7CC5-4468-9B2F-F50614A47EAD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Win32 = Debug|Win32
+		Release|Win32 = Release|Win32
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{9AF8B74F-77B5-4781-BC59-14374C1B1843}.Debug|Win32.ActiveCfg = Debug|Win32
+		{9AF8B74F-77B5-4781-BC59-14374C1B1843}.Debug|Win32.Build.0 = Debug|Win32
+		{9AF8B74F-77B5-4781-BC59-14374C1B1843}.Release|Win32.ActiveCfg = Release|Win32
+		{9AF8B74F-77B5-4781-BC59-14374C1B1843}.Release|Win32.Build.0 = Release|Win32
+		{C15590F7-1B75-4CEC-BECC-FA94435E7111}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C15590F7-1B75-4CEC-BECC-FA94435E7111}.Debug|Win32.Build.0 = Debug|Win32
+		{C15590F7-1B75-4CEC-BECC-FA94435E7111}.Release|Win32.ActiveCfg = Release|Win32
+		{C15590F7-1B75-4CEC-BECC-FA94435E7111}.Release|Win32.Build.0 = Release|Win32
+		{69760CF2-96D0-49DD-94BF-8695D958EA62}.Debug|Win32.ActiveCfg = Debug|Win32
+		{69760CF2-96D0-49DD-94BF-8695D958EA62}.Debug|Win32.Build.0 = Debug|Win32
+		{69760CF2-96D0-49DD-94BF-8695D958EA62}.Release|Win32.ActiveCfg = Release|Win32
+		{69760CF2-96D0-49DD-94BF-8695D958EA62}.Release|Win32.Build.0 = Release|Win32
+		{C05E431A-1482-4530-916E-1EFC2801C3C1}.Debug|Win32.ActiveCfg = Debug|Win32
+		{C05E431A-1482-4530-916E-1EFC2801C3C1}.Debug|Win32.Build.0 = Debug|Win32
+		{C05E431A-1482-4530-916E-1EFC2801C3C1}.Release|Win32.ActiveCfg = Release|Win32
+		{C05E431A-1482-4530-916E-1EFC2801C3C1}.Release|Win32.Build.0 = Release|Win32
+		{BBEA5B00-7CC5-4468-9B2F-F50614A47EAD}.Debug|Win32.ActiveCfg = Debug|Win32
+		{BBEA5B00-7CC5-4468-9B2F-F50614A47EAD}.Debug|Win32.Build.0 = Debug|Win32
+		{BBEA5B00-7CC5-4468-9B2F-F50614A47EAD}.Release|Win32.ActiveCfg = Release|Win32
+		{BBEA5B00-7CC5-4468-9B2F-F50614A47EAD}.Release|Win32.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

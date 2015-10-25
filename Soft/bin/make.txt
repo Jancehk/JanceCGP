@@ -1,0 +1,29 @@
+Building default target: cpss - Win32 Debug
+--------------------Configuration: cpss - Win32 Debug--------------------
+
+cpss.lib - 0 error(s), 0 warning(s)
+Building default target: DBSvr - Win32 Debug
+--------------------Configuration: DBSvr - Win32 Debug--------------------
+Linking...
+
+DBSvr.exe - 0 error(s), 0 warning(s)
+Building default target: xcap - Win32 Debug
+--------------------Configuration: xcap - Win32 Debug--------------------
+Linking...
+
+xcap.exe - 0 error(s), 0 warning(s)
+Building default target: money - Win32 Debug
+--------------------Configuration: money - Win32 Debug--------------------
+Linking...
+
+money.exe - 0 error(s), 0 warning(s)
+Building default target: CJanceDBdll - Win32 Debug
+--------------------Configuration: CJanceDBdll - Win32 Debug--------------------
+Linking...
+   Creating library Debug/CJanceDBdll.lib and object Debug/CJanceDBdll.exp
+
+CJanceDBdll.dll - 0 error(s), 0 warning(s)
+删除文件 - D:\store\branches\Soft\bin\DBSvr.ilk
+删除文件 - D:\store\branches\Soft\bin\money.ilk
+删除文件 - D:\store\branches\Soft\bin\xcap.ilk
+删除文件 - D:\store\branches\Soft\bin\DLL\CJanceDBdll.ilk

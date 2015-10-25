@@ -1,0 +1,29 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.6	//
+CPSSPIDMAXNAME	./include/cpss_com_pid.h	21;"	d
+CPSS_COM_APP_INC	./include/cpss_com_app.h	17;"	d
+CPSS_COM_PID_IN	./include/cpss_com_pid.h	19;"	d
+CPSS_MANAGE_PID	./include/cpss_com_pid.h	/^}CPSS_MANAGE_PID,*PCPSS_MANAGE_PID;$/;"	t	typeref:struct:CPSS_MANAGE_PID_T
+CPSS_MANAGE_PID_T	./include/cpss_com_pid.h	/^typedef struct CPSS_MANAGE_PID_T$/;"	s
+CPSS_PID_INIT	./include/cpss_com_pid.h	/^}CPSS_PID_INIT,*PCPSS_PID_INIT;$/;"	t	typeref:struct:CPSS_PID_INIT_T
+CPSS_PID_INIT_T	./include/cpss_com_pid.h	/^typedef struct CPSS_PID_INIT_T$/;"	s
+PCPSS_MANAGE_PID	./include/cpss_com_pid.h	/^}CPSS_MANAGE_PID,*PCPSS_MANAGE_PID;$/;"	t	typeref:struct:CPSS_MANAGE_PID_T
+PCPSS_PID_INIT	./include/cpss_com_pid.h	/^}CPSS_PID_INIT,*PCPSS_PID_INIT;$/;"	t	typeref:struct:CPSS_PID_INIT_T
+VOS_RegistPidInit	./source/cpss_com_pid.c	/^VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulProcessPid, const VOS_CHAR * ulProcessPidName)$/;"	f
+VOS_Registmsgporcess	./source/cpss_com_app.c	/^VOS_UINT32 VOS_Registmsgporcess()$/;"	f
+cpss_check_pid	./source/cpss_com_pid.c	/^static VOS_UINT32 cpss_check_pid (VOS_UINT32 ulProcessPid)$/;"	f	file:
+cpss_get_pid_name	./source/cpss_com_pid.c	/^VOS_STRING cpss_get_pid_name(VOS_UINT32 ulProcessPid)$/;"	f
+cpss_init	./source/cpss_com_app.c	/^VOS_UINT32 cpss_init (int argc, char ** argv )$/;"	f
+cpss_init_file	./source/cpss_com_app.c	/^static VOS_UINT32 cpss_init_file ()$/;"	f	file:
+cpss_shell_cmd_init	./source/cpss_com_app.c	/^VOS_UINT32 cpss_shell_cmd_init (  )$/;"	f
+g_handleManagePid	./source/cpss_com_pid.c	/^CPSS_MANAGE_PID g_handleManagePid;   \/\/管理PID的全局变量$/;"	v
+next	./include/cpss_com_pid.h	/^	CPSS_PID_INIT *next;$/;"	m	struct:CPSS_MANAGE_PID_T
+prev	./include/cpss_com_pid.h	/^	CPSS_PID_INIT *prev;$/;"	m	struct:CPSS_MANAGE_PID_T
+swp_init	./source/cpss_com_app.c	/^static VOS_UINT32 swp_init (int argc,char ** argv)$/;"	f	file:
+szPidName	./include/cpss_com_pid.h	/^	VOS_CHAR szPidName[CPSSPIDMAXNAME];$/;"	m	struct:CPSS_PID_INIT_T
+ulProcessCPuID	./include/cpss_com_pid.h	/^	VOS_UINT32 ulProcessCPuID;$/;"	m	struct:CPSS_MANAGE_PID_T
+ulProcessPID	./include/cpss_com_pid.h	/^	VOS_UINT32 		ulProcessPID;$/;"	m	struct:CPSS_PID_INIT_T

@@ -1,0 +1,16 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.6	//
+VOS_CreateThread	cpss_vk_socket.c	/^VOS_UINT32	VOS_CreateThread$/;"	f	signature:( pthread_t *tid, const pthread_attr_t *att, void * (*func)(void *), void * arg )
+VOS_Print	cpss_vk_print.c	/^void VOS_Print (VOS_UINT32 infotype, const char *info)$/;"	f	signature:(VOS_UINT32 infotype, const char *info)
+cpss_get_current_time	cpss_tm_timer.c	/^VOS_UINT32 cpss_get_current_time (PCPSS_TIME pstCPssTime)$/;"	f	signature:(PCPSS_TIME pstCPssTime)
+cpss_get_current_time_to_str	cpss_tm_timer.c	/^VOS_STRING cpss_get_current_time_to_str ()$/;"	f
+cpss_get_ip_address	cpss_vk_file.c	/^VOS_UINT32 cpss_get_ip_address ()$/;"	f
+cpss_get_printstr	cpss_vk_print.c	/^static  VOS_STRING cpss_get_printstr ($/;"	f	file:	signature:( VOS_STRING pszPrintPid, VOS_STRING pszPrintType, VOS_UINT8 ucPrintLevel, VOS_STRING pszPrintTime, VOS_STRING pszPrintFile, VOS_UINT32 ulPrintLine, VOS_STRING pszPrintInfo)
+cpss_get_time	cpss_tm_timer.c	/^static VOS_UINT32 cpss_get_time(PCPSS_TIME pszCPsstime)$/;"	f	file:	signature:(PCPSS_TIME pszCPsstime)
+cpss_print	cpss_vk_print.c	/^VOS_UINT32 cpss_print($/;"	f	signature:( VOS_UINT32 ucProcessPid, VOS_UINT8 ucPrintLevel, VOS_STRING szPrintType, VOS_STRING szFilename, VOS_UINT32 ulLine, VOS_STRING szFormat, va_list argptr)
+cpss_vsprintf	cpss_vk_print.c	/^static VOS_CHAR * cpss_vsprintf(const VOS_CHAR *fmt, va_list ap)$/;"	f	file:	signature:(const VOS_CHAR *fmt, va_list ap)
+g_manageprint	cpss_vk_print.c	/^MANAGE_PRINT g_manageprint;$/;"	v

@@ -1,0 +1,3 @@
+#ifndef CPSS_LINUX_ENTERY
+#define CPSS_LINUX_ENTERY
+#endif

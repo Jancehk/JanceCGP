@@ -1,0 +1,118 @@
+Object Report
+	Version='4.5'
+	Title='你的报表标题'
+	Object Font
+		Name='宋体'
+		Size=105000,0
+		Weight=400
+		Charset=134
+	End
+	Object Printer
+	End
+	Object DetailGrid
+		IsCrossTab=T
+		Object Recordset
+			ConnectionString='Provider=Microsoft.Jet.OLEDB.4.0;User ID=Admin;Data Source=D:\\store\\branches\\Soft\\bin\\DBSvr\\DBsvr.Dat;Mode=Share Deny None;Extended Properties="";Jet OLEDB:System database="";Jet OLEDB:Registry Path="";Jet OLEDB:Database Password="";Jet OLEDB:Engine Type=5;Jet OLEDB:Database Locking Mode=1;Jet OLEDB:Global Partial Bulk Ops=2;Jet OLEDB:Global Bulk Transactions=1;Jet OLEDB:New Database Password="";Jet OLEDB:Create System Database=False;Jet OLEDB:Encrypt Database=False;Jet OLEDB:Don't Copy Locale on Compact=False;Jet OLEDB:Compact Without Replica Repair=False;Jet OLEDB:SFP=False'
+			QuerySQL='select * from CPUIDPID where SubSys=7 and m_Index=1'
+			Items Field
+				Item
+					Name='type'
+					Type=Float
+				End
+				Item
+					Name='fs'
+				End
+				Item
+					Name='m_money'
+					Type=Float
+				End
+				Item
+					Name='m_time'
+					Type=DateTime
+				End
+			End
+		End
+		Items Column
+			Item
+				Name='type'
+				Width=1.69333
+			End
+			Item
+				Name='fs'
+				Width=1.69333
+			End
+			Item
+				Name='m_money'
+				Width=1.69333
+			End
+			Item
+				Name='m_time'
+				Width=1.69333
+			End
+		End
+		Object ColumnContent
+			Height=0.635
+			Items ColumnContentCell
+				Item
+					Column='type'
+					TextAlign=MiddleRight
+				End
+				Item
+					Column='fs'
+				End
+				Item
+					Column='m_money'
+					TextAlign=MiddleRight
+				End
+				Item
+					Column='m_time'
+				End
+			End
+		End
+		Object ColumnTitle
+			Height=0.635
+			Items ColumnTitleCell
+				Item
+					GroupTitle=F
+					Column='type'
+					Text='type'
+				End
+				Item
+					GroupTitle=F
+					Column='fs'
+					Text='fs'
+				End
+				Item
+					GroupTitle=F
+					Column='m_money'
+					Text='m_money'
+				End
+				Item
+					GroupTitle=F
+					Column='m_time'
+					Text='m_time'
+				End
+			End
+		End
+		Object CrossTab
+			PercentFormat='0.##%'
+			HCrossFields='fs'
+			VCrossFields='m_time'
+		End
+	End
+	Items Section
+		Item
+			Type=PageHeader
+			Height=1.32292
+		End
+		Item
+			Type=PageFooter
+			Height=1.32292
+		End
+		Item
+			Type=ReportHeader
+			Name='ReportHeader1'
+			Height=1.32292
+		End
+	End
+End
