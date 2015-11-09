@@ -51,6 +51,14 @@ typedef struct _VOS_Event_T
 }VOS_Event,*pVOS_Event;
 #define TRIME_KEY	(" \t\n\r")
 
+typedef enum CPSS_MEM_BUFFER_TYPE_M{
+	CPSS_MEM_HEAD_KEY_CPSS_LOG=0,
+	CPSS_MEM_HEAD_KEY_CPSS_SKT,
+	CPSS_MEM_HEAD_KEY_CPSS_MSG,
+	CPSS_MEM_HEAD_KEY_CPSS_TOTAL,
+};
+
+#if 0
 typedef struct _CPSS_MEM_BUFFER_T
 {
 	VOS_UINT8	nIndex;	/*buferr ID ºÅ*/
@@ -63,6 +71,7 @@ typedef struct _CPSS_MEM_BUFFER_T
 	struct _CPSS_MEM_BUFFER_T * prev;
 	struct _CPSS_MEM_BUFFER_T * next;
 }CPSS_MEM_BUFFER,*pCPSS_MEM_BUFFER;
+#endif
 /*===  FUNCTION  ==============================================================
  *         Name:  get_cpuid_from_ip
  *  Description:	32Î»ip×ª»»Îªcpuid

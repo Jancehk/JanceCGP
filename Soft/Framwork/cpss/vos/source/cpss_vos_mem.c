@@ -19,6 +19,289 @@
 static CPSS_MSG_MEM_MANAGE g_cpssMem_Manage;
 
 /* ===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_get_record_info
+*  Description:  得到空的内存管理记录器
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static CPSS_MEM_RECORD *cpss_mem_get_record_info()
+{
+	VOS_INT32 uRet = 0;
+	CPSS_MEM_RECORD * pstuMemRecord = NULL;
+	uRet = VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex);
+	if (VOS_OK != uRet)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "add lock error");
+		return NULL;
+	}
+	pstuMemRecord = g_cpssMem_Manage.stuMemFHeadList.head;
+	while (NULL != pstuMemRecord)
+	{
+		if (CPSS_MEM_RECORD_STAT_FREE == pstuMemRecord->nState)
+		{
+			pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_RESE;
+			break;
+		}
+		pstuMemRecord = pstuMemRecord->next;
+	}
+	uRet = VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex);
+	if (VOS_OK != uRet)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "del lock error");
+		return NULL;
+	}
+	if (NULL == pstuMemRecord)
+	{
+		pstuMemRecord = (pCPSS_MEM_RECORD)malloc(sizeof(CPSS_MEM_RECORD));
+		if (NULL == pstuMemRecord)
+		{
+			VOS_PrintErr(__FILE__, __LINE__, "malloc error");
+			return NULL;
+		}
+		BZERO(pstuMemRecord, sizeof(CPSS_MEM_RECORD));
+		pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_FREE;
+		uRet = VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex);
+		if (VOS_OK != uRet)
+		{
+			VOS_PrintErr(__FILE__, __LINE__, "add lock error");
+			return NULL;
+		}
+		if (NULL == g_cpssMem_Manage.stuMemFHeadList.head &&
+			NULL == g_cpssMem_Manage.stuMemFHeadList.tail)
+		{
+			g_cpssMem_Manage.stuMemFHeadList.head = pstuMemRecord;
+			g_cpssMem_Manage.stuMemFHeadList.tail = pstuMemRecord;
+			g_cpssMem_Manage.stuMemFHeadList.nTotalCount++;
+			pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_RESE;
+			g_cpssMem_Manage.nTotalCount++;
+		}
+		else if (NULL != g_cpssMem_Manage.stuMemFHeadList.tail)
+		{
+			g_cpssMem_Manage.stuMemFHeadList.tail->next = pstuMemRecord;
+			pstuMemRecord->prev = g_cpssMem_Manage.stuMemFHeadList.tail;
+			g_cpssMem_Manage.stuMemFHeadList.nTotalCount++;
+			g_cpssMem_Manage.stuMemFHeadList.tail = pstuMemRecord;
+			pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_RESE;
+			g_cpssMem_Manage.nTotalCount++;
+		}
+		else
+		{
+			free(pstuMemRecord);
+			pstuMemRecord = NULL;
+			VOS_PrintErr(__FILE__, __LINE__, "link is error");
+		}
+		uRet = VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex);
+		if (VOS_OK != uRet)
+		{
+			VOS_PrintErr(__FILE__, __LINE__, "del lock error");
+		}
+	}
+	return pstuMemRecord;
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_get_record_info
+*  Description:  得到空的内存管理记录器
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static CPSS_MEM_RECORD *cpss_mem_find_record_info(VOS_UINT32 nMemRdKey, VOS_VOID* pstuVoid)
+{
+	CPSS_MEM_RECORD * pstuMemRecord = g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head;
+	while (NULL != pstuMemRecord)
+	{
+		if (pstuMemRecord->pstrVoid == pstuVoid)
+		{
+			break;
+		}
+		pstuMemRecord = pstuMemRecord->next;
+	}
+	return pstuMemRecord;
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_move_to_used
+*  Description:  将内存管理记录器移动到使用中
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static VOS_INT32 cpss_mem_move_to_used(VOS_UINT32 nMemRdKey, CPSS_MEM_RECORD * pstuMemRecord)
+{
+	VOS_INT32 uRet = VOS_OK;
+
+	if (VOS_OK != VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex))
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "add lock error");
+		return NULL;
+	}
+	if (NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head &&
+		NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail)
+	{
+		pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_FREE;
+		goto ERR_EXIT;
+	}
+	if (NULL == pstuMemRecord->next &&
+		NULL == pstuMemRecord->prev &&
+		g_cpssMem_Manage.stuMemFHeadList.head == g_cpssMem_Manage.stuMemFHeadList.tail &&
+		0 == g_cpssMem_Manage.stuMemFHeadList.nTotalCount)
+	{
+		g_cpssMem_Manage.stuMemFHeadList.head = NULL;
+		g_cpssMem_Manage.stuMemFHeadList.tail = NULL;
+		g_cpssMem_Manage.stuMemFHeadList.nTotalCount--;
+	}
+	else
+	{
+		if (NULL == pstuMemRecord->prev)
+		{
+			g_cpssMem_Manage.stuMemFHeadList.head = pstuMemRecord->next;
+			g_cpssMem_Manage.stuMemFHeadList.head->prev = NULL;
+			pstuMemRecord->next = NULL;
+		}
+		else if (NULL == pstuMemRecord->next)
+		{
+			g_cpssMem_Manage.stuMemFHeadList.tail = pstuMemRecord->prev;
+			g_cpssMem_Manage.stuMemFHeadList.tail->next = NULL;
+			pstuMemRecord->prev = NULL;
+		}
+		else
+		{
+			pstuMemRecord->prev->next = pstuMemRecord->next;
+			pstuMemRecord->next->prev = pstuMemRecord->prev;
+		}
+		g_cpssMem_Manage.stuMemFHeadList.nTotalCount--;
+	}
+	g_cpssMem_Manage.uMemSize += pstuMemRecord->nSize;
+
+	if (NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head &&
+		NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail)
+	{
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head = pstuMemRecord;
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail = pstuMemRecord;
+		pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_USED;
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].nTotalCount++;
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].uMemSize += pstuMemRecord->nSize;
+	}
+	else if (NULL != g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail)
+	{
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail->next = pstuMemRecord;
+		pstuMemRecord->prev = g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail;
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail = pstuMemRecord;
+		pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_USED;
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].nTotalCount++;
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].uMemSize += pstuMemRecord->nSize;
+	}
+	else
+	{
+		free(pstuMemRecord);
+		pstuMemRecord = NULL;
+		VOS_PrintErr(__FILE__, __LINE__, "link is error in Key[%d]", nMemRdKey);
+		goto ERR_EXIT;
+	}
+OK_EXIT:
+	if (VOS_OK != VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex))
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "del lock error");
+		return NULL;
+	}
+	return uRet;
+ERR_EXIT:
+	uRet = VOS_ERR;
+	goto OK_EXIT;
+}
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_move_to_used
+*  Description:  将内存管理记录器移动到使用中
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static VOS_INT32 cpss_mem_move_to_free(VOS_UINT32 nMemRdKey, CPSS_MEM_RECORD * pstuMemRecord)
+{
+	VOS_INT32 uRet = VOS_OK;
+
+	if (VOS_OK != VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex))
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "add lock error");
+		return NULL;
+	}
+	if (NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head &&
+		NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail)
+	{
+		pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_FREE;
+		goto ERR_EXIT;
+	}
+	if (NULL == pstuMemRecord->next &&
+		NULL == pstuMemRecord->prev &&
+		g_cpssMem_Manage.stuMemFHeadList.head == g_cpssMem_Manage.stuMemFHeadList.tail &&
+		0 == g_cpssMem_Manage.stuMemFHeadList.nTotalCount)
+	{
+		g_cpssMem_Manage.stuMemFHeadList.head = NULL;
+		g_cpssMem_Manage.stuMemFHeadList.tail = NULL;
+		g_cpssMem_Manage.stuMemFHeadList.nTotalCount--;
+	}
+	else
+	{
+		if (NULL == pstuMemRecord->prev)
+		{
+			g_cpssMem_Manage.stuMemFHeadList.head = pstuMemRecord->next;
+			g_cpssMem_Manage.stuMemFHeadList.head->prev = NULL;
+			pstuMemRecord->next = NULL;
+		}
+		else if (NULL == pstuMemRecord->next)
+		{
+			g_cpssMem_Manage.stuMemFHeadList.tail = pstuMemRecord->prev;
+			g_cpssMem_Manage.stuMemFHeadList.tail->next = NULL;
+			pstuMemRecord->prev = NULL;
+		}
+		else
+		{
+			pstuMemRecord->prev->next = pstuMemRecord->next;
+			pstuMemRecord->next->prev = pstuMemRecord->prev;
+		}
+		g_cpssMem_Manage.stuMemFHeadList.nTotalCount--;
+	}
+	g_cpssMem_Manage.uMemSize += pstuMemRecord->nSize;
+
+	if (NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head &&
+		NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail)
+	{
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head = pstuMemRecord;
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail = pstuMemRecord;
+		pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_USED;
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].nTotalCount++;
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].uMemSize += pstuMemRecord->nSize;
+	}
+	else if (NULL != g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail)
+	{
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail->next = pstuMemRecord;
+		pstuMemRecord->prev = g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail;
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail = pstuMemRecord;
+		pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_USED;
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].nTotalCount++;
+		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].uMemSize += pstuMemRecord->nSize;
+	}
+	else
+	{
+		free(pstuMemRecord);
+		pstuMemRecord = NULL;
+		VOS_PrintErr(__FILE__, __LINE__, "link is error in Key[%d]", nMemRdKey);
+		goto ERR_EXIT;
+	}
+OK_EXIT:
+	if (VOS_OK != VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex))
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "del lock error");
+		return NULL;
+	}
+	return uRet;
+ERR_EXIT:
+	uRet = VOS_ERR;
+	goto OK_EXIT;
+}
+
+/* ===  FUNCTION  ==============================================================
  *         Name:  cpss_init_mem
  *  Description:  平台初始化内存管理
  *  Input      :    
@@ -35,6 +318,7 @@ VOS_UINT32 cpss_init_mem()
 		printf("cpss init mem mutex error\n");
 		return uRet;
 	}
+	/*
 	uRet = VOS_Mutex_Init(&g_cpssMem_Manage.hMutexBuffer, "CPSS_MEM_BUFFE");
 	if (VOS_OK != uRet)
 	{
@@ -42,11 +326,10 @@ VOS_UINT32 cpss_init_mem()
 		printf("cpss init mem mutex error\n");
 		return uRet;
 	}
-	g_cpssMem_Manage.nTotalCount = 0;
-	g_cpssMem_Manage.nFreeCount = 0;
+	*/
 	g_cpssMem_Manage.uMemSize = 0;
-	g_cpssMem_Manage.pstuFreeBufHead = NULL;
-	g_cpssMem_Manage.pstuFreeBufTail = NULL;
+	g_cpssMem_Manage.nTotalCount = 0;
+	BZERO(&g_cpssMem_Manage.stuMemFHeadList, sizeof(CPSS_MEM_RECORD_HEAD)*CPSS_MEM_HEAD_KEY_CPSS_TOTAL);
 	return uRet;
 }
 /*===  FUNCTION  ==============================================================
@@ -57,65 +340,84 @@ VOS_UINT32 cpss_init_mem()
  *  Return     :    
  * =============================================================================*/
 VOS_VOID * cpss_mem_malloc(VOS_INT32 ulSize,
-						   VOS_CHAR * strInfo, 
+						   VOS_UINT32 nMemRdKey, 
 						   VOS_CHAR * strFile, 
 						   VOS_INT32 nLine)
 {
 	VOS_INT32 uRet = 0;
 	VOS_VOID * uRetVoid = NULL;
-	uRet = VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex);
-	if (VOS_OK != uRet)
+	CPSS_MEM_RECORD * pstuMemRecord = NULL;
+
+	if (nMemRdKey >= CPSS_MEM_HEAD_KEY_CPSS_TOTAL)
 	{
-		VOS_PrintErr(__FILE__,__LINE__,"add lock error");
 		return NULL;
 	}
-	g_cpssMem_Manage.uMemSize += ulSize;
 	//VOS_PrintInfo(__FILE__,__LINE__,"calloc size memory %d",ulSize);
 //	printf("calloc size memory :%d:%s\n",ulSize,strInfo);
 	uRetVoid = malloc(ulSize);
 	//printf("==:%d:===\n",g_cpssMem_Manage.uMemSize);
 	if (NULL == uRetVoid)
 	{
-		g_cpssMem_Manage.uMemSize -= ulSize;
-		VOS_PrintInfo(__FILE__,__LINE__,"now memory is:%d, calloc size memory :%d:%s:ErrCode:%d\n",
-			g_cpssMem_Manage.uMemSize, ulSize,strInfo,GetLastError());
-	}
-	
-	uRet = VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex);
-	if (VOS_OK != uRet)
-	{
-		VOS_PrintErr(__FILE__,__LINE__,"del lock error");
+		VOS_PrintInfo(__FILE__,__LINE__,"now memory is:%d, calloc size memory :%d:%d:ErrCode:%d\n",
+			g_cpssMem_Manage.uMemSize, ulSize, nMemRdKey, GetLastError());
 		return NULL;
+	}
+	pstuMemRecord = cpss_mem_get_record_info();
+	if (NULL == pstuMemRecord)
+	{
+		free(uRetVoid);
+		uRetVoid = NULL;
+	}
+	pstuMemRecord->nSize = ulSize;
+	pstuMemRecord->pstrVoid = uRetVoid;
+	pstuMemRecord->nFileLine = nLine;
+	if (VOS_OK != cpss_mem_move_to_used(nMemRdKey, pstuMemRecord))
+	{
+		free(uRetVoid);
+		uRetVoid = NULL;
+		pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_FREE;
 	}
 	return uRetVoid;
 }
 
 /*===  FUNCTION  ==============================================================
  *         Name:  cpss_mem_free
- *  Description:  申请内存空间
+ *  Description:  释放内存空间
  *  Input      :	
  *  OutPut     :	
  *  Return     :    
  * =============================================================================*/
-VOS_VOID cpss_mem_free(void * vAdress, VOS_INT32 ulSize, VOS_CHAR * strFile, VOS_INT32 nLine)
+VOS_UINT32 cpss_mem_free(VOS_UINT32 nMemRdKey, void * vAdress)
 {
-	VOS_INT32 uRet = 0;
-	uRet = VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex);
-	if (VOS_OK != uRet)
+	VOS_UINT32 uRet = VOS_ERR;
+	CPSS_MEM_RECORD * pstuMemRecord = NULL;
+
+	if (nMemRdKey >= CPSS_MEM_HEAD_KEY_CPSS_TOTAL)
 	{
-		VOS_PrintErr(__FILE__,__LINE__,"add lock error");
-		return ;
+		free(vAdress);
+		vAdress = NULL;
+		VOS_PrintInfo(__FILE__, __LINE__, "free memory key is error key:%d %x\n",
+			nMemRdKey, vAdress);
+		return uRet;
 	}
-	g_cpssMem_Manage.uMemSize -= ulSize;
-	memset(vAdress, 0xFF, ulSize);
-	free(vAdress);
-	uRet = VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex);
-	if (VOS_OK != uRet)
+	pstuMemRecord = cpss_mem_find_record_info(nMemRdKey, vAdress);
+	if (NULL == pstuMemRecord)
 	{
-		VOS_PrintErr(__FILE__,__LINE__,"del lock error");
+		free(vAdress);
+		vAdress = NULL;
+		VOS_PrintInfo(__FILE__, __LINE__, "free memory find is error key:%d %x\n",
+			nMemRdKey, vAdress);
+		return uRet;
 	}
-	//VOS_PrintInfo(__FILE__,__LINE__,"Free size memory %d",ulSize);
-	//printf("Free size memory %d\n",ulSize);
+	if (VOS_OK != cpss_mem_move_to_free(nMemRdKey, pstuMemRecord))
+	{
+		free(vAdress);
+		vAdress = NULL;
+		VOS_PrintInfo(__FILE__, __LINE__, "free memory find is error key:%d %x\n",
+			nMemRdKey, vAdress);
+		return uRet;
+	}
+	return VOS_OK;
 }
 
 

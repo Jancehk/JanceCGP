@@ -32,31 +32,42 @@ typedef enum CPSS_MEM_BUFFER_STAT_M{
 	CPSS_MEM_BUFFER_STAT_USED,
 };
 
+typedef enum CPSS_MEM_RECORD_STAT_M{
+	CPSS_MEM_RECORD_STAT_FREE = 1,
+	CPSS_MEM_RECORD_STAT_RESE,
+	CPSS_MEM_RECORD_STAT_USED,
+};
 typedef enum CPSS_MEM_BUFFER_TYPE_M{
 	CPSS_MEM_BUFFER_TYPE_MSG=1,
 	CPSS_MEM_BUFFER_TYPE_CMD,
 };
 
-
-typedef struct _CPSS_USE_MEM_MGR_T
+typedef struct _CPSS_MEM_RECORD_T
 {
-	VOS_UINT8	uMem_Stat;				/**/
-	VOS_UINT8	uMem_Type;				/**/
-	VOS_UINT16	uMem_Resever;			/**/
-	VOS_UINT32	uUsedCount;				/*used count*/
-	CPSS_MEM_BUFFER * pstuUsedBufHead;	/*head */
-	CPSS_MEM_BUFFER * pstuUsedBufTail;	/*tail */
-}CPSS_USE_MEM_MGR, *pCPSS_USE_MEM_MGR;
+	VOS_UINT32	nSize;		/*buferr 长度*/
+	VOS_UINT8   nState;		/* malloc state*/
+	VOS_VOID	*pstrVoid;	/*buffer 内容*/
+	VOS_UINT32	nFileLine;	/*malloc line in file */
+	VOS_CHAR	*strFileName; /*malloc in where*/
+	struct _CPSS_MEM_RECORD_T * prev;
+	struct _CPSS_MEM_RECORD_T * next;
+}CPSS_MEM_RECORD, *pCPSS_MEM_RECORD;
+typedef struct _CPSS_MEM_RECORD_HEAD_T
+{
+	VOS_UINT32	uMemSize;
+	VOS_UINT32 nTotalCount;
+	CPSS_MEM_RECORD * head;
+	CPSS_MEM_RECORD * tail;
+}CPSS_MEM_RECORD_HEAD, *pCPSS_MEM_RECORD_HEAD;
+
 typedef struct _CPSS_MSG_MEM_MANAGE_T
 {
 	VOS_MUTEX  hMutex;
 	VOS_UINT32 uMemSize;
-	VOS_MUTEX  hMutexBuffer;
+	//VOS_MUTEX  hMutexBuffer;
 	VOS_UINT32 nTotalCount;
-	VOS_UINT32 nFreeCount;
-	//CPSS_USE_MEM_MGR  pstuUsedMgr[128];
-	CPSS_MEM_BUFFER * pstuFreeBufHead;
-	CPSS_MEM_BUFFER * pstuFreeBufTail;
+	CPSS_MEM_RECORD_HEAD stuMemFHeadList;
+	CPSS_MEM_RECORD_HEAD stuMemUHeadList[CPSS_MEM_HEAD_KEY_CPSS_TOTAL];
 }CPSS_MSG_MEM_MANAGE,*pCPSS_MSG_MEM_MANAGE;
 
 /* ===  FUNCTION  ==============================================================
@@ -76,14 +87,17 @@ VOS_VOID cpss_print_mem_info(VOS_STRING pstrStat);
 /*===  FUNCTION  ==============================================================
  *         Name:  cpss_mem_malloc
  *  Description:  申请内存空间
- *  Input      :	
- *  OutPut     :	
- *  Return     :    
  * =============================================================================*/
-VOS_VOID * cpss_mem_malloc(VOS_INT32 ulSize, 
-						   VOS_CHAR * strInfo, 
+VOS_VOID * cpss_mem_malloc(VOS_INT32 ulSize,
+						   VOS_UINT32 nMemRdKey,
 						   VOS_CHAR * strFile, 
 						   VOS_INT32 nLine);
+
+/*===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_free
+*  Description:  释放内存空间
+* =============================================================================*/
+VOS_UINT32 cpss_mem_free(VOS_UINT32 nMemRdKey, void * vAdress);
 
 /*===  FUNCTION  ==============================================================
  *         Name:  cpss_get_mem_buffer
