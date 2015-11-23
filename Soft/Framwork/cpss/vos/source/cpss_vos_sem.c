@@ -18,6 +18,10 @@
 #include "cpss_vos_sem.h"
 #include "cpss_vk_socket.h"
 static CPSS_MSG_SEM_MANAGE *g_cpsMsgSem_Manage;
+#define VOS_Sem_Malloc(ulSize)			VOS_Malloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_MSG))
+#define VOS_Sem_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_MSG))
+#define VOS_Sem_Remset(pstrads)			VOS_Remset((CPSS_MEM_HEAD_KEY_CPSS_MSG), (pstrads))
+#define VOS_Sem_Free(pstrads)			VOS_Free((CPSS_MEM_HEAD_KEY_CPSS_MSG), (pstrads))
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_msg_move_a_to_b
@@ -59,6 +63,7 @@ static VOS_VOID cpss_msg_memset(CPSS_MSG *pMsgInfo)
 /*		cpss_kill_timer(pMsgInfo->pTimer);*/
 		pMsgInfo->pTimer = NULL;
 	}
+	VOS_Sem_Free(pMsgInfo->Body.stuDataBuf);
 	VOS_Memset(&pMsgInfo->Body,sizeof(CPSS_COM_DATA));
 }
 /* ===  FUNCTION  ==============================================================
@@ -1348,6 +1353,53 @@ VOS_UINT32 cps_set_msg_data(CPSS_MSG * msgTmp, VOS_VOID* m_Value, VOS_UINT8 uTyp
 	return ulRtn;
 }
 
+/* ===  FUNCTION  ==============================================================
+*         Name:  cps_get_msg_mem_data
+*  Description:  申请消息的空间
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_UINT32 cps_get_msg_mem_data(CPSS_MSG * msgTmp)
+{
+	VOS_UINT32 ulRtn = VOS_ERR;
+	VOS_CHAR * pstrTmp = NULL;
+
+	if (NULL == msgTmp)
+	{
+		return ulRtn;
+	}
+	if (0 != VOS_Strcmp(msgTmp->Body.msghead.strSegName, CPSS_COMM_SEG_NAME))
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "Recv Head Seg Name Error");
+		return ulRtn;
+	}
+	if (2*1024*1024 < msgTmp->Body.msghead.ulMsgLength)
+	{
+		VOS_PrintWarn(__FILE__, __LINE__, "recv data size is large %d:ere", msgTmp->Body.msghead.ulMsgLength);
+		return ulRtn;
+	}
+	if (NULL == msgTmp->Body.stuDataBuf)
+	{
+		msgTmp->Body.stuDataBuf = VOS_Sem_Malloc(msgTmp->Body.msghead.ulMsgLength);
+	}
+	else
+	{
+		pstrTmp = VOS_Sem_Realloc(msgTmp->Body.stuDataBuf, msgTmp->Body.msghead.ulMsgLength);
+		if (NULL != pstrTmp)
+		{
+			msgTmp->Body.stuDataBuf = pstrTmp;
+			VOS_Sem_Free(msgTmp->Body.stuDataBuf);
+			msgTmp->Body.stuDataBuf = NULL;
+		}
+	}
+	if (NULL == msgTmp->Body.stuDataBuf)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "get msg data size is error");
+		return ulRtn;
+	}
+	return VOS_OK;
+}
 /* ===  FUNCTION  ==============================================================
 *         Name:  cps_uninit_msg_sem
 *  Description:  平台卸载消息队列

@@ -19,6 +19,13 @@
 #include "cpss_public.h"
 #include "cpss_vk_print.h"
 
+
+
+#define VOS_Skt_Malloc(ulSize)			VOS_Malloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_Remset(pstrads)			VOS_Remset((CPSS_MEM_HEAD_KEY_CPSS_SKT), (pstrads))
+#define VOS_Skt_Free(pstrads)			VOS_Free((CPSS_MEM_HEAD_KEY_CPSS_SKT), (pstrads))
+
 /* ===  FUNCTION  ==============================================================
 *         Name:  cpss_socket_delete
 *  Description:  将socket从指定的链表上移出
@@ -670,10 +677,12 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 {
 	VOS_UINT32			ulRet = VOS_ERR;
 	VOS_UINT32			ulMsgLength = 0;
+	VOS_UINT32			ulBodySize = 0;
+	VOS_UINT32			ulMsgIndex = 0;
 	CPSS_SOCKET_LINK  *	pSocketLink = NULL;
 	CPSS_CLIENT_INFO  *	pClientInfo = NULL;
 	CPSS_MSG		  * msgTmp = NULL;
-	pCPSS_MEM_BUFFER	pstuBuf = NULL;
+	//pCPSS_MEM_BUFFER	pstuBuf = NULL;
 
 	if (NULL == pSocketInfo)
 	{
@@ -697,70 +706,107 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 
 	if (CPSS_SOCKET_PACKAGE_OFF == (pClientInfo->uClientStat & CPSS_SOCKET_PACKAGE_OFF))
 	{
+		VOS_Strncpy(msgTmp->Body.msghead.strSegName, CPSS_COMM_SEG_NAME, VOS_Strlen(msgTmp->Body.msghead.strSegName));
 		msgTmp->Body.msghead.stDstProc.ulCpuID = CPSSCPUID;
 		msgTmp->Body.msghead.stDstProc.ulPID = *pSocketLink->pstuPid->pPid;
 		msgTmp->Body.msghead.stSrcProc.ulCpuID = get_cpuid_from_str(pClientInfo->strIPaddress);
 		msgTmp->Body.msghead.stSrcProc.ulPID = VOS_SOCKET_IN | VOS_TCP_PID | pSocketInfo->uPort;
+		msgTmp->Body.msghead.ulMsgLength = CPSS_MSG_BUFFER_SIZE;
 
-		pstuBuf = &(msgTmp->Body.stuDataBuf);
-		ulMsgLength = recv(pSocketInfo->nlSocketfd,
-			pstuBuf->strBuffer + pstuBuf->nSize,
-			CPSS_MSG_BUFFER_SIZE- pstuBuf->nSize,0);
-
-		if (0 == ulMsgLength || 0xffffffff == ulMsgLength)
+		if (VOS_OK != cps_get_msg_mem_data(msgTmp))
 		{
 			cpss_move_reserve_to_free(msgTmp);
 			return VOS_CLIENT_DISCONNECT;
 		}
+		ulMsgLength = recv(pSocketInfo->nlSocketfd,
+			msgTmp->Body.stuDataBuf,
+			CPSS_MSG_BUFFER_SIZE,0);
 
-		pstuBuf->nSize += ulMsgLength;
-		msgTmp->ulMsgLength = ulMsgLength;
-		msgTmp->Body.msghead.ulMsgLength = ulMsgLength;
-		if (pstuBuf->nSize > CPSS_MSG_BUFFER_SIZE)
+		if (0 == ulMsgLength)
 		{
-			VOS_PrintErr(__FILE__, __LINE__, "get msg size big");
-			return ulRet;
+			cpss_move_reserve_to_free(msgTmp);
+			return VOS_CLIENT_DISCONNECT;
 		}
+		msgTmp->Body.msghead.ulMsgLength = ulMsgLength;
+		if (VOS_OK != cps_get_msg_mem_data(msgTmp))
+		{
+			cpss_move_reserve_to_free(msgTmp);
+			return VOS_CLIENT_DISCONNECT;
+		}
+		msgTmp->ulMsgLength = ulMsgLength;
 		ulRet = VOS_OK;
 	}
 	else if (CPSS_SOCKET_PACKAGE_ON == (pClientInfo->uClientStat & CPSS_SOCKET_PACKAGE_ON))
 	{
-		ulMsgLength = recv(pSocketInfo->nlSocketfd,
-			(VOS_CHAR*)&msgTmp->Body.msghead + msgTmp->ulMsgLength,
-			sizeof(CPSS_COM_HEAD) - msgTmp->ulMsgLength,0);
-		if (0 == ulMsgLength || 0xffffffff == ulMsgLength)
+		ulBodySize = CPSS_MSG_HEAD_SIZE;//CPSS_MSG_HEAD_SIZE+CPSS_MSG_BUFFER_SIZE;
+		ulMsgIndex = 0;
+		msgTmp->nType = CPSS_MSG_TYPE_RECVING;
+		while (ulMsgIndex != ulBodySize)
 		{
-			cpss_move_reserve_to_free(msgTmp);
-			return VOS_CLIENT_DISCONNECT;
-		}
+			ulMsgLength = recv(pSocketInfo->nlSocketfd,
+				(VOS_CHAR*)&msgTmp->Body.msghead + ulMsgIndex,
+				ulBodySize - ulMsgIndex, 0);
 
-		pstuBuf = &(msgTmp->Body.stuDataBuf);
-		ulMsgLength = recv(pSocketInfo->nlSocketfd,
-			pstuBuf->strBuffer + pstuBuf->nSize,
-			CPSS_MSG_BUFFER_SIZE- pstuBuf->nSize,0);
+			VOS_PrintDebug(__FILE__, __LINE__, "recvfrom head total size is %d:%d",
+				ulMsgLength, ulBodySize);
+
+			if (0 == ulMsgLength)
+			{
+				VOS_PrintWarn(__FILE__, __LINE__, "break link %d:ErrorCode:%d", ulMsgLength, WSAGetLastError());
+				goto END_DIS_PROC;
+			}
+			ulMsgIndex += ulMsgLength;
+		}
 
 		if (CPSSCPUID != msgTmp->Body.msghead.stDstProc.ulCpuID ||
 			*pSocketLink->pstuPid->pPid != msgTmp->Body.msghead.stDstProc.ulPID)
 		{
-			cpss_move_reserve_to_free(msgTmp);
 			VOS_PrintErr(__FILE__, __LINE__, "Dst error:CPUID:%08d:%08d PID:%08d:%08d",
 				CPSSCPUID, msgTmp->Body.msghead.stDstProc.ulCpuID,
 				*pSocketLink->pstuPid->pPid, msgTmp->Body.msghead.stDstProc.ulPID);
-			return ulRet;
+			goto END_DIS_PROC;
 		}
-		//pSocketLink = pClientInfo->pSocketInfo;
-		//msgTmp->Body.msghead.stSrcProc.ulCpuID = get_cpuid_from_str(pClientInfo->strIPaddress);
-		//msgTmp->Body.msghead.stSrcProc.ulPID = VOS_SOCKET_IN | VOS_TCP_PID | pSocketLink->uPort;
-		msgTmp->ulMsgLength = ulMsgLength;
-		if (msgTmp->ulMsgLength > CPSS_MSG_BUFFER_SIZE)
+		if (VOS_OK != cps_get_msg_mem_data(msgTmp))
 		{
-			VOS_PrintErr(__FILE__, __LINE__, "get msg size big");
-			return ulRet;
+			VOS_PrintErr(__FILE__, __LINE__, "get msg mem data is err");
+			goto END_ERR_PROC;
 		}
-		ulRet = VOS_OK;
+
+		ulMsgIndex = 0;
+		ulBodySize = msgTmp->Body.msghead.ulMsgLength;
+
+		VOS_PrintDebug(__FILE__, __LINE__, "recvfrom data total size is %d",
+			ulBodySize);
+
+		while (ulMsgIndex != ulBodySize && ulBodySize >0)
+		{
+			ulMsgLength = recv(pSocketInfo->nlSocketfd,
+				msgTmp->Body.stuDataBuf + ulMsgIndex,
+				ulBodySize - ulMsgIndex, 0);
+			
+			VOS_PrintDebug(__FILE__, __LINE__, "recv data total size is %d:%d",
+				ulMsgLength, ulBodySize);
+
+			if (0 == ulMsgLength)
+			{
+				VOS_PrintWarn(__FILE__, __LINE__, "break link %d:ErrorCode:%d", ulMsgLength, WSAGetLastError());
+				goto END_DIS_PROC;
+			}
+			ulMsgIndex += ulMsgLength;
+		}
+		msgTmp->ulMsgLength = ulMsgIndex;
 	}
 	//pSocketInfo->pstuRecvMsg = msgTmp;
+END_OK_PROC:
 	return ulRet;
+END_ERR_PROC:
+	cpss_move_reserve_to_free(msgTmp);
+	ulRet = VOS_ERR;
+	goto END_OK_PROC;
+END_DIS_PROC:
+	cpss_move_reserve_to_free(msgTmp);
+	ulRet = VOS_CLIENT_DISCONNECT;
+	goto END_OK_PROC;
 }
 
 /* ===  FUNCTION  ==============================================================
@@ -862,16 +908,16 @@ static CPSS_MSG * cpss_get_send_msg(CPSS_MSG * pMsg)
 		pMsg->Body.msghead.stDstProc.ulPID);
 	
 	pSendMsg->Body.msghead.uType    = pMsg->Body.msghead.uType;
-	pSendMsg->Body.msghead.uSubType = pMsg->Body.msghead.uSubType;
+	//pSendMsg->Body.msghead.uSubType = pMsg->Body.msghead.uSubType;
 	pSendMsg->Body.msghead.uCmd     = pMsg->Body.msghead.uCmd;
-	pSendMsg->Body.msghead.uSubCmd  = pMsg->Body.msghead.uSubCmd;
+	//pSendMsg->Body.msghead.uSubCmd  = pMsg->Body.msghead.uSubCmd;
 	
 	pSendMsg->Body.msghead.ulRecvMsgID = pMsg->Body.msghead.ulMsgID;
 	
 	VOS_Memcpy(&(pSendMsg->Body.stuDataBuf), &(pMsg->Body.stuDataBuf), sizeof(CPSS_MEM_BUFFER));
 	pSendMsg->Body.msghead.ulMsgLength = pMsg->Body.msghead.ulMsgLength;
 	
-	VOS_Memset(&pMsg->Body.stuDataBuf,sizeof(CPSS_MEM_BUFFER));
+	//VOS_Memset(&pMsg->Body.stuDataBuf,sizeof(CPSS_MEM_BUFFER));
 
 	return pSendMsg;
 }
@@ -890,9 +936,8 @@ static VOS_UINT32 cpss_udp_recv_msg(pCPSS_SOCKET_LINK hSocketLink,  VOS_UINT32 u
 	CPSS_MSG  *msgTmp = NULL;
 	VOS_UINT32 ulMsgIndex = 0;
 	VOS_UINT32 ulBodySize = 0;
-	VOS_UINT32 ulTotalSize = 0;
 	VOS_INT32  stusktaddrsz = 0;
-	pCPSS_MEM_BUFFER   pstuBuff = NULL;
+	//pCPSS_MEM_BUFFER   pstuBuff = NULL;
 	SOCKADDR   stusktaddr;
 
 	if (NULL == hSocketLink)
@@ -918,7 +963,7 @@ static VOS_UINT32 cpss_udp_recv_msg(pCPSS_SOCKET_LINK hSocketLink,  VOS_UINT32 u
 	{
 		ulMsgLength = recvfrom(
 			hSocketLink->nlSocketfd, 
-			(VOS_CHAR*)&(msgTmp->Body.msghead),
+			(VOS_CHAR*)&(msgTmp->Body.msghead) + ulMsgIndex,
 			ulBodySize-ulMsgIndex,
 			0,
 			&stusktaddr,
@@ -938,62 +983,44 @@ static VOS_UINT32 cpss_udp_recv_msg(pCPSS_SOCKET_LINK hSocketLink,  VOS_UINT32 u
 		}
 		ulMsgIndex +=ulMsgLength;
 	}
-	ulMsgIndex = 0;
-	pstuBuff = &msgTmp->Body.stuDataBuf;
-
-	VOS_PrintDebug(__FILE__,__LINE__,"recvfrom data total size is %d",
-		msgTmp->Body.msghead.ulMsgLength);
-
-	while (ulTotalSize < msgTmp->Body.msghead.ulMsgLength)
+	msgTmp->ulMsgLength = ulMsgIndex;
+	if (VOS_OK != cps_get_msg_mem_data(msgTmp))
 	{
-		if ((msgTmp->Body.msghead.ulMsgLength - ulTotalSize) > CPSS_MSG_BUFFER_USED+(sizeof(VOS_UINT32)*4))
-		{
-			ulBodySize = CPSS_MSG_BUFFER_USED + CPSS_MSG_BUF_HEAD_SIZE;
-		}
-		else
-		{
-			ulBodySize = msgTmp->Body.msghead.ulMsgLength - ulTotalSize;
-		}
-		ulMsgIndex = 0;
-		while (ulMsgIndex != ulBodySize)
-		{
-			ulMsgLength = recvfrom(
-				hSocketLink->nlSocketfd, 
-				(VOS_CHAR*)(pstuBuff),
-				ulBodySize-ulMsgIndex,
-				0,
-				&stusktaddr,
-				&stusktaddrsz);
-
-			VOS_PrintDebug(__FILE__,__LINE__,"recvfrom data total size is %d:%d",
-				ulMsgLength,ulBodySize);
-			
-			if (0xffffffff == ulMsgLength)
-			{
-				VOS_PrintWarn(__FILE__,__LINE__,"recvfrom data size is %d:ere%d",ulMsgLength,WSAGetLastError());
-				goto END_PROC;
-			}
-			if (0 == ulMsgLength)
-			{
-				VOS_PrintErr(__FILE__,__LINE__,"recvfrom recv %d:ere%d",ulMsgLength,WSAGetLastError());
-				continue;
-			}
-			ulBodySize = CPSS_MSG_BUF_HEAD_SIZE	+ pstuBuff->nSize;
-			ulMsgIndex +=ulMsgLength;
-		}
-		ulTotalSize +=ulMsgIndex;
-
-		if (pstuBuff->nSize >= CPSS_MSG_BUFFER_USED &&
-			msgTmp->Body.msghead.ulMsgLength - ulBodySize >0)
-		{
-			pstuBuff = (CPSS_MEM_BUFFER*)cpss_get_mem_buffer(pstuBuff,1);
-		}
+		VOS_PrintErr(__FILE__, __LINE__, "get msg mem data is err");
+		goto END_PROC;
 	}
-	if (ulTotalSize == msgTmp->Body.msghead.ulMsgLength)
+
+	ulMsgIndex = 0;
+	ulBodySize = msgTmp->Body.msghead.ulMsgLength;
+
+	VOS_PrintDebug(__FILE__, __LINE__, "recvfrom data total size is %d",
+		ulBodySize);
+
+	while (ulMsgIndex != ulBodySize)
 	{
-		msgTmp->pClient = hSocketLink;
-		ulSocRet = VOS_OK;
-	}/*VOS_PrintErr(__FILE__, __LINE__,"udp recv msg :%d",ulSocRet);*/
+		ulMsgLength = recvfrom(
+			hSocketLink->nlSocketfd,
+			msgTmp->Body.stuDataBuf + ulMsgIndex,
+			ulBodySize - ulMsgIndex,
+			0,
+			&stusktaddr,
+			&stusktaddrsz);
+
+		VOS_PrintDebug(__FILE__, __LINE__, "recvfrom data total size is %d:%d",
+			ulMsgLength, ulBodySize);
+
+		if (0 == ulMsgLength)
+		{
+			VOS_PrintErr(__FILE__, __LINE__, "recvfrom recv %d:ere%d", ulMsgLength, WSAGetLastError());
+			continue;
+		}
+		ulMsgIndex += ulMsgLength;
+	}
+
+	msgTmp->ulMsgLength = ulMsgIndex;
+	msgTmp->pClient = hSocketLink;
+	ulSocRet = VOS_OK;
+
 END_PROC:
 	if (ulSocRet == VOS_OK)
 	{
@@ -1183,8 +1210,7 @@ VOS_UINT32 cpss_tcp_send_proc (VOS_VOID * lpPareter)
 	CPSS_SOCKET_LINK  * pSocket = NULL;
 	CPSS_MSG		  * pstuMsg = NULL;
 	CPSS_MSG		  * pstuMsgParent = NULL;
-	CPSS_MEM_BUFFER	  * pstuBuf = NULL;
-
+	
 	cpss_thread_success("T Send");
 	
 	while(FALSE == g_handleiocpmanage.usExitSystem)
@@ -1228,8 +1254,45 @@ VOS_UINT32 cpss_tcp_send_proc (VOS_VOID * lpPareter)
 			continue;
 		}
 		nSendLength = 0;
-		pstuBuf = &(pstuMsg->Body.stuDataBuf);
-		while(NULL != pstuBuf)
+
+		if (CPSS_SOCKET_PACKAGE_OFF == (pClientInfo->uClientStat & CPSS_SOCKET_PACKAGE_OFF))
+		{
+			VOS_Strncpy(msgTmp->Body.msghead.strSegName, CPSS_COMM_SEG_NAME, VOS_Strlen(msgTmp->Body.msghead.strSegName));
+			msgTmp->Body.msghead.stDstProc.ulCpuID = CPSSCPUID;
+			msgTmp->Body.msghead.stDstProc.ulPID = *pSocketLink->pstuPid->pPid;
+			msgTmp->Body.msghead.stSrcProc.ulCpuID = get_cpuid_from_str(pClientInfo->strIPaddress);
+			msgTmp->Body.msghead.stSrcProc.ulPID = VOS_SOCKET_IN | VOS_TCP_PID | pSocketInfo->uPort;
+			msgTmp->Body.msghead.ulMsgLength = CPSS_MSG_BUFFER_SIZE;
+
+			if (VOS_OK != cps_get_msg_mem_data(msgTmp))
+			{
+				cpss_move_reserve_to_free(msgTmp);
+				return VOS_CLIENT_DISCONNECT;
+			}
+			ulMsgLength = recv(pSocketInfo->nlSocketfd,
+				msgTmp->Body.stuDataBuf,
+				CPSS_MSG_BUFFER_SIZE, 0);
+
+			if (0 == ulMsgLength)
+			{
+				cpss_move_reserve_to_free(msgTmp);
+				return VOS_CLIENT_DISCONNECT;
+			}
+			msgTmp->Body.msghead.ulMsgLength = ulMsgLength;
+			if (VOS_OK != cps_get_msg_mem_data(msgTmp))
+			{
+				cpss_move_reserve_to_free(msgTmp);
+				return VOS_CLIENT_DISCONNECT;
+			}
+			msgTmp->ulMsgLength = ulMsgLength;
+			ulRet = VOS_OK;
+		}
+		else if (CPSS_SOCKET_PACKAGE_ON == (pClientInfo->uClientStat & CPSS_SOCKET_PACKAGE_ON))
+		{
+		}
+
+		//pstuBuf = &(pstuMsg->Body.stuDataBuf);
+		while (NULL != pstuMsg->Body.stuDataBuf)
 		{
 			nSendSize = send(pSocket->nlSocketfd, (VOS_CHAR*)pstuBuf->strBuffer, pstuBuf->nSize, 0);
 			if (0xFFFFFFFF == nSendSize)

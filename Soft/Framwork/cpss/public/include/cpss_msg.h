@@ -104,25 +104,30 @@ typedef struct _CPSS_COM_PID_T
 }CPSS_COM_PID,*pCPSS_COM_PID;
 typedef struct _CPSS_COM_HEAD_T
 {
+	VOS_CHAR			strSegName[4];
 	CPSS_COM_PID 		stDstProc;		//目标地址
 	CPSS_COM_PID 		stSrcProc;		//源地址
+	VOS_UINT8			uResevr[4];
+	/*-----------------------------------------*/
 	VOS_UINT32 			ulMsgID;		//消息ID;
 	VOS_UINT32 			ulParentMsgID;	//父消息消息ID;
 	VOS_UINT32 			ulRecvMsgID;	//源消息ID
 	VOS_UINT32 			ulNextMsgID;	//下一个源消息ID
-	VOS_UINT8			uType;
-	VOS_UINT8			uSubType;
-	VOS_UINT8			uCmd;
-	VOS_UINT8			uSubCmd;
-	VOS_UINT8			uResevr[4];
+	/*-----------------------------------------*/
+	VOS_UINT32			uType;
+	//VOS_UINT8			uSubType;
+	VOS_UINT32			uCmd;
+	//VOS_UINT8			uSubCmd;
 	VOS_UINT32 			ulMsgLength;	//消息长度
+	VOS_UINT8			RFU[4];
+	/*-----------------------------------------*/
 }CPSS_COM_HEAD,*pCPSS_COM_HEAD;
 
 #define  CPSS_MSG_HEAD_SIZE		sizeof(CPSS_COM_HEAD) //+(24)
 typedef struct _CPSS_COM_DATA_T
 {
 	CPSS_COM_HEAD		msghead;
-	CPSS_MEM_BUFFER     stuDataBuf;
+	VOS_CHAR*			stuDataBuf;
 	//CPSS_MEM_BUFFER     stuSendBuf;
 }CPSS_COM_DATA,*pCPSS_COM_DATA;
 typedef struct _CPSS_MSG_T

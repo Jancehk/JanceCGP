@@ -63,14 +63,20 @@ typedef struct _CPSS_USER_INFO_T{
 	VOS_CHAR	strUser[CPSS_CLIENT_NAME_LENGTH];
 	VOS_CHAR	strPass[CPSS_CLIENT_PASS_LENGTH];
 	VOS_UINT32	ulResult;
-}CPSS_USER_INFO,*pCPSS_USER_INFO;
+}CPSS_USER_INFO, *pCPSS_USER_INFO;
+
 #define  CPSS_MSG_BUFFER_SIZE	1024
-#define  CPSS_MSG_BUFFER_USED	(CPSS_MSG_BUFFER_SIZE - 4)
-#define  CPSS_MSG_BUF_HEAD_SIZE	(sizeof(VOS_UINT32)*4)
+//#define  CPSS_MSG_BUFFER_USED	(CPSS_MSG_BUFFER_SIZE - 4)
+//#define  CPSS_MSG_BUF_HEAD_SIZE	(sizeof(VOS_UINT32)*4)
+#define  CPSS_COMM_SEG_NAME		"JCPG"
 //³£ÓÃ¿âº¯Êý
 #define BZERO(pszStr,nSize)					memset((pszStr),(0),(nSize))
 #define VOS_Malloc(ulSize,strInfo)			cpss_mem_malloc((ulSize), (strInfo), (__FILE__),(__LINE__))
-#define VOS_Free(pstaddress,ulSize)			cpss_mem_free((pstaddress),(ulSize), (__FILE__),(__LINE__))
+#define VOS_Realloc(pstrads,ulSize,strInfo)	cpss_mem_realloc((strInfo), (pstrads), (ulSize), (__FILE__),(__LINE__))
+#define VOS_Remset(pstrads,strInfo)			cpss_mem_reset((strInfo), (pstrads),(__FILE__),(__LINE__))
+#define VOS_Free(pstrads,strInfo)			cpss_mem_free((strInfo), (pstrads), (__FILE__),(__LINE__))
+
+
 #define VOS_Memset(pstaddres,ulSize)		memset((pstaddres),0 ,(ulSize))
 #define VOS_Memcpy(pstSou,pstDes,ulSize)	memcpy((pstSou), (pstDes), (ulSize))
 #define VOS_Strcpy(pstSou,pstDes)			strcpy((pstSou), (pstDes))

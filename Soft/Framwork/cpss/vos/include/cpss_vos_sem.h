@@ -173,6 +173,12 @@ VOS_UINT32 cps_set_msg_dst_cpuid(CPSS_MSG * msgTmp, VOS_UINT32 ulCpuID, VOS_UINT
 VOS_UINT32 cps_set_msg_data(CPSS_MSG * msgTmp, VOS_VOID* m_Value, VOS_UINT8 uType);
 
 /* ===  FUNCTION  ==============================================================
+*         Name:  cps_get_msg_mem_data
+*  Description:  申请消息的空间
+* ==========================================================================*/
+VOS_UINT32 cps_get_msg_mem_data(CPSS_MSG * msgTmp);
+
+/* ===  FUNCTION  ==============================================================
  *         Name:  cps_uninit_msg_sem
  *  Description:  平台卸载消息队列
  *  Input      :    
