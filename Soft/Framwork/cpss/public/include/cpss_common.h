@@ -65,10 +65,6 @@ typedef struct _CPSS_USER_INFO_T{
 	VOS_UINT32	ulResult;
 }CPSS_USER_INFO, *pCPSS_USER_INFO;
 
-#define  CPSS_MSG_BUFFER_SIZE	1024
-//#define  CPSS_MSG_BUFFER_USED	(CPSS_MSG_BUFFER_SIZE - 4)
-//#define  CPSS_MSG_BUF_HEAD_SIZE	(sizeof(VOS_UINT32)*4)
-#define  CPSS_COMM_SEG_NAME		"JCPG"
 //³£ÓÃ¿âº¯Êý
 #define BZERO(pszStr,nSize)					memset((pszStr),(0),(nSize))
 #define VOS_Malloc(ulSize,strInfo)			cpss_mem_malloc((ulSize), (strInfo), (__FILE__),(__LINE__))

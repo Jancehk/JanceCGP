@@ -124,6 +124,10 @@ typedef struct _CPSS_COM_HEAD_T
 }CPSS_COM_HEAD,*pCPSS_COM_HEAD;
 
 #define  CPSS_MSG_HEAD_SIZE		sizeof(CPSS_COM_HEAD) //+(24)
+#define  CPSS_MSG_BUFFER_SIZE	1024
+//#define  CPSS_MSG_BUFFER_USED	(CPSS_MSG_BUFFER_SIZE - 4)
+//#define  CPSS_MSG_BUF_HEAD_SIZE	(sizeof(VOS_UINT32)*4)
+#define  CPSS_COMM_SEG_NAME		"JCPG"
 typedef struct _CPSS_COM_DATA_T
 {
 	CPSS_COM_HEAD		msghead;

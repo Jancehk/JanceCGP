@@ -1475,7 +1475,7 @@ VOS_UINT32 VOS_PrintBuffer (
 {
 	va_list ap;
 	VOS_UINT32 ulRet = VOS_ERR;
-	CPSS_MEM_BUFFER * pstuBufTmp = NULL;
+	//CPSS_MEM_BUFFER * pstuBufTmp = NULL;
 	PRINT_INFO *pstuPrintInfoBuffer = NULL;
 	PRINT_INFO	stuPrintInfoBuffer;				//¥Ú”°µΩª∫¥Êbuffer÷–
 	VOS_UINT32 ulOffset = 0;
