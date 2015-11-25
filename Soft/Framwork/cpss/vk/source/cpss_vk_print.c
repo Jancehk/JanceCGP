@@ -21,9 +21,18 @@
 #include "cpss_public.h"
 #include "cpss_vk_file.h"
 
+#define VOS_Log_Malloc(ulSize)			VOS_Malloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
+#define VOS_Log_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
+#define VOS_Log_Remset(pstrads)			VOS_Remset((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
+#define VOS_Log_Memcat(pstrA,pstrB)		VOS_Memcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
+#define VOS_Log_Memsize(pstrads)		VOS_Memsize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
+#define VOS_Log_Free(pstrads)			VOS_Free((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
+
+#define VOS_Log_Strcat(pstrA,pstrB)		VOS_CpsStrcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
+
 static MANAGE_PRINT g_manageprint = {0};
-THREAD VOS_UINT32 g_ProcessID = 0;
-THREAD VOS_UINT32 g_ThreadID = 0;
+THREAD VOS_UINT32	g_ProcessID = 0;
+THREAD VOS_UINT32	g_ThreadID = 0;
 /* ===  FUNCTION  ==========================================================
  *         Name:  cpss_vsprintf(const char *fmt, ...)
  *  Description: 格式化包囊函数 , VOS_INT32  *nFileLength
@@ -32,6 +41,14 @@ static VOS_CHAR * cpss_vsprintf(pPRINT_INFO pPrintInfoTmp, const VOS_CHAR *fmt, 
 {
 	VOS_CHAR *p = NULL;//, *np;
 	VOS_INT32 size =PRINTT_INFO_LEN,n=0;
+	if (NULL == pPrintInfoTmp->pszPrintInfo)
+	{
+		pPrintInfoTmp->pszPrintInfo = (VOS_CHAR*)VOS_Log_Malloc(PRINTT_INFO_LEN);
+		if (NULL == pPrintInfoTmp->pszPrintInfo)
+		{
+			return NULL;
+		}
+	}
 	/*
 	if ((p = (VOS_CHAR *)VOS_Malloc (size, "get print str trace")) == NULL)
 	if (NULL == p)	
@@ -49,7 +66,29 @@ static VOS_CHAR * cpss_vsprintf(pPRINT_INFO pPrintInfoTmp, const VOS_CHAR *fmt, 
 #elif (OS_TYPE == OS_TYPE_LINUX)
 		n = vsnprintf (p, size, fmt, ap);
 #endif
+
+		/*  Else try again with more space. */
+		if (n > -1 && n < size)    /*  glibc 2.1 */
+		{
+			pPrintInfoTmp->ulPrintSize = n;
+			return p;
+		}
+		else           /*  glibc 2.0 */
+		{
+			size *= 2;  /*  twice the old size */
+		}
+		if ((p = (VOS_CHAR*)VOS_Log_Realloc(p, size)) == NULL)
+		{
+			VOS_Free(pPrintInfoTmp->pszPrintInfo, n);
+			pPrintInfoTmp->pszPrintInfo = NULL;
+			return NULL;
+		}
+		else
+		{
+			pPrintInfoTmp->pszPrintInfo = p;
+		}
 		/*  If that worked, return the string. */
+		/*
 		if (n > -1 && n < size)
 		{
 			pPrintInfoTmp->ulPrintSize = n;
@@ -59,6 +98,7 @@ static VOS_CHAR * cpss_vsprintf(pPRINT_INFO pPrintInfoTmp, const VOS_CHAR *fmt, 
 		{
 			break;
 		}
+		*/
 	}
 return NULL;
 #if 0
@@ -472,14 +512,14 @@ static  VOS_UINT32 cpss_get_in_a_for_b_trace (pPRINT_INFO *ppPrintHead, pPRINT_I
 	{
 		if (g_manageprint.ulPrintCount < PRINT_LOG_COUNT)
 		{
-			pPrintInfoTmp = (pPRINT_INFO)VOS_Malloc(sizeof(PRINT_INFO),"get print trace");
+			pPrintInfoTmp = (pPRINT_INFO)VOS_Log_Malloc(sizeof(PRINT_INFO));
 			if (NULL == pPrintInfoTmp)
 			{
 				printf("cpss print get b in a memset a is error [%s:(%d)]", __FILE__,__LINE__);
 				goto END_PROC;
 			}
 			VOS_Memset(pPrintInfoTmp, sizeof(PRINT_INFO));
-
+			/*
 			pPrintInfoTmp->pszPrintInfo = (VOS_CHAR *)VOS_Malloc(PRINTT_INFO_LEN ,"get print buffer");
 			if (NULL == pPrintInfoTmp->pszPrintInfo)
 			{
@@ -488,7 +528,7 @@ static  VOS_UINT32 cpss_get_in_a_for_b_trace (pPRINT_INFO *ppPrintHead, pPRINT_I
 				goto END_PROC;
 			}
 			VOS_Memset(pPrintInfoTmp->pszPrintInfo , PRINTT_INFO_LEN );
-
+			*/
 			pPrintInfoTmp->ulLogID = g_manageprint.ulPrintCount + 1;
 			pPrintInfoTmp->ulState = PRINT_INFO_RESERVE;
 			pPrintInfoTmp->next = NULL;
@@ -676,8 +716,7 @@ END_PROC:
  VOS_VOID cpss_print_trace ()
  {
 	PRINT_INFO		  * pPrintinfo = NULL;
-	CPSS_MEM_BUFFER		stuBuffer  = {0};
-	pCPSS_MEM_BUFFER  	pstuBuffer = NULL;
+	VOS_CHAR*			stuBuffer  = {0};
 	VOS_CHAR			szCurrentPath[256] = {0};
 	return;
 	VOS_PrintBuffer(&stuBuffer,"\n\n**************\n");
@@ -703,23 +742,14 @@ END_PROC:
 			pPrintinfo->next);
 		pPrintinfo = pPrintinfo->next;
 	}
-	pstuBuffer = &stuBuffer;
 
 	if (VOS_OK != cpss_get_current_path(szCurrentPath))
 	{
 		return ;
 	}
-	cpss_write_buffer(szCurrentPath, "msg", 
-		pstuBuffer->strBuffer, VOS_Strlen(pstuBuffer->strBuffer));
+	cpss_write_buffer(szCurrentPath, "msg", stuBuffer, VOS_Strlen(stuBuffer));
+	VOS_Log_Free(stuBuffer);
 	//VOS_PrintDebug("",CPSS_PRINTF_BUFFER,"%s",pstuBuffer->strBuffer);
-	pstuBuffer = pstuBuffer->next;
-	while(NULL != pstuBuffer)
-	{
-		//VOS_PrintDebug("",CPSS_PRINTF_BUFFER,"%s",pstuBuffer->strBuffer);
-		cpss_write_buffer(szCurrentPath, "msg", 
-			pstuBuffer->strBuffer, VOS_Strlen(pstuBuffer->strBuffer));
-		pstuBuffer = (pCPSS_MEM_BUFFER)cpss_get_next_buffer(pstuBuffer);
-	}
  }
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_get_free_print_trace
@@ -1262,21 +1292,21 @@ VOS_VOID cpss_print_close ()
  *  Return     :    
  * =============================================================================*/
 VOS_UINT32 cpss_print(
-		VOS_UINT32 	ucProcessPid,		//子模块ID
-		VOS_UINT32  ulPrintType,			//日志类型(INFO  ERR  WARM)
-		VOS_STRING  szFilename,			//打印日志文件名称
-		VOS_UINT32  ulLine,				//打印的行数
-		VOS_STRING 	szFormat,			//日志内容
-		va_list argptr)
+	VOS_UINT32 	ucProcessPid,		//子模块ID
+	VOS_UINT32  ulPrintType,			//日志类型(INFO  ERR  WARM)
+	VOS_STRING  szFilename,			//打印日志文件名称
+	VOS_UINT32  ulLine,				//打印的行数
+	VOS_STRING 	szFormat,			//日志内容
+	va_list argptr)
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 	VOS_STRING pszprintfinfo = NULL;
 	VOS_STRING szProcessPidName = NULL;
 	pPRINT_INFO pPrintInfoTmp = NULL;
-	VOS_CHAR   pszFilename[MAX_PATH] = {0};
-	VOS_CHAR   szTime[CPSS_MAX_TIME] = {0};
+	VOS_CHAR   pszFilename[MAX_PATH] = { 0 };
+	VOS_CHAR   szTime[CPSS_MAX_TIME] = { 0 };
 	VOS_INT32  nFileLength = 0;//strlen(szFilename);
-	
+
 
 
 	if (CPSS_PRINT_LEVEL_CLOSE == g_manageprint.g_traceo_on_off)
@@ -1296,8 +1326,12 @@ VOS_UINT32 cpss_print(
 		printf("CGP Get free trace is NULL!\n");
 		return VOS_ERR;
 	}
-	
-	cpss_vsprintf(pPrintInfoTmp, szFormat,argptr);
+
+	if (NULL == cpss_vsprintf(pPrintInfoTmp, szFormat, argptr))
+	{
+		printf("CGP Format trace error\n");
+		return VOS_ERR;
+	}
 
 	szProcessPidName = cpss_get_pid_name(ucProcessPid);	//得到当前PID对应名称
 	cpss_get_current_time_to_str(szTime);		//得到当前系统时间
@@ -1475,8 +1509,9 @@ VOS_UINT32 VOS_PrintBuffer (
 {
 	va_list ap;
 	VOS_UINT32 ulRet = VOS_ERR;
-	//CPSS_MEM_BUFFER * pstuBufTmp = NULL;
-	PRINT_INFO *pstuPrintInfoBuffer = NULL;
+	VOS_CHAR	*pstuBufTmp = NULL;
+	VOS_CHAR	**pstuBufRtn = NULL;
+	VOS_CHAR	*pstuFmtBuf = NULL;
 	PRINT_INFO	stuPrintInfoBuffer;				//打印到缓存buffer中
 	VOS_UINT32 ulOffset = 0;
 	VOS_UINT32 ulCpLen = 0;
@@ -1486,162 +1521,38 @@ VOS_UINT32 VOS_PrintBuffer (
 		VOS_PrintErr(__FILE__, __LINE__, "print buffer is param is error");
 		goto END_PROC;
 	}
+	pstuBufRtn = pstuBuffer;
 	VOS_Memset(&stuPrintInfoBuffer, sizeof(PRINT_INFO));
-	stuPrintInfoBuffer.pszPrintInfo = (VOS_CHAR *)VOS_Malloc(PRINTT_INFO_LEN ,"get print buffer");
-	if (NULL == stuPrintInfoBuffer.pszPrintInfo)
+	
+	va_start(ap, fmt);
+	pstuBufTmp = cpss_vsprintf(&stuPrintInfoBuffer, fmt, ap);
+	va_end(ap);
+	if (NULL == pstuBufTmp)
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "get print buffer is error");
+		VOS_PrintErr(__FILE__, __LINE__, "print buffer get memory is error");
 		goto END_PROC;
 	}
-	stuPrintInfoBuffer.ulPrintSize  = 0;
-
-	pstuPrintInfoBuffer = &stuPrintInfoBuffer;
-	pstuBufTmp = (pCPSS_MEM_BUFFER)pstuBuffer;
-	while(pstuBufTmp->nSize >= CPSS_MSG_BUFFER_USED)
+	if (*pstuBufRtn == NULL)
 	{
-		if (NULL == pstuBufTmp->next)
-		{
-			pstuBufTmp = (CPSS_MEM_BUFFER *)cpss_get_mem_buffer(pstuBufTmp, 1);
-			if (NULL == pstuBufTmp)
-			{
-				VOS_PrintErr(__FILE__, __LINE__, "print buffer is error exit");
-				goto END_PROC;
-			}
-			
-		}
-		else
-		{
-			pstuBufTmp = pstuBufTmp->next;
-		}
+		pstuFmtBuf = (VOS_CHAR*)VOS_Log_Remset(pstuBufTmp);
 	}
-	va_start(ap, fmt);
-	cpss_vsprintf(pstuPrintInfoBuffer, fmt,ap);
-	va_end(ap);
-	while (pstuPrintInfoBuffer->ulPrintSize - ulOffset > 0)
+	else
 	{
-		if (CPSS_MSG_BUFFER_USED - pstuBufTmp->nSize < (pstuPrintInfoBuffer->ulPrintSize - ulOffset))
-		{
-			pstuBufTmp = (CPSS_MEM_BUFFER *)cpss_get_mem_buffer(pstuBufTmp, 1);
-			if (NULL == pstuBufTmp)
-			{
-				VOS_PrintErr(__FILE__, __LINE__, "print buffer is error exit");
-				goto END_PROC;
-			}
-		}
-		
-		ulCpLen = ((pstuPrintInfoBuffer->ulPrintSize - ulOffset) > CPSS_MSG_BUFFER_USED)?
-			(CPSS_MSG_BUFFER_USED-pstuBufTmp->nSize):(pstuPrintInfoBuffer->ulPrintSize - ulOffset);
-		
-		if (ulCpLen >= CPSS_MSG_BUFFER_USED)
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "print buffer is error exit");
-		}
-		VOS_Memcpy(
-			pstuBufTmp->strBuffer + pstuBufTmp->nSize, 
-			pstuPrintInfoBuffer->pszPrintInfo + ulOffset,
-			ulCpLen);
-		pstuBufTmp->nSize += ulCpLen;
-		ulOffset +=ulCpLen;
+		pstuFmtBuf = (VOS_CHAR*)VOS_Log_Strcat(*pstuBufRtn, pstuBufTmp);
 	}
+	if (NULL == pstuFmtBuf)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "print buffer get memory is error2");
+		goto END_PROC;
+	}
+	*pstuBufRtn = pstuFmtBuf;
 	ulRet = VOS_OK;
 END_PROC:
-	VOS_Free(pstuPrintInfoBuffer->pszPrintInfo, PRINTT_INFO_LEN);
+	VOS_Log_Free(&stuPrintInfoBuffer.pszPrintInfo);
 	if (VOS_OK != ulRet)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "print buffer is error exit");
 	}
-	return ulRet;
-}
-/* ===  FUNCTION  =========================================================
- *         Name:  VOS_PrintBuffer
- *  Description:  
- * ========================================================================*/
-VOS_UINT32 VOS_PrintBufferBin (
-		VOS_VOID * pstuBuffer,
-		VOS_VOID * pstrbuf,
-		VOS_UINT32 ulLength,
-		VOS_UINT32 *ulTotal)
-{
-	VOS_UINT32 ulRet = VOS_ERR;
-	CPSS_MEM_BUFFER  *	pstuBuf = NULL;
-	VOS_CHAR		 *  pstrBuffer = NULL;
-	VOS_UINT32 ulTotalSize = 0,ulOfSet = 0,ulSize = 0,nLastSzie;
-	
-	if (NULL == pstuBuffer ||
-		NULL == pstrbuf)
-	{
-		VOS_PrintErr(__FILE__, __LINE__, "send data param is NULL");
-		return ulRet;
-	}
-	
-	//pClient = (CPSS_CLIENT_INFO *)pMsgInfo->pClient;
-	pstuBuf = (CPSS_MEM_BUFFER *)pstuBuffer;
-	pstrBuffer = (VOS_CHAR*)pstrbuf;
-	ulOfSet = 0;
-	//	VOS_PrintBuffer(&pMsgInfo->Body.stuSendBuf,"%s",pstrBuffer);
-	
-	if (NULL != ulTotal)
-	{
-		*ulTotal =0;
-	}
-	while(pstuBuf->nSize >= CPSS_MSG_BUFFER_USED)
-	{
-		if (NULL != pstuBuf->next)
-		{
-			pstuBuf = pstuBuf->next;
-		}
-		if (NULL != ulTotal)
-		{
-			*ulTotal +=pstuBuf->nSize + CPSS_MSG_BUF_HEAD_SIZE;
-		}
-	}
-	if (NULL != ulTotal)
-	{
-		*ulTotal += pstuBuf->nSize;
-	}
-	nLastSzie = pstuBuf->nSize;
-	if (0 == ulLength)
-	{
-		return VOS_OK;
-	}
-	ulSize = ulLength;
-	ulTotalSize = pstuBuf->nSize + ulSize;
-	
-	while (ulTotalSize >= CPSS_MSG_BUFFER_USED)
-	{
-		VOS_Memcpy(pstuBuf->strBuffer + pstuBuf->nSize, 
-			pstrBuffer + ulOfSet, 
-			CPSS_MSG_BUFFER_USED - pstuBuf->nSize);
-		
-		ulOfSet  += (CPSS_MSG_BUFFER_USED - pstuBuf->nSize);
-		ulSize  -= (CPSS_MSG_BUFFER_USED - pstuBuf->nSize);
-		ulTotalSize = ulSize;
-		pstuBuf->nSize = CPSS_MSG_BUFFER_USED;
-		if (NULL != ulTotal)
-		{
-			*ulTotal += CPSS_MSG_BUF_HEAD_SIZE+pstuBuf->nSize -nLastSzie;
-			nLastSzie =0;
-		}
-		
-		pstuBuf = (CPSS_MEM_BUFFER *)cpss_get_mem_buffer(pstuBuf, 1);
-		if (NULL == pstuBuf)
-		{
-			TELNET_PrintErr(__FILE__, __LINE__, "get mem buffer is NULL");
-			return VOS_ERR;
-		}
-	}
-	if (0 < ulSize)
-	{
-		VOS_Memcpy(pstuBuf->strBuffer + pstuBuf->nSize, pstrBuffer + ulOfSet ,ulSize);
-		pstuBuf->nSize += ulSize;
-	}
-	if (NULL != ulTotal)
-	{
-		*ulTotal += ulSize;
-	}
-	//pMsgInfo->Body.msghead.ulMsgLength += ulSize;//(CPSS_MSG_BUF_HEAD_SIZE + uBufLen);
-
-	ulRet = VOS_OK;
 	return ulRet;
 }
 /*

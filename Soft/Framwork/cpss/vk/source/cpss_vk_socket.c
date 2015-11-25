@@ -20,11 +20,11 @@
 #include "cpss_vk_print.h"
 
 
-
 #define VOS_Skt_Malloc(ulSize)			VOS_Malloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
 #define VOS_Skt_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
-#define VOS_Skt_Remset(pstrads)			VOS_Remset((CPSS_MEM_HEAD_KEY_CPSS_SKT), (pstrads))
-#define VOS_Skt_Free(pstrads)			VOS_Free((CPSS_MEM_HEAD_KEY_CPSS_SKT), (pstrads))
+#define VOS_Skt_Remset(pstrads)			VOS_Remset((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_MemSize(pstrads)		VOS_MemSize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_Free(pstrads)			VOS_Free((pstrads), CPSS_MEM_HEAD_KEY_CPSS_SKT))
 
 /* ===  FUNCTION  ==============================================================
 *         Name:  cpss_socket_delete
@@ -918,7 +918,8 @@ static CPSS_MSG * cpss_get_send_msg(CPSS_MSG * pMsg)
 	
 	pSendMsg->Body.msghead.ulRecvMsgID = pMsg->Body.msghead.ulMsgID;
 	
-	VOS_Memcpy(&(pSendMsg->Body.stuDataBuf), &(pMsg->Body.stuDataBuf), sizeof(CPSS_MEM_BUFFER));
+	pSendMsg->Body.stuDataBuf = (VOS_CHAR*)VOS_Skt_Remset(pMsg->Body.stuDataBuf);
+	//VOS_Memcpy(&(), &(), sizeof(CPSS_MEM_BUFFER));
 	pSendMsg->Body.msghead.ulMsgLength = pMsg->Body.msghead.ulMsgLength;
 	
 	//VOS_Memset(&pMsg->Body.stuDataBuf,sizeof(CPSS_MEM_BUFFER));
@@ -1441,7 +1442,7 @@ VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 
 	pMsgInfo = (pCPSS_MSG)pVoidMsg;
 	if (NULL != strBuffer && 0 < uBufLen)
 	{
-		if (VOS_OK != VOS_PrintBufferBin(&pMsgInfo->Body.stuDataBuf, strBuffer, uBufLen,
+		/*if (VOS_OK != VOS_PrintBufferBin(&pMsgInfo->Body.stuDataBuf, strBuffer, uBufLen,
 			&ulMsgLength))
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "cpss print buffer bin is error");
@@ -1452,14 +1453,14 @@ VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 
 			VOS_PrintDebug(__FILE__, __LINE__, "send len:%d != buff len:%d",
 				pMsgInfo->Body.msghead.ulMsgLength, ulMsgLength);
 			pMsgInfo->Body.msghead.ulMsgLength = ulMsgLength;
-		}
+		}*/
 	}
 	if (VOS_SEND_SKT_TYPE_INSERT == (uType & VOS_SEND_SKT_TYPE_INSERT))
 	{
 		return VOS_OK;
 	}
 	
-	pMsgInfo->Body.msghead.ulMsgLength += CPSS_MSG_BUF_HEAD_SIZE;
+	//pMsgInfo->Body.msghead.ulMsgLength += CPSS_MSG_BUF_HEAD_SIZE;
 	pMsgInfo->nType = CPSS_MSG_TYPE_SENDING;
 	if (VOS_SEND_SKT_TYPE_TCP == (uType & VOS_SEND_SKT_TYPE_TCP))
 	{
@@ -1477,7 +1478,7 @@ VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 
 			VOS_PrintErr(__FILE__, __LINE__, "cpss send udp data error");
 		}
 	}
-	VOS_Memset(&pMsgInfo->Body.stuDataBuf, sizeof(CPSS_MEM_BUFFER));
+	//VOS_Memset(&pMsgInfo->Body.stuDataBuf, sizeof(CPSS_MEM_BUFFER));
 	return ulRet;
 }
 
@@ -1586,7 +1587,7 @@ VOS_UINT32 cpss_udp_send_proc (VOS_VOID * lpParameter)
 {
 	VOS_UINT32			ulRet = VOS_ERR;
 	CPSS_MSG		  * pstuMsg = NULL;
-	pCPSS_MEM_BUFFER	pstuBuf = NULL;
+	//pCPSS_MEM_BUFFER	pstuBuf = NULL;
 	CPSS_SOCKET_LINK  * pSocketInfo = NULL;
 	VOS_UINT32			nSendSize = 0;
 	VOS_UINT32			nSendLength = 0;
@@ -1643,7 +1644,6 @@ VOS_UINT32 cpss_udp_send_proc (VOS_VOID * lpParameter)
 			pstuMsg->Body.msghead.stSrcProc.ulPID,
 			pstuMsg->Body.msghead.stSrcProc.ulPID & VOS_SOCKET_PORT);
 
-		pstuBuf = &(pstuMsg->Body.stuDataBuf);
 
 		nSendSize = sendto(pSocketInfo->nlSocketfd,
 			(VOS_CHAR*)&pstuMsg->Body.msghead, sizeof(CPSS_COM_HEAD),0,
@@ -1665,12 +1665,12 @@ VOS_UINT32 cpss_udp_send_proc (VOS_VOID * lpParameter)
 		VOS_PrintDebug(__FILE__,__LINE__,"send head data %d:%d:%d",
 			nSendSize,sizeof(CPSS_COM_HEAD),
 			pstuMsg->Body.msghead.ulMsgLength);
-		
-		while(NULL != pstuBuf)
+
+		while (NULL != pstuMsg->Body.stuDataBuf)
 		{
-			nSendLength = CPSS_MSG_BUF_HEAD_SIZE + pstuBuf->nSize;
+			//nSendLength = CPSS_MSG_BUF_HEAD_SIZE + pstuBuf->nSize;
 			nSendSize = sendto(pSocketInfo->nlSocketfd,
-				(VOS_CHAR*)pstuBuf, nSendLength, 0,
+				(VOS_CHAR*)pstuMsg->Body.stuDataBuf, nSendLength, 0,
 				(struct sockaddr *)&stusktaddr, sizeof(stusktaddr));
 			if (0xFFFFFFFF == nSendSize)
 			{
@@ -1688,16 +1688,6 @@ VOS_UINT32 cpss_udp_send_proc (VOS_VOID * lpParameter)
 			}
 			nSendBuffLen += nSendLength;
 
-			//pstuBuf = (pCPSS_MEM_BUFFER)cpss_get_next_buffer(&(pstuMsg->Body.stuDataBuf));
-
-			if (pstuBuf != &(pstuMsg->Body.stuDataBuf))
-			{
-				pstuBuf = (pCPSS_MEM_BUFFER)cpss_get_next_buffer(&(pstuMsg->Body.stuDataBuf));
-			}
-			else
-			{
-				pstuBuf = pstuBuf->next;
-			}
 		}
 		if (nSendLength != pstuMsg->Body.msghead.ulMsgLength)
 		{
@@ -1733,7 +1723,7 @@ VOS_UINT32 cpss_tcp_distribute_proc (VOS_VOID * lpParameter)
 {
 	VOS_UINT32 uRet = VOS_ERR;
 	CPSS_MSG *pMsgInfo = NULL;
-	CPSS_MEM_BUFFER		stuBuffer = { 0 };
+	VOS_CHAR		* stuBuffer = NULL;
 	CPSS_CLIENT_INFO * pClient = NULL;
 	CPSS_SOCKET_LINK * pSocket = NULL;
 	CPSS_PID_TABLE * pstuPidInfo = (CPSS_PID_TABLE*)lpParameter;
@@ -1753,7 +1743,7 @@ VOS_UINT32 cpss_tcp_distribute_proc (VOS_VOID * lpParameter)
 		return uRet;
 	}
 	VOS_PrintBuffer(&stuBuffer, "T [%s] Distribute", pstuPidInfo->szPidName);
-	cpss_thread_success(stuBuffer.strBuffer);
+	cpss_thread_success(stuBuffer);
 
 	while(FALSE == g_handleiocpmanage.usExitSystem)
 	{
@@ -2020,7 +2010,8 @@ VOS_UINT32 cpss_udp_distribute_proc (VOS_VOID * lpParameter)
 	CPSS_PID_TABLE * pstuPidInfo = (CPSS_PID_TABLE*)lpParameter;
 	CPSS_SOCKET_LINK * pSocket = NULL;
 	CPSS_CLIENT_INFO * pClient = NULL;
-	CPSS_MEM_BUFFER		stuBuffer = { 0 };
+	VOS_CHAR		 * stuBuffer = NULL;
+	//CPSS_MEM_BUFFER		stuBuffer = { 0 };
 
 	if (NULL == pstuPidInfo)
 	{
@@ -2044,7 +2035,7 @@ VOS_UINT32 cpss_udp_distribute_proc (VOS_VOID * lpParameter)
 	}
 
 	VOS_PrintBuffer(&stuBuffer, "U [%s] Distribute", pstuPidInfo->szPidName);
-	cpss_thread_success(stuBuffer.strBuffer);
+	cpss_thread_success(stuBuffer);
 
 	((CPSS_SOCKET_LINK*)pstuPidInfo->pSocketInfo)->uIStat = CPSS_SKT_STAT_OPENED;
 	while(FALSE == g_handleiocpmanage.usExitSystem)

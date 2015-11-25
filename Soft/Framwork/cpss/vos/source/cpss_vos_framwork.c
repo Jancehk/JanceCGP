@@ -41,7 +41,7 @@ static VOS_UINT32 regist_cpuid_to_dbsvr(pCPSS_MSG pMsgInfo)
 	cps_set_msg_src_cpuid(&MsgSend, DBSVRCPUID, DBSVRPID);
 
 	MsgSend.Body.msghead.uType = CPSS_REQ_DBSVR_GET;
-	MsgSend.Body.msghead.uSubType = CPSS_TYPE_CPUID_PID;
+	//MsgSend.Body.msghead.uSubType = CPSS_TYPE_CPUID_PID;
 
 	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_BUFFER,&uIndex,
 			strBuffer + sizeof(VOS_UINT32), (VOS_UINT32 *)&uCount);
@@ -80,7 +80,7 @@ static VOS_UINT32 set_cpuid_from_dbsvr(pCPSS_MSG pMsgInfo)
 	VOS_UINT32		uRet = VOS_ERR,uIndex = 0;
 	VOS_CHAR	  * pstrBuffer = NULL;
 
-	pstrBuffer = pMsgInfo->Body.stuDataBuf.strBuffer;
+	pstrBuffer = pMsgInfo->Body.stuDataBuf;
 	if (NULL == pstrBuffer)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"set cpuid param is error");
@@ -93,7 +93,7 @@ static VOS_UINT32 set_cpuid_from_dbsvr(pCPSS_MSG pMsgInfo)
 	if (VOS_OK != uRet)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"set cpuid to stu is error :%d",
-			(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf.strBuffer);
+			(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf);
 	}
 	return VOS_OK;
 }
@@ -131,11 +131,11 @@ static VOS_UINT32 dbsvr_use_proc(VOS_VOID *parg)
 {
 	VOS_UINT32 uRet = VOS_ERR;
 	pCPSS_MSG pMsgInfo = (pCPSS_MSG)parg;
-	VOS_UINT32 uSubType = pMsgInfo->Body.msghead.uSubType;
+	VOS_UINT32 uSubType = 0;//pMsgInfo->Body.msghead.uSubType;
 	switch(uSubType)
 	{
 	case CPSS_TYPE_CHECK_USE:
-		uRet = cpss_result_use_info(pMsgInfo->Body.stuDataBuf.strBuffer);
+		uRet = cpss_result_use_info(pMsgInfo->Body.stuDataBuf);
 		if (VOS_OK != uRet)
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "cpss result use info faild");
@@ -155,7 +155,7 @@ VOS_UINT32 dbsvr_proc_init(VOS_VOID *pVoidMsg)
 {
 	VOS_UINT32 uRet = VOS_ERR;
 	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pVoidMsg;
-	switch(pMsgInfo->Body.msghead.uSubType)
+	switch(pMsgInfo->Body.msghead.uType)
 	{
 	case CPSS_TYPE_CPUID_PID:
 		uRet = set_cpuid_from_dbsvr(pMsgInfo);
@@ -212,11 +212,9 @@ VOS_UINT32 framwork_init_proc(VOS_VOID *parg)
 	case CPSS_TYPE_SYSTEM_TELNET:
 		break;
 		default:
-			VOS_PrintErr(__FILE__, __LINE__, "Type:%x,SubType:%x:Cmd:%x,SubCmd:%x", 
+			VOS_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x", 
 				pMsgInfo->Body.msghead.uType,
-				pMsgInfo->Body.msghead.uSubType,
-				pMsgInfo->Body.msghead.uCmd,
-				pMsgInfo->Body.msghead.uSubCmd);
+				pMsgInfo->Body.msghead.uCmd);
 		break;
 	}
 	return uRet;

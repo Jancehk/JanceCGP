@@ -37,10 +37,6 @@ typedef enum CPSS_MEM_RECORD_STAT_M{
 	CPSS_MEM_RECORD_STAT_RESE,
 	CPSS_MEM_RECORD_STAT_USED,
 };
-typedef enum CPSS_MEM_BUFFER_TYPE_M{
-	CPSS_MEM_BUFFER_TYPE_MSG=1,
-	CPSS_MEM_BUFFER_TYPE_CMD,
-};
 
 typedef struct _CPSS_MEM_RECORD_T
 {
@@ -105,10 +101,28 @@ VOS_VOID * cpss_mem_realloc(VOS_UINT32 nMemRdKey, void * vAdress, VOS_INT32 ulSi
 VOS_VOID * cpss_mem_reset(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * strFile, VOS_INT32 nLine);
 
 /*===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_cat
+*  Description:  连接两段内存
+* =============================================================================*/
+VOS_VOID * cpss_mem_cat(VOS_UINT32 nMemRdKey, void * vAdressA, void * vAdressB, VOS_CHAR * strFile, VOS_INT32 nLine);
+/*===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_reset
+*  Description:  得到memory的大小
+* =============================================================================*/
+VOS_UINT32 cpss_mem_getsize(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * strFile, VOS_INT32 nLine);
+
+/*===  FUNCTION  ==============================================================
 *         Name:  cpss_mem_free
 *  Description:  释放内存空间
 * =============================================================================*/
 VOS_UINT32 cpss_mem_free(VOS_UINT32 nMemRdKey, void * vAdress);
+
+
+/*===  FUNCTION  ==============================================================
+*         Name:  cpss_str_cat
+*  Description:  字符串连接
+* =============================================================================*/
+VOS_UINT32 cpss_str_cat(VOS_UINT32 nMemRdKey, void * vAdressA, void * vAdressB, VOS_CHAR * strFile, VOS_INT32 nLine);
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  cps_uninit_mem

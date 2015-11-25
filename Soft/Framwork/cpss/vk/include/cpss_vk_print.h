@@ -85,7 +85,7 @@ typedef enum CPSS_PRINT_TYPE_M{
 //#define PRINTT_TYPE_LEN	16
 #define PRINTT_TIME_LEN	32
 #define PRINTT_FILE_LEN	16
-#define PRINTT_INFO_LEN	1024
+#define PRINTT_INFO_LEN	128
 
 
 #define PRINT_TRACE_LOG_MAX_BUFFER		1024
@@ -212,15 +212,6 @@ VOS_UINT32 VOS_PrintBuffer (
 		VOS_VOID * pstuBuffer,
 		const VOS_STRING fmt, ...);
 
-/* ===  FUNCTION  =========================================================
- *         Name:  VOS_PrintBuffer
- *  Description:  
- * ========================================================================*/
-VOS_UINT32 VOS_PrintBufferBin (
-		VOS_VOID * pstuBuffer,
-		VOS_VOID * pstrBuffer,
-		VOS_UINT32 ulSize,
-		VOS_UINT32 *ulTotal);
 /* ===  FUNCTION  =========================================================
  *         Name:  VOS_PrintDump
  *  Description:  

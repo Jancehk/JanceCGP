@@ -145,7 +145,7 @@ static VOS_INT32 cpss_mem_move_to_used(VOS_UINT32 nMemRdKey, CPSS_MEM_RECORD * p
 	if (VOS_OK != VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex))
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "add lock error");
-		return NULL;
+		return uRet;
 	}
 	/*
 	if (NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head &&
@@ -214,7 +214,6 @@ OK_EXIT:
 	if (VOS_OK != VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex))
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "del lock error");
-		return NULL;
 	}
 	return uRet;
 ERR_EXIT:
@@ -236,7 +235,7 @@ static VOS_INT32 cpss_mem_move_to_free(VOS_UINT32 nMemRdKey, CPSS_MEM_RECORD * p
 	if (VOS_OK != VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex))
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "add lock error");
-		return NULL;
+		return uRet;
 	}
 	if (NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head &&
 		NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail)
@@ -301,13 +300,17 @@ static VOS_INT32 cpss_mem_move_to_free(VOS_UINT32 nMemRdKey, CPSS_MEM_RECORD * p
 		VOS_PrintErr(__FILE__, __LINE__, "link is error in Key[%d]", nMemRdKey);
 		goto ERR_EXIT;
 	}
+	if (NULL != pstuMemRecord->pstrVoid)
+	{
+		free(pstuMemRecord->pstrVoid);
+		pstuMemRecord->pstrVoid = NULL;
+	}
 	pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_FREE;
 	g_cpssMem_Manage.stuMemFHeadList.nTotalCount++;
 OK_EXIT:
 	if ( VOS_OK != VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex) )
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "del lock error");
-		return NULL;
 	}
 	return uRet;
 ERR_EXIT:
@@ -380,8 +383,7 @@ VOS_VOID * cpss_mem_malloc(VOS_INT32 ulSize,
 	pstuMemRecord = cpss_mem_get_record_info();
 	if (NULL == pstuMemRecord)
 	{
-		free(uRetVoid);
-		uRetVoid = NULL;
+		cpss_mem_move_to_free(nMemRdKey, pstuMemRecord);
 		return NULL;
 	}
 	pstuMemRecord->nSize = ulSize;
@@ -395,9 +397,11 @@ VOS_VOID * cpss_mem_malloc(VOS_INT32 ulSize,
 	strcpy(pstuMemRecord->strFileName, strFile + ulFileNameLen);
 	if (VOS_OK != cpss_mem_move_to_used(nMemRdKey, pstuMemRecord))
 	{
-		free(uRetVoid);
+		if (VOS_OK != cpss_mem_move_to_free(nMemRdKey, pstuMemRecord))
+		{
+			free(uRetVoid);
+		}
 		uRetVoid = NULL;
-		pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_FREE;
 	}
 	return uRetVoid;
 }
@@ -412,12 +416,20 @@ VOS_VOID * cpss_mem_malloc(VOS_INT32 ulSize,
 VOS_VOID * cpss_mem_realloc(VOS_UINT32 nMemRdKey, void * vAdress, VOS_INT32 ulSize, VOS_CHAR * strFile, VOS_INT32 nLine)
 {
 	VOS_INT32 ulFileNameLen = 0;
+	VOS_CHAR * pstrBuffer = NULL;
 	CPSS_MEM_RECORD * pstuMemRecord = NULL;
 	if (nMemRdKey >= CPSS_MEM_HEAD_KEY_CPSS_TOTAL)
 	{
 		return NULL;
 	}
 	pstuMemRecord = cpss_mem_find_record_info(nMemRdKey, vAdress);
+	pstrBuffer = realloc(vAdress, ulSize);
+	if (NULL == pstrBuffer)
+	{
+		//cpss_mem_move_to_free(nMemRdKey, pstuMemRecord);
+		return NULL;
+	}
+	pstuMemRecord->pstrVoid = pstrBuffer;
 	pstuMemRecord->nFileLine = nLine;
 	ulFileNameLen = strlen(strFile) - 32;
 	if (ulFileNameLen <= 0)
@@ -425,7 +437,9 @@ VOS_VOID * cpss_mem_realloc(VOS_UINT32 nMemRdKey, void * vAdress, VOS_INT32 ulSi
 		ulFileNameLen = 0;
 	}
 	strcpy(pstuMemRecord->strFileName, strFile + ulFileNameLen);
+	return pstrBuffer;
 }
+
 /*===  FUNCTION  ==============================================================
 *         Name:  cpss_mem_reset
 *  Description:  设置内存管理信息
@@ -442,6 +456,10 @@ VOS_VOID * cpss_mem_reset(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * strFi
 		return NULL;
 	}
 	pstuMemRecord = cpss_mem_find_record_info(nMemRdKey, vAdress);
+	if (NULL == pstuMemRecord)
+	{
+		return NULL;
+	}
 	pstuMemRecord->nFileLine = nLine;
 	ulFileNameLen = strlen(strFile) - 32;
 	if (ulFileNameLen <= 0)
@@ -450,6 +468,65 @@ VOS_VOID * cpss_mem_reset(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * strFi
 	}
 	strcpy(pstuMemRecord->strFileName, strFile + ulFileNameLen);
 	return vAdress;
+}
+
+/*===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_cat
+*  Description:  设置内存管理信息
+*  Input      :
+*  OutPut     :
+*  Return     :
+* =============================================================================*/
+VOS_VOID * cpss_mem_cat(VOS_UINT32 nMemRdKey, void * vAdressA, void * vAdressB, VOS_CHAR * strFile, VOS_INT32 nLine)
+{
+	VOS_UINT32			nMemsize = 0;
+	CPSS_MEM_RECORD		*pstuMemRecordA = NULL;
+	CPSS_MEM_RECORD		*pstuMemRecordB = NULL;
+	VOS_CHAR			*pstrTmp = NULL;
+	if (nMemRdKey >= CPSS_MEM_HEAD_KEY_CPSS_TOTAL)
+	{
+		return NULL;
+	}
+	pstuMemRecordA = cpss_mem_find_record_info(nMemRdKey, vAdressA);
+	if (NULL == pstuMemRecordB)
+	{
+		return NULL;
+	}
+	nMemsize = pstuMemRecordA->nSize;
+	pstuMemRecordB = cpss_mem_find_record_info(nMemRdKey, vAdressB);
+	if (NULL == pstuMemRecordB)
+	{
+		return NULL;
+	}
+	pstrTmp = cpss_mem_realloc(nMemRdKey, vAdressA, pstuMemRecordB->nSize, __FILE__, __LINE__);
+	if (NULL == pstrTmp)
+	{
+		return NULL;
+	}
+	memcpy(pstrTmp + nMemsize, vAdressB, pstuMemRecordB->nSize);
+	return pstrTmp;
+}
+
+/*===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_getsize
+*  Description:  得到memory的大小
+*  Input      :
+*  OutPut     :
+*  Return     :
+* =============================================================================*/
+VOS_UINT32 cpss_mem_getsize(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * strFile, VOS_INT32 nLine)
+{
+	CPSS_MEM_RECORD * pstuMemRecord = NULL;
+	if (nMemRdKey >= CPSS_MEM_HEAD_KEY_CPSS_TOTAL)
+	{
+		return 0;
+	}
+	pstuMemRecord = cpss_mem_find_record_info(nMemRdKey, vAdress);
+	if (NULL == pstuMemRecord)
+	{
+		return 0;
+	}
+	return pstuMemRecord->nSize;
 }
 /*===  FUNCTION  ==============================================================
  *         Name:  cpss_mem_free
@@ -498,6 +575,49 @@ VOS_UINT32 cpss_mem_free(VOS_UINT32 nMemRdKey, void * vAdress)
 	return VOS_OK;
 }
 
+/*===  FUNCTION  ==============================================================
+*         Name:  cpss_str_cat
+*  Description:  字符串链接
+*  Input      :
+*  OutPut     :
+*  Return     : 拷贝后的字符串长度
+* =============================================================================*/
+VOS_UINT32 cpss_str_cat(VOS_UINT32 nMemRdKey, void * vAdressA, void * vAdressB, VOS_CHAR * strFile, VOS_INT32 nLine)
+{
+	VOS_UINT32			nMemsize = 0;
+	VOS_UINT32			ulSizeA = 0;
+	VOS_UINT32			ulSizeB = 0;
+	CPSS_MEM_RECORD		*pstuMemRecordA = NULL;
+	CPSS_MEM_RECORD		*pstuMemRecordB = NULL;
+	VOS_CHAR			*pstrTmp = NULL;
+	if (nMemRdKey >= CPSS_MEM_HEAD_KEY_CPSS_TOTAL)
+	{
+		return 0;
+	}
+	pstuMemRecordA = cpss_mem_find_record_info(nMemRdKey, vAdressA);
+	if (NULL == pstuMemRecordB)
+	{
+		return 0;
+	}
+	pstuMemRecordB = cpss_mem_find_record_info(nMemRdKey, vAdressB);
+	if (NULL == pstuMemRecordB)
+	{
+		return 0;
+	}
+	nMemsize = pstuMemRecordA->nSize;
+	ulSizeA = VOS_Strlen(vAdressA);
+	ulSizeB = VOS_Strlen(vAdressB);
+	if (nMemsize < ulSizeA + ulSizeB)
+	{
+		pstrTmp = cpss_mem_realloc(nMemRdKey, vAdressA, pstuMemRecordB->nSize, __FILE__, __LINE__);
+		if (NULL == pstrTmp)
+		{
+			return 0;
+		}
+	}
+	VOS_strcat(pstrTmp, vAdressB);
+	return pstuMemRecordA->nSize;
+}
 /* ===  FUNCTION  ==============================================================
  *         Name:  cps_uninit_mem
  *  Description:  平台卸载内存管理
@@ -520,17 +640,12 @@ VOS_VOID cpss_uninit_mem()
 * =============================================================================*/
 VOS_VOID cpss_print_mem_info(VOS_STRING pstrStat)
 {
-	CPSS_MEM_BUFFER * pstuFreeBufTmp = NULL;
-	VOS_CHAR pstrBuffer[1020] = {0};
+	VOS_CHAR *pstrBuffer = NULL;
 
-	sprintf(pstrBuffer,"=====%s=====\nMemory Size:%d Free Count:%d Used Count:%d\nHead:%p-->Tail:%p\n", 
+	VOS_PrintInfo(pstrBuffer, "=====%s=====\nMemory Size:%d Free Count:%d\n",
 		pstrStat,
 		g_cpssMem_Manage.uMemSize,
-		g_cpssMem_Manage.nFreeCount,
-		g_cpssMem_Manage.nTotalCount,
-		g_cpssMem_Manage.pstuFreeBufHead,
-		g_cpssMem_Manage.pstuFreeBufTail);	
-	pstuFreeBufTmp = g_cpssMem_Manage.pstuFreeBufHead;
-	cpss_print_mem_data(pstrBuffer+VOS_Strlen(pstrBuffer), pstuFreeBufTmp);
+		g_cpssMem_Manage.nTotalCount);
+	//cpss_print_mem_data(pstrBuffer+VOS_Strlen(pstrBuffer), pstuFreeBufTmp);
 	VOS_PrintInfo(__FILE__, __LINE__,"Print Buffer Info\n%s",pstrBuffer);
 }

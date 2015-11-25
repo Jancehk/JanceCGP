@@ -19,6 +19,14 @@
 #include "cpss_vk_socket.h"
 #include "cpss_vos_mem.h"
 
+#define VOS_Shl_Malloc(ulSize)			VOS_Malloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SHELL))
+#define VOS_Shl_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SHELL))
+#define VOS_Shl_Remset(pstrads)			VOS_Remset((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SHELL))
+#define VOS_Shl_Memcat(pstrA,pstrB)		VOS_Memcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_SHELL))
+#define VOS_Shl_Memsize(pstrads)		VOS_Memsize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SHELL))
+#define VOS_Shl_Free(pstrads)			VOS_Free((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SHELL))
+
+#define VOS_Shl_Strcat(pstrA,pstrB)		VOS_CpsStrcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_SHELL))
 /*===  FUNCTION  ===============================================================
 -         Name:  shell_cmd_init
 -  Description:	ÃüÁîº¯Êý³õÊ¼»¯  
@@ -101,10 +109,10 @@ static VOS_UINT32 shell_sub_one_cmd_check(CPSS_CLIENT_INFO * pClient, VOS_STRING
 	pstrTemp = shell_cmd_cmp("help",pstrCmd);
 	if(NULL != pstrTemp)
 	{
-		VOS_Strcpy(pClient->pstuBuffer.strBuffer, "->clitab :set info");
-		VOS_Strcat(pClient->pstuBuffer.strBuffer, "\r\n->cpss_get :get info");
-		VOS_Strcat(pClient->pstuBuffer.strBuffer, "\r\n->cpss_exit :exit system\n");
-		pClient->nBufferLeng = VOS_Strlen(pClient->pstuBuffer.strBuffer);
+		VOS_PrintBuffer(&pClient->pstuBuffer, "->clitab :set info");
+		VOS_PrintBuffer(&pClient->pstuBuffer, "\r\n->cpss_get :get info");
+		VOS_PrintBuffer(&pClient->pstuBuffer, "\r\n->cpss_exit :exit system\n");
+		pClient->nBufferLeng = VOS_Strlen(pClient->pstuBuffer);
 		ulRet = VOS_OK;
 		return ulRet;
 	}
@@ -137,8 +145,8 @@ static VOS_UINT32 shell_cmd_check(CPSS_CLIENT_INFO * pClient, VOS_STRING pstrCmd
 		ulRet = shell_sub_one_cmd_check(pClient, pstrTemp);
 		if (VOS_OK != ulRet)
 		{
-			sprintf(pClient->pstuBuffer.strBuffer, "\r\n->%s error input help\r\n",pstrTemp);
-			pClient->nBufferLeng = VOS_Strlen(pClient->pstuBuffer.strBuffer);
+			VOS_PrintBuffer(&pClient->pstuBuffer, "\r\n->%s error input help\r\n", pstrTemp);
+			pClient->nBufferLeng = VOS_Strlen(pClient->pstuBuffer);
 		}
 		ulRet = VOS_OK;
 		return ulRet;
@@ -152,10 +160,10 @@ static VOS_UINT32 shell_cmd_check(CPSS_CLIENT_INFO * pClient, VOS_STRING pstrCmd
 	pstrTemp = shell_cmd_cmp("cpss_help",pstrCmd);
 	if(NULL != pstrTemp)
 	{
-		VOS_Strcpy(pClient->pstuBuffer.strBuffer, "->cpss_set :set info");
-		VOS_Strcat(pClient->pstuBuffer.strBuffer, "\r\n->cpss_get :get info");
-		VOS_Strcat(pClient->pstuBuffer.strBuffer, "\r\n->cpss_exit :exit system\r\n");
-		pClient->nBufferLeng = VOS_Strlen(pClient->pstuBuffer.strBuffer);
+		VOS_PrintBuffer(&pClient->pstuBuffer, "->cpss_set :set info");
+		VOS_PrintBuffer(&pClient->pstuBuffer, "\r\n->cpss_get :get info");
+		VOS_PrintBuffer(&pClient->pstuBuffer, "\r\n->cpss_exit :exit system\r\n");
+		pClient->nBufferLeng = VOS_Strlen(pClient->pstuBuffer);
 		ulRet = VOS_OK;
 		return ulRet;
 	}
@@ -190,7 +198,7 @@ static VOS_UINT32 cpss_check_use_info(pCPSS_USER_INFO pstuUserInfo)
 		CPSS_GET_SKT_LINK_SOCKET);
 
 	MsgInfo.Body.msghead.uType	   = CPSS_REQ_DBSVR_USE;
-	MsgInfo.Body.msghead.uSubType  = CPSS_TYPE_CHECK_USE;
+	//MsgInfo.Body.msghead.uSubType  = CPSS_TYPE_CHECK_USE;
 
 	//VOS_PrintBuffer(&stuDataBuf,"%p<=>%s<=>%s",pstrVoidCli,pstrUse,pstrPass);
 	ulSendSize = sizeof(CPSS_USER_INFO);
@@ -201,9 +209,10 @@ static VOS_UINT32 cpss_check_use_info(pCPSS_USER_INFO pstuUserInfo)
 
 	if (VOS_OK != ulRet)
 	{
-		VOS_PrintErr(__FILE__,__LINE__,"send data is error %d:%s",
+		/*VOS_PrintErr(__FILE__,__LINE__,"send data is error %d:%s",
 			MsgInfo.Body.stuDataBuf.nSize,
 			MsgInfo.Body.stuDataBuf.strBuffer);
+		*/
 	}
 	return ulRet;
 }		/* -----  end of function cpss_subsystem_init  ----- */
@@ -303,13 +312,14 @@ VOS_UINT32 shell_user_check (VOS_VOID * pVoidClient)
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 	VOS_UINT32 uCount = 0;
-	pCPSS_MEM_BUFFER pstuBuffer = NULL;
-	pCPSS_MEM_BUFFER pstuBufTmp = NULL;
+
+	//pCPSS_MEM_BUFFER pstuBuffer = NULL;
+	//pCPSS_MEM_BUFFER pstuBufTmp = NULL;
 	VOS_CHAR *pstrBuff = NULL;
 	VOS_CHAR cmdbuf[32] = {0};
 	VOS_UINT32 ulCmdLen = 0;
 	CPSS_CLIENT_INFO * pClient = (CPSS_CLIENT_INFO*)pVoidClient;
-
+#if 0
 	pClient->bIsEvent = CPSS_CLIENT_CMD_DO;
 
 	if (pClient->nCmdConut < 1)
@@ -384,6 +394,7 @@ VOS_UINT32 shell_user_check (VOS_VOID * pVoidClient)
 				pClient->stuCmdLink.strCmdBuff);
 		}
 	}
+#endif
 	VOS_PrintDebug(__FILE__, __LINE__, "[%p] CMD result count [%d] len [%d] stat is [%d]",pClient,
 		pClient->nCmdConut, pClient->nBufferLeng,pClient->nStat);
 	return ulRet;
@@ -418,7 +429,7 @@ VOS_UINT32 cpss_exec_cmd (VOS_VOID * lpParameter)
 	VOS_UINT32			uRet = VOS_ERR;
 	SHELL_CMD_MGR	 *	pShellCmd;
 	CPSS_CLIENT_INFO *	pClient = NULL;//(CPSS_CLIENT_INFO *)pVoidClient;
-	CPSS_MEM_BUFFER  *	pstuBufTmp =NULL;
+	VOS_CHAR		 *	pstuBufTmp =NULL;
 	SHELL_CMD_TIMER  *  pstuCmdTimer = NULL;
 	VOS_VOID		 *  pTimer = NULL;
 	FILE			 *  fp = NULL;
@@ -432,7 +443,7 @@ VOS_UINT32 cpss_exec_cmd (VOS_VOID * lpParameter)
 		goto END_PROC;
 	}
 
-	pstuCmdTimer = (SHELL_CMD_TIMER*)VOS_Malloc(sizeof(SHELL_CMD_TIMER),"get new address timer");
+	pstuCmdTimer = (SHELL_CMD_TIMER*)VOS_Shl_Malloc(sizeof(SHELL_CMD_TIMER));
 	if (NULL == pstuCmdTimer)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "cpss_exec_cmd get new address");
@@ -468,8 +479,9 @@ VOS_UINT32 cpss_exec_cmd (VOS_VOID * lpParameter)
 		goto FREE_END;
 	}
 	cpss_kill_timer(pTimer);
-	pstuBufTmp = &pClient->pstuBuffer;
+	pstuBufTmp = pClient->pstuBuffer;
 	pClient->nCmdConut = 1;
+#if 0
 	while ((pClient->nBufferLeng = fread(pstuBufTmp->strBuffer, sizeof(VOS_CHAR), CPSS_MSG_BUFFER_SIZE - 4, fp)) == CPSS_MSG_BUFFER_SIZE - 4)
 	{
 		pstuBufTmp->nSize = pClient->nBufferLeng;
@@ -489,14 +501,14 @@ VOS_UINT32 cpss_exec_cmd (VOS_VOID * lpParameter)
 		pstuBufTmp->nSize);
 
 	print_user_info(pClient);
-
+#endif
 	pClient->bIsEvent = CPSS_CLIENT_CMD_DOED;
 	VOS_Set_Event(&pClient->hCmdEvent);
 
 FREE_END:
 	if (NULL != pstuCmdTimer)
 	{
-		VOS_Free(pstuCmdTimer, sizeof(SHELL_CMD_TIMER));
+		VOS_Shl_Free(pstuCmdTimer);
 		pstuCmdTimer = NULL;
 	}
 END_PROC:
@@ -531,7 +543,7 @@ VOS_UINT32 cpss_system(VOS_VOID * pVoidClient, VOS_CHAR * command)
 	VOS_CHAR strMsgEvent[125] = {0};
 	SHELL_CMD_MGR * g_pShellCmd;
 
-	g_pShellCmd = (SHELL_CMD_MGR*)VOS_Malloc(sizeof(SHELL_CMD_MGR), "get shell cmd timer");
+	g_pShellCmd = (SHELL_CMD_MGR*)VOS_Shl_Malloc(sizeof(SHELL_CMD_MGR));
 	if (NULL == g_pShellCmd)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "cpss system get malloc error ");
@@ -588,13 +600,9 @@ FREE_END:
 -  OutPut     :	
 -  Return     :    
 - =============================================================================*/
-VOS_VOID shell_print_cmd (pCPSS_MEM_BUFFER pstuBuffer)
+VOS_VOID shell_print_cmd (VOS_CHAR* pstuBuffer)
 {
-	while(NULL != pstuBuffer)
-	{
-		VOS_PrintDebug(__FILE__, __LINE__, "Print buffer [%p]->next[%p]",pstuBuffer,pstuBuffer->next);
-		pstuBuffer = pstuBuffer->next;
-	}
+	VOS_PrintDebug(__FILE__, __LINE__, "Print buffer [%p]", pstuBuffer);
 }
 /*===  FUNCTION  ===============================================================
 -         Name:  shell_cmd_main
@@ -606,7 +614,7 @@ VOS_VOID shell_print_cmd (pCPSS_MEM_BUFFER pstuBuffer)
 VOS_UINT32 shell_cmd_main ()
 {
 	CPSS_CLIENT_INFO	ClientInfo;
-	pCPSS_MEM_BUFFER	pstuBuffer = NULL;
+	//pCPSS_MEM_BUFFER	pstuBuffer = NULL;
 	VOS_UINT32			uStat = 0;
 	VOS_UINT32			uIsFirst = 8;
 	VOS_CHAR			strMsgEvent[125] = {0};
@@ -626,12 +634,13 @@ TRY_EVENT:
 	}
 	while (1)
 	{
-		pstuBuffer = &ClientInfo.pstuBuffer;
+		//pstuBuffer = &ClientInfo.pstuBuffer;
 		uStat = shell_user_check(&ClientInfo);
 		if (VOS_OK == cpss_check_thread_is_exit(0))
 		{
 			break;
 		}
+#if 0
 		while(NULL != pstuBuffer || ClientInfo.nCmdConut > 0)
 		{
 			if (CPSS_CLIENT_ONLINE == uStat	&& 
@@ -694,7 +703,7 @@ TRY_EVENT:
 				pstuBuffer = ClientInfo.pstuBuffer.next;
 			}
 		}
-
+#endif
 		ClientInfo.nCmdConut = 1;
 		ClientInfo.nBufferLeng = 0;
 		gets(ClientInfo.stuCmdLink.strCmdBuff);

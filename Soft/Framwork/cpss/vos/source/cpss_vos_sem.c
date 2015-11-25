@@ -18,10 +18,13 @@
 #include "cpss_vos_sem.h"
 #include "cpss_vk_socket.h"
 static CPSS_MSG_SEM_MANAGE *g_cpsMsgSem_Manage;
+
+
 #define VOS_Sem_Malloc(ulSize)			VOS_Malloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_MSG))
 #define VOS_Sem_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_MSG))
-#define VOS_Sem_Remset(pstrads)			VOS_Remset((CPSS_MEM_HEAD_KEY_CPSS_MSG), (pstrads))
-#define VOS_Sem_Free(pstrads)			VOS_Free((CPSS_MEM_HEAD_KEY_CPSS_MSG), (pstrads))
+#define VOS_Sem_Remset(pstrads)			VOS_Remset((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_MSG))
+#define VOS_Sem_Memsize(pstrads)		VOS_Memsize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_MSG))
+#define VOS_Sem_Free(pstrads)			VOS_Free((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_MSG))
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_msg_move_a_to_b
@@ -134,9 +137,8 @@ static VOS_VOID cpss_print_msginfo_debug(VOS_VOID * pstuBuffer,CPSS_MSG *pstuMsg
 * ==========================================================================*/
 static VOS_VOID cpss_print_msgtab_debug(VOS_UINT32 ulType)
 {
-	CPSS_MSG *pstuMsg = NULL;
-	CPSS_MEM_BUFFER		stuBuffer  = {0};
-	pCPSS_MEM_BUFFER  	pstuBuffer = NULL;
+	CPSS_MSG		*pstuMsg = NULL;
+	VOS_CHAR		*stuBuffer  = {0};
 	
 	switch(ulType)
 	{
@@ -219,13 +221,7 @@ static VOS_VOID cpss_print_msgtab_debug(VOS_UINT32 ulType)
 
 
 
-	VOS_PrintInfo("", CPSS_PRINTF_BUFFER, "%s", stuBuffer.strBuffer);
-	pstuBuffer = stuBuffer.next;
-	while (NULL != pstuBuffer)
-	{
-		VOS_PrintInfo("", CPSS_PRINTF_BUFCTL, "%s",stuBuffer.strBuffer);
-		pstuBuffer = (pCPSS_MEM_BUFFER)cpss_get_next_buffer(stuBuffer);
-	}
+	VOS_PrintInfo("", CPSS_PRINTF_BUFFER, "%s", stuBuffer);
 }
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_msg_del_a_to_b
@@ -1381,11 +1377,11 @@ VOS_UINT32 cps_get_msg_mem_data(CPSS_MSG * msgTmp)
 	}
 	if (NULL == msgTmp->Body.stuDataBuf)
 	{
-		msgTmp->Body.stuDataBuf = VOS_Sem_Malloc(msgTmp->Body.msghead.ulMsgLength);
+		msgTmp->Body.stuDataBuf = (VOS_CHAR*)VOS_Sem_Malloc(msgTmp->Body.msghead.ulMsgLength);
 	}
 	else
 	{
-		pstrTmp = VOS_Sem_Realloc(msgTmp->Body.stuDataBuf, msgTmp->Body.msghead.ulMsgLength);
+		pstrTmp = (VOS_CHAR*)VOS_Sem_Realloc(msgTmp->Body.stuDataBuf, msgTmp->Body.msghead.ulMsgLength);
 		if (NULL != pstrTmp)
 		{
 			msgTmp->Body.stuDataBuf = pstrTmp;
@@ -1447,6 +1443,6 @@ VOS_VOID cps_show_msg_info(CPSS_MSG * msgTmp)
 		msgTmp->pClient,
 		msgTmp->prev,
 		msgTmp->next,
-		msgTmp->Body.stuDataBuf.strBuffer);
+		msgTmp->Body.stuDataBuf);
 	VOS_PrintInfo("",CPSS_PRINTF_BUFFER,strbuff);
 }

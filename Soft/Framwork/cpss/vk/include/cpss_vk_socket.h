@@ -129,7 +129,7 @@ typedef struct CPSS_CLIENT_INFO_T
 	struct CPSS_CLIENT_INFO_T *prev;
 	struct CPSS_CLIENT_INFO_T *next;
 	VOS_UINT32			nCmdConut;
-	//CPSS_MEM_BUFFER		pstuBuffer;
+	VOS_CHAR			*pstuBuffer;
 	VOS_UINT32			nBufferLeng;
 }CPSS_CLIENT_INFO, *pCPSS_CLIENT_INFO;
 

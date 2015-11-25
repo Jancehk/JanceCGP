@@ -115,9 +115,7 @@ typedef struct _CPSS_COM_HEAD_T
 	VOS_UINT32 			ulNextMsgID;	//下一个源消息ID
 	/*-----------------------------------------*/
 	VOS_UINT32			uType;
-	//VOS_UINT8			uSubType;
 	VOS_UINT32			uCmd;
-	//VOS_UINT8			uSubCmd;
 	VOS_UINT32 			ulMsgLength;	//消息长度
 	VOS_UINT8			RFU[4];
 	/*-----------------------------------------*/

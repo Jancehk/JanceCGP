@@ -408,7 +408,7 @@ static VOS_UINT32 xcap_set_body_size(pXCAP_RESPONSE pxCap_Response, pCPSS_MSG pM
 		XCAP_PrintErr(__FILE__, __LINE__,"get body size input is NULL");
 		return ulRet;
 	}
-	VOS_PrintBufferBin(pstuDataBuffer,"",0,&ulBodySize);
+	//VOS_PrintBufferBin(pstuDataBuffer,"",0,&ulBodySize);
 	if (0 == ulBodySize)
 	{
 		XCAP_PrintErr(__FILE__, __LINE__,"get body is empty");
