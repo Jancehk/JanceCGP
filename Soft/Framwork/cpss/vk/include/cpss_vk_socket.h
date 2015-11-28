@@ -126,9 +126,9 @@ typedef struct CPSS_CLIENT_INFO_T
 	VOS_UINT8			bIsEvent;						//是否处理完数据 0 没有接受完 1 接受完数据
 	VOS_VOID		 *	msg;
 	CPSS_CLT_CMD	    stuCmdLink;
+	VOS_UINT32			nCmdConut;
 	struct CPSS_CLIENT_INFO_T *prev;
 	struct CPSS_CLIENT_INFO_T *next;
-	VOS_UINT32			nCmdConut;
 	VOS_CHAR			*pstuBuffer;
 	VOS_UINT32			nBufferLeng;
 }CPSS_CLIENT_INFO, *pCPSS_CLIENT_INFO;

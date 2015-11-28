@@ -50,6 +50,7 @@ typedef struct _CPSS_MEM_RECORD_T
 }CPSS_MEM_RECORD, *pCPSS_MEM_RECORD;
 typedef struct _CPSS_MEM_RECORD_HEAD_T
 {
+	VOS_UINT32	uMemCount;		/* mem size */
 	VOS_UINT32	uMemSize;		/* mem size */
 	VOS_UINT32 nTotalCount;		/* mem record count */
 	CPSS_MEM_RECORD * head;
@@ -59,6 +60,7 @@ typedef struct _CPSS_MEM_RECORD_HEAD_T
 typedef struct _CPSS_MSG_MEM_MANAGE_T
 {
 	VOS_MUTEX  hMutex;
+	VOS_UINT32 uMemCount;
 	VOS_UINT32 uMemSize;
 	VOS_UINT32 nTotalCount;
 	VOS_UINT32 rfu;
@@ -115,14 +117,20 @@ VOS_UINT32 cpss_mem_getsize(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * str
 *         Name:  cpss_mem_free
 *  Description:  释放内存空间
 * =============================================================================*/
-VOS_UINT32 cpss_mem_free(VOS_UINT32 nMemRdKey, void * vAdress);
+VOS_UINT32 cpss_mem_free(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * strFile, VOS_INT32 nLine);
 
+
+/*===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_getsize
+*  Description:  清空内存数据
+* =============================================================================*/
+VOS_UINT32 cpss_mem_cls(VOS_UINT32 nMemRdKey, void * vAdress, VOS_UINT32 nMemSize, VOS_CHAR * strFile, VOS_INT32 nLine);
 
 /*===  FUNCTION  ==============================================================
 *         Name:  cpss_str_cat
 *  Description:  字符串连接
 * =============================================================================*/
-VOS_UINT32 cpss_str_cat(VOS_UINT32 nMemRdKey, void * vAdressA, void * vAdressB, VOS_CHAR * strFile, VOS_INT32 nLine);
+VOS_CHAR* cpss_str_cat(VOS_UINT32 nMemRdKey, void * vAdressA, void * vAdressB, VOS_CHAR * strFile, VOS_INT32 nLine);
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  cps_uninit_mem

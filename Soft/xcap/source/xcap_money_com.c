@@ -76,7 +76,7 @@ static VOS_UINT32 set_cpuid_from_dbsvr(pCPSS_MSG pMsgInfo)
 	VOS_UINT32		uRet = VOS_ERR,uIndex = 0;
 	VOS_CHAR	  * pstrBuffer = NULL;
 
-	pstrBuffer = pMsgInfo->Body.stuDataBuf.strBuffer;
+	pstrBuffer = pMsgInfo->Body.stuDataBuf;
 	if (NULL == pstrBuffer)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"set cpuid param is error");
@@ -88,7 +88,7 @@ static VOS_UINT32 set_cpuid_from_dbsvr(pCPSS_MSG pMsgInfo)
 	if (VOS_OK != uRet)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"set cpuid to stu is error :%d",
-			(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf.strBuffer);
+			(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf);
 	}
 	return VOS_OK;
 }
@@ -100,7 +100,7 @@ static VOS_UINT32 dbsvr_proc_init(VOS_VOID *pVoidMsg)
 {
 	VOS_UINT32 uRet = VOS_ERR;
 	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pVoidMsg;
-	switch(pMsgInfo->Body.msghead.uSubType)
+	switch(pMsgInfo->Body.msghead.uType)
 	{
 	case CPSS_TYPE_CPUID_PID:
 		//uRet = set_cpuid_from_dbsvr(pMsgInfo);
@@ -120,7 +120,7 @@ static VOS_UINT32 xcap_get_proc(VOS_VOID *pVoidMsg)
 {
 	VOS_UINT32 uRet = VOS_ERR;
 	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pVoidMsg;
-	switch(pMsgInfo->Body.msghead.uSubType)
+	switch(pMsgInfo->Body.msghead.uType)
 	{
 	case CPSS_TYPE_GET_SUBURL:
 		uRet = xcap_responce_proc(pMsgInfo);

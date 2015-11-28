@@ -35,7 +35,7 @@ static VOS_UINT32 dbsvr_check_user_proc(pCPSS_MSG pMsgInfo)
 	VOS_CHAR		strCmd[1024]={0};
 	CPSS_MSG		MsgInfo = {0};
 
-	pstuUserInfo = (pCPSS_USER_INFO)pMsgInfo->Body.stuDataBuf.strBuffer;
+	pstuUserInfo = (pCPSS_USER_INFO)pMsgInfo->Body.stuDataBuf;
 	sprintf(strCmd,"select t.power from ManageUse t where t.usename = \"%s\" and t.passwd=\"%s\"",
 		pstuUserInfo->strUser,pstuUserInfo->strPass);
 	ulRet = open_record(strCmd, &padoRecord);
@@ -52,14 +52,14 @@ static VOS_UINT32 dbsvr_check_user_proc(pCPSS_MSG pMsgInfo)
 	}
 	free_record(padoRecord);
 	
-	VOS_Memset(&MsgInfo, sizeof(CPSS_MSG));
+	BZERO(&MsgInfo, sizeof(CPSS_MSG));
 	
 	VOS_Memcpy(&MsgInfo.Body.msghead.stDstProc, 
 		&pMsgInfo->Body.msghead.stSrcProc,sizeof(CPSS_COM_PID));
 	VOS_Memcpy(&MsgInfo.Body.msghead.stSrcProc, 
 		&pMsgInfo->Body.msghead.stDstProc,sizeof(CPSS_COM_PID));
 	MsgInfo.Body.msghead.uType	   = CPSS_RES_DBSVR_USE;
-	MsgInfo.Body.msghead.uSubType  = CPSS_TYPE_CHECK_USE;
+	//MsgInfo.Body.msghead.uSubType  = CPSS_TYPE_CHECK_USE;
 
 	VOS_Memcpy(strBuffer, (VOS_CHAR *)pstuUserInfo,sizeof(CPSS_USER_INFO));
 	uBuffLen = sizeof(CPSS_USER_INFO);
@@ -82,7 +82,7 @@ VOS_UINT32 dbsvr_user_proc(pCPSS_MSG pMsgInfo)
 {
 	
 	VOS_UINT32 uRet = VOS_ERR;
-	switch(pMsgInfo->Body.msghead.uSubType)
+	switch(pMsgInfo->Body.msghead.uType)
 	{
 	case CPSS_TYPE_CHECK_USE:
 		uRet = dbsvr_check_user_proc(pMsgInfo);
@@ -92,7 +92,7 @@ VOS_UINT32 dbsvr_user_proc(pCPSS_MSG pMsgInfo)
 		}
 		break;
 	default:
-		DBSvr_PrintErr(__FILE__,__LINE__,"get dbsvr info sub type is not correct:%d",pMsgInfo->Body.msghead.uSubType);
+		DBSvr_PrintErr(__FILE__,__LINE__,"get dbsvr info sub type is not correct:%d",pMsgInfo->Body.msghead.uType);
 		break;
 	}
 	if (uRet != VOS_OK)

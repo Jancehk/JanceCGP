@@ -24,6 +24,7 @@
 #define VOS_Log_Malloc(ulSize)			VOS_Malloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
 #define VOS_Log_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
 #define VOS_Log_Remset(pstrads)			VOS_Remset((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
+#define VOS_Log_Memcls(pstrads)			VOS_Memcls((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
 #define VOS_Log_Memcat(pstrA,pstrB)		VOS_Memcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
 #define VOS_Log_Memsize(pstrads)		VOS_Memsize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
 #define VOS_Log_Free(pstrads)			VOS_Free((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_LOG))
@@ -518,7 +519,6 @@ static  VOS_UINT32 cpss_get_in_a_for_b_trace (pPRINT_INFO *ppPrintHead, pPRINT_I
 				printf("cpss print get b in a memset a is error [%s:(%d)]", __FILE__,__LINE__);
 				goto END_PROC;
 			}
-			VOS_Memset(pPrintInfoTmp, sizeof(PRINT_INFO));
 			/*
 			pPrintInfoTmp->pszPrintInfo = (VOS_CHAR *)VOS_Malloc(PRINTT_INFO_LEN ,"get print buffer");
 			if (NULL == pPrintInfoTmp->pszPrintInfo)
@@ -527,7 +527,7 @@ static  VOS_UINT32 cpss_get_in_a_for_b_trace (pPRINT_INFO *ppPrintHead, pPRINT_I
 				VOS_Free(pPrintInfoTmp, sizeof(PRINT_INFO));
 				goto END_PROC;
 			}
-			VOS_Memset(pPrintInfoTmp->pszPrintInfo , PRINTT_INFO_LEN );
+			BZERO(pPrintInfoTmp->pszPrintInfo , PRINTT_INFO_LEN );
 			*/
 			pPrintInfoTmp->ulLogID = g_manageprint.ulPrintCount + 1;
 			pPrintInfoTmp->ulState = PRINT_INFO_RESERVE;
@@ -561,11 +561,11 @@ static  VOS_UINT32 cpss_get_in_a_for_b_trace (pPRINT_INFO *ppPrintHead, pPRINT_I
 	*ppPrintOut = NULL;
 	if (NULL != pPrintInfoTmp)
 	{
-		//VOS_Memset(pPrintInfoTmp->pszPrintInfo, PRINTT_INFO_LEN);
-		VOS_Memset(pPrintInfoTmp->szPrintFile,  PRINTT_FILE_LEN);
-		VOS_Memset(pPrintInfoTmp->szPrintPid,   PRINTT_PID_LEN);
-		VOS_Memset(pPrintInfoTmp->szPrintTime,  PRINTT_TIME_LEN);
-		//VOS_Memset(pPrintInfoTmp->szPrintType,  PRINTT_TYPE_LEN);
+		//BZERO(pPrintInfoTmp->pszPrintInfo, PRINTT_INFO_LEN);
+		BZERO(pPrintInfoTmp->szPrintFile,  PRINTT_FILE_LEN);
+		BZERO(pPrintInfoTmp->szPrintPid,   PRINTT_PID_LEN);
+		BZERO(pPrintInfoTmp->szPrintTime,  PRINTT_TIME_LEN);
+		//BZERO(pPrintInfoTmp->szPrintType,  PRINTT_TYPE_LEN);
 		pPrintInfoTmp->ulPrintType = 0;
 		pPrintInfoTmp->ulPrintLine = 0;
 		*ppPrintOut = pPrintInfoTmp;
@@ -584,7 +584,6 @@ END_PROC:
 static  VOS_UINT32 cpss_move_a_to_b_for_trace(pPRINT_INFO *ppPrintInfo, VOS_UINT32 uType)
 {
 	VOS_UINT32 ulRet = VOS_ERR;
-	VOS_CHAR * pstrBuffer = NULL;
 	pPRINT_INFO pPrintInfo = NULL;
 	int nIndex = 0;
 
@@ -619,14 +618,11 @@ static  VOS_UINT32 cpss_move_a_to_b_for_trace(pPRINT_INFO *ppPrintInfo, VOS_UINT
 		}
 
 		nIndex = pPrintInfo->ulLogID;
-		pstrBuffer = pPrintInfo->pszPrintInfo;
-		VOS_Memset(pPrintInfo, sizeof(PRINT_INFO));
-		VOS_Memset(pstrBuffer , PRINTT_INFO_LEN );
-		pPrintInfo->pszPrintInfo = pstrBuffer;
+		VOS_Log_Free(pPrintInfo->pszPrintInfo);
+		BZERO(pPrintInfo, sizeof(PRINT_INFO));
 		pPrintInfo->ulLogID = nIndex;
 		pPrintInfo->ulState = PRINT_INFO_FREE;
 
-	case PRITF_MOVE_INSERT_T_FREE:
 		/*add in free link*/
 		ulRet = cpss_move_in_a_to_b_trace(
 			&g_manageprint.pFreePrintinfoHead,
@@ -848,33 +844,35 @@ END_PROC:
  *  Return     :  
  * ==========================================================================*/
  static  VOS_UINT32 cpss_insert_print_trace (
-	 VOS_STRING pszPrintPid,				//PID名称
-	 VOS_UINT32 ulPrintType,					//打印属性
-	 VOS_STRING pszPrintTime,				//打印日期
+	 VOS_UINT32 ucProcessPid,				//PID名称
+	 VOS_UINT32 ulPrintType,				//打印属性
 	 VOS_STRING pszPrintFile,				//打印文件
 	 VOS_UINT32 ulPrintLine,				//打印行数
-	 pPRINT_INFO pPrintInfo,				//内容
-	 VOS_STRING pszPrintInfo)				//打印内容
-{
+	 pPRINT_INFO pPrintInfo)				//内容
+ {
+	VOS_CHAR   pszPrintTime[CPSS_MAX_TIME] = { 0 };
 	VOS_UINT32 ulRet = VOS_ERR;
+	VOS_CHAR * pszPrintPid = NULL;
 	pPRINT_INFO pPrintInfoTmp = pPrintInfo;//cpss_get_free_print_trace();
 	if (0 == g_ThreadID)
 	{
 		g_ThreadID = GetCurrentThreadId();
 	}
+	pszPrintPid = cpss_get_pid_name(ucProcessPid);	//得到当前PID对应名称
+	cpss_get_current_time_to_str(pszPrintTime);		//得到当前系统时间
+	if (0 == *pszPrintTime)
+	{
+		printf("CGP Get Current Time is Error!\n");
+		return ulRet;
+	}
 	if (NULL != pPrintInfoTmp)
 	{
-	//	pPrintInfoTmp->bIsPrint = TRUE;
 		VOS_Memcpy(pPrintInfoTmp->szPrintPid, pszPrintPid, strlen(pszPrintPid));
-		//VOS_Memcpy(pPrintInfoTmp->szPrintType, pszPrintType, strlen(pszPrintType));
 		VOS_Memcpy(pPrintInfoTmp->szPrintTime, pszPrintTime, strlen(pszPrintTime));
 		VOS_Memcpy(pPrintInfoTmp->szPrintFile, pszPrintFile, strlen(pszPrintFile));
-		//memcpy(pPrintInfoTmp->pszPrintInfo, pszPrintInfo, strlen(pszPrintInfo));
 		pPrintInfoTmp->ulPrintType	= ulPrintType;
 		pPrintInfoTmp->ulPrintLine  = ulPrintLine;
 		pPrintInfoTmp->ulThreadID = g_ThreadID;
-//		pPrintInfoTmp->ulPrintSize  = ulPrintSize;
-//		pPrintInfoTmp->pszPrintInfo = pszPrintInfo;
 	}
 	return cpss_move_print_free_used_trace(pPrintInfoTmp);
 }
@@ -886,19 +884,16 @@ END_PROC:
  *  Return     :  
  * ==========================================================================*/
 static  VOS_INT32 cpss_insert_printstr (
-		VOS_STRING pszPrintPid,				//PID名称
-		VOS_UINT32 ulPrintType,			//打印属性
+		VOS_UINT32 ucProcessPid,			//PID名称
+		VOS_UINT32 ulPrintType,				//打印属性
 		VOS_UINT8  ucPrintLevel,			//打印级别
-		VOS_STRING pszPrintTime,			//打印日期
 		VOS_STRING pszPrintFile,			//打印文件
 		VOS_UINT32 ulPrintLine,				//打印行数
-		VOS_STRING pszPrintInfo,			//打印内容
-		pPRINT_INFO pPrintInfo)			
+		pPRINT_INFO pPrintInfo)				//打印内容
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 
-	ulRet = cpss_insert_print_trace(pszPrintPid, ulPrintType, pszPrintTime,
-		pszPrintFile, ulPrintLine, pPrintInfo, pszPrintInfo);
+	ulRet = cpss_insert_print_trace(ucProcessPid, ulPrintType, pszPrintFile, ulPrintLine, pPrintInfo);
 	if (VOS_OK != ulRet)
 	{
 		printf("Insert Trace Error\n");
@@ -1012,17 +1007,7 @@ VOS_UINT32 cpss_print_trace_proc (VOS_VOID * lpParameter)
 		goto END_PROC;
 	}
 	while(1)
-	{/*
-		if (0 > g_manageprint->ulFreePrintCount)
-		{
-			ulRet = VOS_Wait_Event(&g_manageprint->g_LogEvent,30);//*PRINT_SLEEP_TIME
-			if (VOS_OK != ulRet)
-			{
-				VOS_PrintWarn(__FILE__, __LINE__, "wait log event is timeout");
-			}
-			continue;
-		}
-*/
+	{
 		pPrint_info = cpss_get_used_print_trace();
 		if (NULL == pPrint_info)
 		{
@@ -1036,7 +1021,7 @@ VOS_UINT32 cpss_print_trace_proc (VOS_VOID * lpParameter)
 				uExitFlg = VOS_OK;
 				continue;
 			}
-			ulRet = VOS_Wait_Event(&g_manageprint->g_LogEvent,300);//*PRINT_SLEEP_TIME
+			ulRet = VOS_Wait_Event(&g_manageprint->g_LogEvent, INFINITE);//*PRINT_SLEEP_TIME
 			//printf("printf wait 2\n");
 			if (VOS_OK != ulRet)
 			{
@@ -1227,19 +1212,16 @@ VOS_UINT32 cpss_print_init ()
 	}
 
 	g_manageprint.ulFreePrintCount = g_manageprint.ulPrintCount;
-	if (0 < g_manageprint.ulPrintCount)
+	if (0 < g_manageprint.ulFreePrintCount)
 	{		
-		g_manageprint.pFreePrintinfoHead = (pPRINT_INFO)VOS_Malloc(sizeof(PRINT_INFO) * g_manageprint.ulPrintCount,"get print trace");
-		VOS_Memset(g_manageprint.pFreePrintinfoHead, sizeof(PRINT_INFO) * g_manageprint.ulPrintCount);
-		for (uIndex = 0; uIndex < g_manageprint.ulPrintCount; uIndex++)
+		g_manageprint.pFreePrintinfoHead = (pPRINT_INFO)VOS_Log_Malloc(sizeof(PRINT_INFO) * g_manageprint.ulPrintCount);
+		BZERO(g_manageprint.pFreePrintinfoHead, sizeof(PRINT_INFO) * g_manageprint.ulPrintCount);
+		for (uIndex = 0; uIndex < g_manageprint.ulFreePrintCount; uIndex++)
 		{
-			g_manageprint.pFreePrintinfoHead[uIndex].pszPrintInfo = (VOS_CHAR *)VOS_Malloc(PRINTT_INFO_LEN ,"get print buffer");
-			VOS_Memset(g_manageprint.pFreePrintinfoHead[uIndex].pszPrintInfo, PRINTT_INFO_LEN );
-
 			g_manageprint.pFreePrintinfoHead[uIndex].ulLogID = uIndex + 1;
 			g_manageprint.pFreePrintinfoHead[uIndex].ulState = PRINT_INFO_FREE;
 			g_manageprint.pFreePrintinfoHead[uIndex].next = &g_manageprint.pFreePrintinfoHead[uIndex+1];
-			if (uIndex + 1 < g_manageprint.ulPrintCount)
+			if (uIndex + 1 < g_manageprint.ulFreePrintCount)
 			{
 				g_manageprint.pFreePrintinfoHead[uIndex+1].prev = &g_manageprint.pFreePrintinfoHead[uIndex];
 				g_manageprint.pFreePrintinfoHead[uIndex+1].next = NULL;
@@ -1301,13 +1283,9 @@ VOS_UINT32 cpss_print(
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 	VOS_STRING pszprintfinfo = NULL;
-	VOS_STRING szProcessPidName = NULL;
 	pPRINT_INFO pPrintInfoTmp = NULL;
 	VOS_CHAR   pszFilename[MAX_PATH] = { 0 };
-	VOS_CHAR   szTime[CPSS_MAX_TIME] = { 0 };
 	VOS_INT32  nFileLength = 0;//strlen(szFilename);
-
-
 
 	if (CPSS_PRINT_LEVEL_CLOSE == g_manageprint.g_traceo_on_off)
 	{
@@ -1333,22 +1311,13 @@ VOS_UINT32 cpss_print(
 		return VOS_ERR;
 	}
 
-	szProcessPidName = cpss_get_pid_name(ucProcessPid);	//得到当前PID对应名称
-	cpss_get_current_time_to_str(szTime);		//得到当前系统时间
-	if (0 == *szTime)
-	{
-		printf("CGP Get Current Time is Error!\n");
-		return ulRet;
-	}
 	strncpy(pszFilename, szFilename, nFileLength);
 	ulRet = cpss_insert_printstr(
-			szProcessPidName,
+			ucProcessPid,
 			ulPrintType,
 			g_manageprint.g_printShowlevel,
-			szTime+2,
 			cpss_notdir(pszFilename),
 			ulLine,
-			pszprintfinfo,
 			pPrintInfoTmp);
 	
 	if(VOS_OK != ulRet)
@@ -1373,7 +1342,6 @@ VOS_UINT32 cpss_print_dump(
 		VOS_UINT32 ulLeng)
 {
 	VOS_UINT32 ulRet = VOS_ERR;
-	VOS_STRING pszprintfinfo = NULL;
 	VOS_STRING szProcessPidName = NULL;
 	pPRINT_INFO pPrintInfoTmp = NULL;
 	VOS_CHAR   pszFilename[MAX_PATH] = {0};
@@ -1397,27 +1365,32 @@ VOS_UINT32 cpss_print_dump(
 		printf("CGP Get free trace is NULL!\n");
 		return VOS_ERR;
 	}
-	
-	//cpss_vsprintf(pPrintInfoTmp->pszPrintInfo, szFormat,argptr);
+
+	if (NULL == pPrintInfoTmp->pszPrintInfo)
+	{
+		pPrintInfoTmp->pszPrintInfo = (VOS_CHAR*)VOS_Log_Malloc(ulLeng);
+		BZERO(pPrintInfoTmp->pszPrintInfo, ulLeng);
+		if (NULL == pPrintInfoTmp->pszPrintInfo)
+		{
+			printf("CGP memory for trace is NULL!\n");
+			return VOS_ERR;
+		}
+	}
+	else
+	{
+		printf("CGP log print info is not empty!\n");
+		return VOS_ERR;
+	}
 	VOS_Memcpy(pPrintInfoTmp->pszPrintInfo, pstrVoid, ulLeng);
 	pPrintInfoTmp->ulPrintSize = ulLeng;
 
-	szProcessPidName = cpss_get_pid_name(ucProcessPid);	//得到当前PID对应名称
-	cpss_get_current_time_to_str(szTime);		//得到当前系统时间
-	if (0 == *szTime)
-	{
-		printf("CGP Get Current Time is Error!\n");
-		return ulRet;
-	}
 	strncpy(pszFilename, szFilename, nFileLength);
 	ulRet = cpss_insert_printstr(
-			szProcessPidName,
+			ucProcessPid,
 			ulPrintType,
 			g_manageprint.g_printShowlevel,
-			szTime+2,
 			cpss_notdir(pszFilename),
 			ulLine,
-			pszprintfinfo,
 			pPrintInfoTmp);
 	
 	if(VOS_OK != ulRet)
@@ -1522,7 +1495,7 @@ VOS_UINT32 VOS_PrintBuffer (
 		goto END_PROC;
 	}
 	pstuBufRtn = pstuBuffer;
-	VOS_Memset(&stuPrintInfoBuffer, sizeof(PRINT_INFO));
+	BZERO(&stuPrintInfoBuffer, sizeof(PRINT_INFO));
 	
 	va_start(ap, fmt);
 	pstuBufTmp = cpss_vsprintf(&stuPrintInfoBuffer, fmt, ap);
@@ -1539,6 +1512,7 @@ VOS_UINT32 VOS_PrintBuffer (
 	else
 	{
 		pstuFmtBuf = (VOS_CHAR*)VOS_Log_Strcat(*pstuBufRtn, pstuBufTmp);
+		VOS_Log_Free(pstuBufTmp);
 	}
 	if (NULL == pstuFmtBuf)
 	{
@@ -1548,7 +1522,6 @@ VOS_UINT32 VOS_PrintBuffer (
 	*pstuBufRtn = pstuFmtBuf;
 	ulRet = VOS_OK;
 END_PROC:
-	VOS_Log_Free(&stuPrintInfoBuffer.pszPrintInfo);
 	if (VOS_OK != ulRet)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "print buffer is error exit");

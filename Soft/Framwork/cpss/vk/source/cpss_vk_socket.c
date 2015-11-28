@@ -244,6 +244,7 @@ static pCPSS_CLIENT_INFO cpss_get_free_client_info(CPSS_IOCP_MANAGE *piocpmanage
 	{
 		piocpmanage->ulClientCount = 1;
 	}
+
 	if (pClientInfoTmp->nCmdConut < 1)
 	{
 		pClientInfoTmp->nCmdConut = 1;
@@ -449,12 +450,12 @@ static VOS_VOID cpss_memset_client_info(CPSS_CLIENT_INFO *pClientInfo)
 	{
 		cpss_close_socket(pstuClientSocket);
 	}
-	VOS_Memset(&pClientInfo->clientaddr, sizeof(SOCKADDR_IN));
+	BZERO(&pClientInfo->clientaddr, sizeof(SOCKADDR_IN));
 	pClientInfo->dwTThreadId = 0;
 
-	VOS_Memset(pClientInfo->strIPaddress, CPSS_CLIENT_IPADS_LENGTH);
-	VOS_Memset(pClientInfo->stuUserInfo.strUser, CPSS_CLIENT_NAME_LENGTH);
-	VOS_Memset(pClientInfo->stuUserInfo.strPass, CPSS_CLIENT_PASS_LENGTH);
+	BZERO(pClientInfo->strIPaddress, CPSS_CLIENT_IPADS_LENGTH);
+	BZERO(pClientInfo->stuUserInfo.strUser, CPSS_CLIENT_NAME_LENGTH);
+	BZERO(pClientInfo->stuUserInfo.strPass, CPSS_CLIENT_PASS_LENGTH);
 	pClientInfo->ulCientHaveTime = 0;
 }
 /* ===  FUNCTION  ==============================================================
@@ -632,8 +633,7 @@ static CPSS_SOCKET_LINK * cpss_get_socket_from_pid(VOS_CHAR * szPidName, VOS_UIN
 
 	if (NULL == g_handleiocpmanage.pFreeSocketHead)
 	{
-		hSocketProcTmp = (CPSS_SOCKET_LINK*)VOS_Malloc(sizeof(CPSS_SOCKET_LINK),
-			"Socket Proc Address");
+		hSocketProcTmp = (CPSS_SOCKET_LINK*)VOS_Skt_Malloc(sizeof(CPSS_SOCKET_LINK));
 		if (NULL == hSocketProcTmp)
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "SKTInit calloc faild");
@@ -922,7 +922,7 @@ static CPSS_MSG * cpss_get_send_msg(CPSS_MSG * pMsg)
 	//VOS_Memcpy(&(), &(), sizeof(CPSS_MEM_BUFFER));
 	pSendMsg->Body.msghead.ulMsgLength = pMsg->Body.msghead.ulMsgLength;
 	
-	//VOS_Memset(&pMsg->Body.stuDataBuf,sizeof(CPSS_MEM_BUFFER));
+	//BZERO(&pMsg->Body.stuDataBuf,sizeof(CPSS_MEM_BUFFER));
 
 	return pSendMsg;
 }
@@ -1478,7 +1478,7 @@ VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 
 			VOS_PrintErr(__FILE__, __LINE__, "cpss send udp data error");
 		}
 	}
-	//VOS_Memset(&pMsgInfo->Body.stuDataBuf, sizeof(CPSS_MEM_BUFFER));
+	//BZERO(&pMsgInfo->Body.stuDataBuf, sizeof(CPSS_MEM_BUFFER));
 	return ulRet;
 }
 
@@ -2137,7 +2137,7 @@ static VOS_UINT32 cpss_socket_tcp_open (CPSS_SOCKET_LINK * pSocketLink)
 			return ulRet;
 		}
 	}
-	VOS_Memset(&pSocketLink->pstuPid->pMsgEvent, sizeof(VOS_Event));
+	BZERO(&pSocketLink->pstuPid->pMsgEvent, sizeof(VOS_Event));
 
 	//³õÊ¼»¯Event
 	sprintf(strMsgEvent, "TCP[%s]", pSocketLink->pstuPid->szPidName);
@@ -2180,7 +2180,7 @@ static VOS_UINT32 cpss_socket_udp_open (CPSS_SOCKET_LINK * pSocketLink)
 	pSocketLink->uIStat = CPSS_SKT_STAT_OPEN;
 	seraddr.sin_family = AF_INET;
 	seraddr.sin_port = htons(pSocketLink->uPort);
-	seraddr.sin_addr.s_addr = get_cpuid_from_ip(CPSSCPUID) ;
+	seraddr.sin_addr.s_addr = get_cpuid_from_ip(*pSocketLink->pstuPid->pCPuID);//CPSSCPUID
 	ulSoRet = bind(pSocketLink->nlSocketfd,(SOCKADDR*)&seraddr,sizeof(SOCKADDR_IN));
 	if (VOS_OK != ulSoRet)
 	{
@@ -2502,7 +2502,7 @@ VOS_UINT32 cpss_subsystem_init (VOS_UINT8 uType, VOS_UINT8 uCmd)
 		return ulRet;
 	}
 
-	//VOS_Memset(&MsgInfo, sizeof(CPSS_MSG));
+	//BZERO(&MsgInfo, sizeof(CPSS_MSG));
 	
 	hSocketLink = g_handleiocpmanage.pUsedSocketHead;
 	while (NULL != hSocketLink)

@@ -188,7 +188,7 @@ static VOS_UINT32 cpss_check_use_info(pCPSS_USER_INFO pstuUserInfo)
 		VOS_PrintErr(__FILE__,__LINE__,"input use or pstrpass is null");
 		return ulRet;
 	}
-	VOS_Memset(&MsgInfo,sizeof(CPSS_MSG));
+	BZERO(&MsgInfo,sizeof(CPSS_MSG));
 	MsgInfo.Body.msghead.stSrcProc.ulCpuID = CPSSCPUID;
 	MsgInfo.Body.msghead.stDstProc.ulCpuID = DBSVRCPUID;
 	MsgInfo.Body.msghead.stDstProc.ulPID   = DBSVRPID;
@@ -319,18 +319,16 @@ VOS_UINT32 shell_user_check (VOS_VOID * pVoidClient)
 	VOS_CHAR cmdbuf[32] = {0};
 	VOS_UINT32 ulCmdLen = 0;
 	CPSS_CLIENT_INFO * pClient = (CPSS_CLIENT_INFO*)pVoidClient;
-#if 0
-	pClient->bIsEvent = CPSS_CLIENT_CMD_DO;
 
+	pClient->bIsEvent = CPSS_CLIENT_CMD_DO;
+	/*
 	if (pClient->nCmdConut < 1)
 	{
 		pClient->nCmdConut = 1;
 		pClient->nBufferLeng = 0;
 	}
+	*/
 	pstrBuff = pClient->stuCmdLink.strCmdBuff;
-
-	pClient->pstuBuffer.nSize = 0;
-	VOS_Memset(pClient->pstuBuffer.strBuffer, CPSS_MSG_BUFFER_SIZE);
 
 	if (CPSS_CLIENT_OFFLINE == pClient->nLineStat)
 	{
@@ -345,8 +343,7 @@ VOS_UINT32 shell_user_check (VOS_VOID * pVoidClient)
 			pClient->nLineStat = CPSS_CLIENT_USERNAME;
 			VOS_PrintBuffer(&pClient->pstuBuffer,"%s", "Passwd:");
 		}
-		pClient->pstuBuffer.nSize = VOS_Strlen(pClient->pstuBuffer.strBuffer);
-		pClient->nBufferLeng = pClient->pstuBuffer.nSize;
+		pClient->nBufferLeng = VOS_Strlen(pClient->pstuBuffer);
 		ulRet = CPSS_CLIENT_OFFLINE;
 	}
 	else if (CPSS_CLIENT_USERNAME == pClient->nLineStat)
@@ -356,15 +353,14 @@ VOS_UINT32 shell_user_check (VOS_VOID * pVoidClient)
 		if (VOS_OK != telnet_check_user(pClient))
 		{
 			pClient->nLineStat = CPSS_CLIENT_OFFLINE;
-			sprintf(pClient->pstuBuffer.strBuffer,"User and passwd not correct please check and try again!\r\nUsename:");
+			VOS_PrintBuffer(pClient->pstuBuffer, "User and passwd not correct please check and try again!\r\nUsename:");
 		}
 		else
 		{
 			print_user_info(pClient);
 			pClient->nLineStat = CPSS_CLIENT_ONLINE;
 		}
-		pClient->pstuBuffer.nSize = VOS_Strlen(pClient->pstuBuffer.strBuffer);
-		pClient->nBufferLeng = pClient->pstuBuffer.nSize;
+		pClient->nBufferLeng = VOS_Strlen(pClient->pstuBuffer);
 		ulRet = pClient->nLineStat;//pClient->nLineStat;
 	}
 	else if (CPSS_CLIENT_ONLINE == pClient->nLineStat)
@@ -394,9 +390,9 @@ VOS_UINT32 shell_user_check (VOS_VOID * pVoidClient)
 				pClient->stuCmdLink.strCmdBuff);
 		}
 	}
-#endif
-	VOS_PrintDebug(__FILE__, __LINE__, "[%p] CMD result count [%d] len [%d] stat is [%d]",pClient,
-		pClient->nCmdConut, pClient->nBufferLeng,pClient->nStat);
+
+	VOS_PrintDebug(__FILE__, __LINE__, "[%p] CMD len [%d] stat is [%d]",pClient,
+		pClient->nBufferLeng,pClient->nStat);
 	return ulRet;
 }
 
@@ -480,7 +476,6 @@ VOS_UINT32 cpss_exec_cmd (VOS_VOID * lpParameter)
 	}
 	cpss_kill_timer(pTimer);
 	pstuBufTmp = pClient->pstuBuffer;
-	pClient->nCmdConut = 1;
 #if 0
 	while ((pClient->nBufferLeng = fread(pstuBufTmp->strBuffer, sizeof(VOS_CHAR), CPSS_MSG_BUFFER_SIZE - 4, fp)) == CPSS_MSG_BUFFER_SIZE - 4)
 	{
@@ -614,14 +609,13 @@ VOS_VOID shell_print_cmd (VOS_CHAR* pstuBuffer)
 VOS_UINT32 shell_cmd_main ()
 {
 	CPSS_CLIENT_INFO	ClientInfo;
-	//pCPSS_MEM_BUFFER	pstuBuffer = NULL;
 	VOS_UINT32			uStat = 0;
 	VOS_UINT32			uIsFirst = 8;
 	VOS_CHAR			strMsgEvent[125] = {0};
 	
-	VOS_Memset(&ClientInfo,sizeof(CPSS_CLIENT_INFO));
+	BZERO(&ClientInfo,sizeof(CPSS_CLIENT_INFO));
 	ClientInfo.nLineStat = CPSS_CLIENT_OFFLINE;
-	ClientInfo.nCmdConut = 1;
+	//ClientInfo.nCmdConut = 1;
 	
 	ClientInfo.nBufferLeng = 0;
 TRY_EVENT:
@@ -634,78 +628,52 @@ TRY_EVENT:
 	}
 	while (1)
 	{
-		//pstuBuffer = &ClientInfo.pstuBuffer;
 		uStat = shell_user_check(&ClientInfo);
 		if (VOS_OK == cpss_check_thread_is_exit(0))
 		{
 			break;
 		}
-#if 0
-		while(NULL != pstuBuffer || ClientInfo.nCmdConut > 0)
+		if (CPSS_CLIENT_ONLINE == uStat	&&
+			CPSS_CLIENT_CMD_DOING == ClientInfo.bIsEvent)
 		{
-			if (CPSS_CLIENT_ONLINE == uStat	&& 
-				CPSS_CLIENT_CMD_DOING == ClientInfo.bIsEvent)
+			VOS_Wait_Event(&ClientInfo.hCmdEvent, 300);
+			if (NULL != ClientInfo.pstuBuffer)
+			{
+				VOS_PrintDebug(__FILE__, __LINE__, "Print Wait clint buffer address [%p]",
+					ClientInfo.pstuBuffer);
+				continue;
+			}
+		}
+		shell_print_cmd(ClientInfo.pstuBuffer);
+		if (NULL != ClientInfo.pstuBuffer)
+		{
+			if (0 >= VOS_Strlen(ClientInfo.pstuBuffer))
 			{
 				VOS_Wait_Event(&ClientInfo.hCmdEvent, 300);
-				if (NULL != pstuBuffer && pstuBuffer->nSize <= 0)
-				{
-					VOS_PrintDebug(__FILE__, __LINE__, "Print Wait 1[%p] Size:%d",
-						pstuBuffer, pstuBuffer->nSize);
-					continue;
-				}
+				VOS_PrintDebug(__FILE__, __LINE__, "Print Wait [%p] size[%d]",
+					ClientInfo.pstuBuffer, VOS_Strlen(ClientInfo.pstuBuffer));
+				continue;
 			}
-			//shell_print_cmd(pstuBuffer);
-			if (NULL != pstuBuffer)
+			if (CPSS_CLIENT_OFFLINE == uStat)
 			{
-				if (0 >= pstuBuffer->nSize)
+				if (8 == uIsFirst)
 				{
-					VOS_Wait_Event(&ClientInfo.hCmdEvent, 300);
-					VOS_PrintDebug(__FILE__, __LINE__, "Print Wait 2[%p]->next[%p]",
-						pstuBuffer, ClientInfo.pstuBuffer.next);
-					continue;
+					VOS_PrintInfo("", CPSS_PRINTF_BUFFER, ClientInfo.pstuBuffer);
+					uIsFirst = 0;
 				}
-				if (CPSS_CLIENT_OFFLINE == uStat)
+				else
 				{
-					if (8 == uIsFirst)
-					{
-						VOS_PrintInfo("", CPSS_PRINTF_BUFFER, pstuBuffer->strBuffer);
-						uIsFirst = 0;
-					}else
-					{
-						VOS_PrintInfo("", CPSS_PRINTF_BUFCTL, pstuBuffer->strBuffer);
-					}
-				}else
-				{
-					VOS_PrintInfo("", CPSS_PRINTF_BUFCTL, pstuBuffer->strBuffer);
+					VOS_PrintInfo("", CPSS_PRINTF_BUFCTL, ClientInfo.pstuBuffer);
 				}
-				ClientInfo.nCmdConut--;
-				cpss_free_mem_buffer(pstuBuffer);
-			}
-
-			if (CPSS_CLIENT_CMD_DOED == ClientInfo.bIsEvent)
-			{
-				if (NULL == pstuBuffer)
-				{
-					break;
-				}				
-				if (NULL == pstuBuffer->next)
-				{
-					pstuBuffer = cpss_get_next_buffer(&ClientInfo.pstuBuffer);
-					continue;
-				}				
-			}
-			if (pstuBuffer != &ClientInfo.pstuBuffer)
-			{
-				pstuBuffer = cpss_get_next_buffer(&ClientInfo.pstuBuffer);
 			}
 			else
 			{
-				pstuBuffer = ClientInfo.pstuBuffer.next;
+				VOS_PrintInfo("", CPSS_PRINTF_BUFCTL, ClientInfo.pstuBuffer);
 			}
 		}
-#endif
-		ClientInfo.nCmdConut = 1;
+		ClientInfo.pstuBuffer[0] = 0;
 		ClientInfo.nBufferLeng = 0;
+		BZERO(ClientInfo.stuCmdLink.strCmdBuff,1024);
 		gets(ClientInfo.stuCmdLink.strCmdBuff);
 		ClientInfo.stuCmdLink.nCmdLength = VOS_Strlen(ClientInfo.stuCmdLink.strCmdBuff);
 	}

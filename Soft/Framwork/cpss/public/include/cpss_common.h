@@ -66,24 +66,26 @@ typedef struct _CPSS_USER_INFO_T{
 }CPSS_USER_INFO, *pCPSS_USER_INFO;
 
 //³£ÓÃ¿âº¯Êý
-#define BZERO(pszStr,nSize)							memset((pszStr),(0),(nSize))
-#define VOS_Malloc(ulSize,strInfo)					cpss_mem_malloc((ulSize), (strInfo), (__FILE__),(__LINE__))
-#define VOS_Realloc(pstrads,ulSize,strInfo)			cpss_mem_realloc((strInfo), (pstrads), (ulSize), (__FILE__),(__LINE__))
-#define VOS_Remset(pstrads,strInfo)					cpss_mem_reset((strInfo), (pstrads),(__FILE__),(__LINE__))
-#define VOS_Memcat(pstradsA, pstradsB, strInfo)		cpss_mem_cat((strInfo), (pstradsA), (pstradsB),(__FILE__),(__LINE__))
-#define VOS_Memsize(pstrads,strInfo)				cpss_mem_getsize((strInfo), (pstrads),(__FILE__),(__LINE__))
-#define VOS_Free(pstrads,strInfo)					cpss_mem_free((strInfo), (pstrads))
 
-#define VOS_CpsStrcat(pstradsA, pstradsB, strInfo)	cpss_str_cat((strInfo), (pstradsA), (pstradsB),(__FILE__),(__LINE__))
-
-#define VOS_Memset(pstaddres,ulSize)		memset((pstaddres),0 ,(ulSize))
+#define VOS_Memset(pstaddres, nVal, ulSize)	memset((pstaddres), (nVal) ,(ulSize))
 #define VOS_Memcpy(pstSou,pstDes,ulSize)	memcpy((pstSou), (pstDes), (ulSize))
 #define VOS_Strcpy(pstSou,pstDes)			strcpy((pstSou), (pstDes))
 #define VOS_Strncpy(pstSou,pstDes,nLen)		strncpy((pstSou), (pstDes),(nLen))
 #define VOS_Strlen(pstSou)					strlen((pstSou))
-#define VOS_Strcat(pstSou,pstDes)			strcat(((const char *)pstSou), ((const char *)pstDes))
+#define VOS_Strcat(pstSou,pstDes)			strcat((pstSou), ((const char *)pstDes))
 #define VOS_Strstr(pstSou,pstDes)			strstr(((const char *)pstSou), ((const char *)pstDes))
 #define VOS_Strcmp(pstSou,pstDes)			strcmp(((const char *)pstSou), ((const char *)pstDes))
+#define BZERO(pszStr,nSize)							memset((pszStr),(0),(nSize))
+
+#define VOS_Malloc(ulSize,strInfo)					cpss_mem_malloc((ulSize), (strInfo), (__FILE__),(__LINE__))
+#define VOS_Realloc(pstrads,ulSize,strInfo)			cpss_mem_realloc((strInfo), (pstrads), (ulSize), (__FILE__),(__LINE__))
+#define VOS_Remset(pstrads,strInfo)					cpss_mem_reset((strInfo), (pstrads),(__FILE__),(__LINE__))
+#define VOS_Memcls(pstrads, ulSize, strInfo)		cpss_mem_cls((strInfo), (pstrads), (ulSize),(__FILE__),(__LINE__))
+#define VOS_Memcat(pstradsA, pstradsB, strInfo)		cpss_mem_cat((strInfo), (pstradsA), (pstradsB),(__FILE__),(__LINE__))
+#define VOS_Memsize(pstrads,strInfo)				cpss_mem_getsize((strInfo), (pstrads),(__FILE__),(__LINE__))
+#define VOS_Free(pstrads,strInfo)					cpss_mem_free((strInfo), (pstrads),(__FILE__),(__LINE__))
+
+#define VOS_CpsStrcat(pstradsA, pstradsB, strInfo)	cpss_str_cat((strInfo), (pstradsA), (pstradsB),(__FILE__),(__LINE__))
 
 
 /* ===  FUNCTION  =================================================================

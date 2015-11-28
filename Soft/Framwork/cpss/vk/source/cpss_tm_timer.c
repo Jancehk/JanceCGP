@@ -20,6 +20,17 @@
 #include "cpss_public.h"
 #include "cpss_tm_timer.h"
 
+#define VOS_Tme_Malloc(ulSize)			VOS_Malloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_TMER))
+#define VOS_Tme_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_TMER))
+#define VOS_Tme_Remset(pstrads)			VOS_Remset((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_TMER))
+#define VOS_Tme_Memcls(pstrads)			VOS_Memcls((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_TMER))
+#define VOS_Tme_Memcat(pstrA,pstrB)		VOS_Memcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_TMER))
+#define VOS_Tme_Memsize(pstrads)		VOS_Memsize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_TMER))
+#define VOS_Tme_Free(pstrads)			VOS_Free((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_TMER))
+
+#define VOS_Tme_Strcat(pstrA,pstrB)		VOS_CpsStrcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_TMER))
+
+
 static mul_timer_manage *g_ptimer = NULL;
 
 /* ===  FUNCTION  ==============================================================
@@ -233,7 +244,7 @@ VOS_UINT32 cpss_init_mul_timer(VOS_UINT32 time_unit)
 	VOS_UINT32 uRet = VOS_ERR;
 	struct _mul_timer_manage *p;
 
-	p = (mul_timer_manage *)VOS_Malloc(sizeof(struct _mul_timer_manage),"msg queue timer");
+	p = (mul_timer_manage *)VOS_Tme_Malloc(sizeof(struct _mul_timer_manage));
 	if( p == NULL)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"Init Timer get Malloc Error");

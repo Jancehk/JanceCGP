@@ -80,7 +80,7 @@ static VOS_VOID telnet_del_cmd(CPSS_CLIENT_INFO * pClient, VOS_UINT32 uBufLen)
 {
 	if (pClient->stuCmdLink.nCmdLength <= 0xFFFFFFFF)
 	{
-		VOS_Memset(pClient->stuCmdLink.strCmdBuff, pClient->stuCmdLink.nCmdLength);
+		BZERO(pClient->stuCmdLink.strCmdBuff, pClient->stuCmdLink.nCmdLength);
 		pClient->stuCmdLink.nCmdLength = 0;
 		return ;
 	}
@@ -90,12 +90,12 @@ static VOS_VOID telnet_del_cmd(CPSS_CLIENT_INFO * pClient, VOS_UINT32 uBufLen)
 	}
 	if (pClient->stuCmdLink.nCmdLength <= uBufLen)
 	{
-		VOS_Memset(pClient->stuCmdLink.strCmdBuff, pClient->stuCmdLink.nCmdLength);
+		BZERO(pClient->stuCmdLink.strCmdBuff, pClient->stuCmdLink.nCmdLength);
 		pClient->stuCmdLink.nCmdLength = 0;
 	}
 	else
 	{
-		VOS_Memset(pClient->stuCmdLink.strCmdBuff+(pClient->stuCmdLink.nCmdLength-uBufLen), uBufLen);
+		BZERO(pClient->stuCmdLink.strCmdBuff+(pClient->stuCmdLink.nCmdLength-uBufLen), uBufLen);
 		pClient->stuCmdLink.nCmdLength -= uBufLen;
 	}
 }
@@ -206,7 +206,7 @@ TRY_EVENT:
 		goto TRY_EVENT;
 	}
 
-	pMsgInfo->Body.msghead.uCmd = pMsgInfo->Body.stuDataBuf.strBuffer[1];
+	pMsgInfo->Body.msghead.uCmd = pMsgInfo->Body.stuDataBuf[0];
 	if (CPSS_TELNET_WILL == pMsgInfo->Body.msghead.uCmd)
 	{
 		telnet_hello_send(pMsgInfo);
@@ -239,7 +239,8 @@ static VOS_UINT32 telnet_CTL_CMD_proc(pCPSS_MSG pMsgInfo)
 		return VOS_ERR;
 	}
 
-	pMsgInfo->Body.msghead.uCmd = pMsgInfo->Body.stuDataBuf.strBuffer[1];
+	//pMsgInfo->Body.msghead.uCmd = pMsgInfo->Body.stuDataBuf.strBuffer[1];
+	pMsgInfo->Body.msghead.uCmd = (VOS_UINT32)pMsgInfo->Body.stuDataBuf;
 	if (CPSS_TELNET_WILL == pMsgInfo->Body.msghead.uCmd)
 	{
 		telnet_hello_send(pMsgInfo);
@@ -257,13 +258,13 @@ static VOS_UINT32 telnet_CTL_CMD_proc(pCPSS_MSG pMsgInfo)
  * ==========================================================================*/
 static VOS_VOID telnet_sytem_proc(pCPSS_MSG pMsgInfo)
 {
-	CPSS_CLIENT_INFO * pClient = NULL;
-	CPSS_MEM_BUFFER  * pstuBuffer = NULL;
-	VOS_CHAR *pBuf = NULL;
-	VOS_CHAR strSendBuff[CPSS_MSG_BUFFER_SIZE] = {0};
-	VOS_UINT32 nCmdLeng = 0;
-	VOS_UINT32 nIndex = 0;
-	VOS_UINT32 nSendLen = 0;
+	CPSS_CLIENT_INFO  * pClient = NULL;
+	VOS_CHAR		  * pstuBuffer = NULL;
+	VOS_CHAR		  * pBuf = NULL;
+	VOS_CHAR			strSendBuff[CPSS_MSG_BUFFER_SIZE] = {0};
+	VOS_UINT32			nCmdLeng = 0;
+	VOS_UINT32			nIndex = 0;
+	VOS_UINT32			nSendLen = 0;
 	if (NULL == pMsgInfo)
 	{
 		TELNET_PrintErr(__FILE__, __LINE__, "telnet system msg is NULL");
@@ -276,8 +277,8 @@ static VOS_VOID telnet_sytem_proc(pCPSS_MSG pMsgInfo)
 		return;
 	}
 	
-	VOS_Memcpy(&pClient->pstuBuffer, &pMsgInfo->Body.stuDataBuf, sizeof(CPSS_MEM_BUFFER));
-	pBuf = pClient->pstuBuffer.strBuffer;
+	VOS_Remset(pClient->pstuBuffer, pMsgInfo->Body.stuDataBuf);
+	pBuf = pClient->pstuBuffer;
 	if (NULL == pBuf || 0 == *pBuf)
 	{
 		TELNET_PrintErr(__FILE__, __LINE__, "telnet recv buffer is NULL");
@@ -325,7 +326,7 @@ static VOS_VOID telnet_sytem_proc(pCPSS_MSG pMsgInfo)
 	}
 	telnet_send_data(pMsgInfo, "\r\n", VOS_Strlen("\r\n"),VOS_SEND_SKT_TYPE_INSERT);
 	nSendLen = pClient->nBufferLeng;
-	pstuBuffer = &pClient->pstuBuffer;
+	pstuBuffer = pClient->pstuBuffer;
 
 	while(NULL != pstuBuffer || pClient->nCmdConut > 0)
 	{
@@ -333,34 +334,27 @@ static VOS_VOID telnet_sytem_proc(pCPSS_MSG pMsgInfo)
 		if (CPSS_CLIENT_CMD_DOING == pClient->bIsEvent)
 		{
 			VOS_Wait_Event(&pClient->hCmdEvent, 300);
-			if (NULL != pstuBuffer && pstuBuffer->nSize <= 0)
+			if (NULL != pstuBuffer && VOS_Memsize(pstuBuffer, 0) <= 0)
 			{
 				VOS_PrintDebug(__FILE__, __LINE__, "Print Cent[%p] Size:%d",pstuBuffer,
-					pstuBuffer->nSize);
+					VOS_Memsize(pstuBuffer, 0));
 				continue;
 			}
 		}
 		if (NULL != pstuBuffer)
 		{
-			if (0 >= pstuBuffer->nSize)//1 == ClientInfo.bIsWait && 
+			if (0 >= VOS_Memsize(pstuBuffer, 0))//1 == ClientInfo.bIsWait && 
 			{
 				VOS_Wait_Event(&pClient->hCmdEvent, 300);
-				VOS_PrintDebug(__FILE__, __LINE__, "Wait Leng[%p]->next[%p]",pstuBuffer, pClient->pstuBuffer.next);
+				VOS_PrintDebug(__FILE__, __LINE__, "Wait Leng[%p]->next[%p]",pstuBuffer, pClient->pstuBuffer);
 				continue;
 			}
-			VOS_PrintDebug(__FILE__, __LINE__, "Send Data[%p] size[%d]",pstuBuffer, pstuBuffer->nSize);
-			if (pClient->nCmdConut > 1)
-			{
-				telnet_send_data(pMsgInfo, pstuBuffer->strBuffer, pstuBuffer->nSize,VOS_SEND_SKT_TYPE_INSERT);
-			}
-			else
-			{
-				telnet_send_data(pMsgInfo, pstuBuffer->strBuffer, pstuBuffer->nSize,VOS_SEND_SKT_TYPE_FINISH);
-			}
+			VOS_PrintDebug(__FILE__, __LINE__, "Send Data[%p] size[%d]", pstuBuffer, VOS_Memsize(pstuBuffer, 0));
+			telnet_send_data(pMsgInfo, pstuBuffer, VOS_Memsize(pstuBuffer, 0), VOS_SEND_SKT_TYPE_FINISH);
 			pClient->nCmdConut--;
 			//VOS_PrintInfo(__FILE__, __LINE__, "[%d]Print Leng:%d",pClient->nCmdConut,pstuBuffer->nSize);
 		}
-
+		/*
 		if (CPSS_CLIENT_CMD_DOED == pClient->bIsEvent)
 		{
 			if (NULL == pstuBuffer)
@@ -381,6 +375,7 @@ static VOS_VOID telnet_sytem_proc(pCPSS_MSG pMsgInfo)
 		{
 			pstuBuffer = pClient->pstuBuffer.next;
 		}
+		*/
 	}
 	telnet_del_cmd(pClient,-1);
 	return;
@@ -404,7 +399,7 @@ VOS_UINT32 telnet_init_proc(VOS_VOID *parg)
 	case CPSS_CMD_SYSTEM_UNIT:
 		break;
 	case CPSS_TYPE_SYSTEM_TELNET:
-		nCheck = pMsgInfo->Body.stuDataBuf.strBuffer[0];
+		nCheck = pMsgInfo->Body.stuDataBuf[0];
 		switch (nCheck)
 		{
 		case CPSS_TELNET_IAC:
@@ -425,11 +420,9 @@ VOS_UINT32 telnet_init_proc(VOS_VOID *parg)
 		}
 		break;
 	default:
-		TELNET_PrintErr(__FILE__, __LINE__, "Type:%x,SubType:%x:Cmd:%x,SubCmd:%x", 
+		TELNET_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x", 
 			pMsgInfo->Body.msghead.uType,
-			pMsgInfo->Body.msghead.uSubType,
-			pMsgInfo->Body.msghead.uCmd,
-			pMsgInfo->Body.msghead.uSubCmd);
+			pMsgInfo->Body.msghead.uCmd);
 		break;
 	}
 	return VOS_OK;

@@ -85,7 +85,7 @@ static VOS_UINT32 send_udp_data(VOS_VOID *pVoidMsg,VOS_VOID * pstuBuffer, VOS_UI
 	VOS_UINT32 uRet = VOS_ERR;
 	pCPSS_MSG pMsgInfo = (pCPSS_MSG)pVoidMsg;
 	pMsgInfo->Body.msghead.uType = uType;
-	pMsgInfo->Body.msghead.uSubType = uSubType;
+	//pMsgInfo->Body.msghead.uSubType = uSubType;
 
 	uRet = cpss_send_data(pVoidMsg, pstuBuffer, uBufLen,
 		Type | VOS_SEND_SKT_TYPE_UDP);
@@ -181,7 +181,7 @@ VOS_UINT32 proc_xcap_url_result(VOS_VOID *pVoidMsg)
 		Money_PrintErr(__FILE__,__LINE__,"input msg info is NULL");
 		goto END_PROC;
 	}
-	stuXcapSerMgr =(pXCAP_SER_MGR)pMsgInfo->Body.stuDataBuf.strBuffer;
+	stuXcapSerMgr =(pXCAP_SER_MGR)pMsgInfo->Body.stuDataBuf;
 	if (0x0A != stuXcapSerMgr->uStat)
 	{
 		Money_PrintErr(__FILE__,__LINE__,"Recv buffer is Error");
@@ -190,8 +190,8 @@ VOS_UINT32 proc_xcap_url_result(VOS_VOID *pVoidMsg)
 	Money_PrintInfo(__FILE__,__LINE__,"GET URL %p:%s",
 		stuXcapSerMgr->Req_Mgr, 
 		&stuXcapSerMgr->URL);
-	VOS_Memcpy(&MsgInfo.Body.stuDataBuf.strBuffer, stuXcapSerMgr, sizeof(XCAP_SER_MGR));
-	MsgInfo.Body.stuDataBuf.nSize = sizeof(XCAP_SER_MGR);
+	VOS_Memcpy(&MsgInfo.Body.stuDataBuf, stuXcapSerMgr, sizeof(XCAP_SER_MGR));
+	
 	uNum = get_xcap_root(&stuXcapSerMgr->URL);
 	if (uNum >=  0 && uNum < sizeof(g_rootInfo)/sizeof(XCAP_ROOT_INFO))
 	{
@@ -211,9 +211,9 @@ VOS_UINT32 proc_xcap_url_result(VOS_VOID *pVoidMsg)
 	{
 		Money_PrintErr(__FILE__,__LINE__,"get_xcap_root error %d", uNum);
 	}
-	if (0 != MsgInfo.Body.stuDataBuf.nSize)
+	//if (0 != MsgInfo.Body.stuDataBuf.nSize)
 	{
-		Money_PrintInfo(__FILE__,__LINE__,"RES :\n%s", MsgInfo.Body.stuDataBuf.strBuffer+sizeof(XCAP_SER_MGR));
+		Money_PrintInfo(__FILE__,__LINE__,"RES :\n%s", MsgInfo.Body.stuDataBuf+sizeof(XCAP_SER_MGR));
 		
 		VOS_Memcpy(&MsgInfo.Body.msghead.stSrcProc,
 			&pMsgInfo->Body.msghead.stDstProc,	sizeof(CPSS_COM_PID));
@@ -245,19 +245,19 @@ END_PROC:
  *  OutPut     :  
  *  Return     :  
  * ==========================================================================*/
-static VOS_UINT32 get_xcap_html_head(pCPSS_MEM_BUFFER pstuBuff,VOS_CHAR * pstrInput, VOS_UINT32 nType)
+static VOS_UINT32 get_xcap_html_head(VOS_CHAR* pstuBuff,VOS_CHAR * pstrInput, VOS_UINT32 nType)
 {
 	VOS_UINT32 uRet = VOS_OK;
 	switch(nType)
 	{
 	case 0:
-		VOS_PrintBuffer(pstuBuff,"%s%s%s",
+		VOS_PrintBuffer(&pstuBuff,"%s%s%s",
 			"<html>\r\n<head>\r\n\t<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\r\n\t<title>",
 			pstrInput,
 			"</title>\r\n</head>\r\n<body>");
 		break;
 	case 1:
-		VOS_PrintBuffer(pstuBuff,"%s%",
+		VOS_PrintBuffer(&pstuBuff,"%s%",
 		"\r\n</body></html>");
 		break;
 	default:
@@ -278,7 +278,7 @@ VOS_UINT32 get_xcap_root_body(VOS_CHAR * pstrInput,VOS_VOID * pMsgVoid)
 	VOS_UINT32 uRet = VOS_ERR;
 	VOS_CHAR strPut[1024] = {0};
 	FILE * filefd = 0;
-	pCPSS_MEM_BUFFER pstuBuff = NULL;
+	VOS_CHAR* pstuBuff = NULL;
 	CPSS_MSG * pMsgInfo = (CPSS_MSG *)pMsgVoid;
 
 	if (NULL == pMsgInfo)
@@ -289,7 +289,7 @@ VOS_UINT32 get_xcap_root_body(VOS_CHAR * pstrInput,VOS_VOID * pMsgVoid)
 	
 
 	//pMsgInfo.Body.msghead.ulMsgLength = 0;
-	pstuBuff = &pMsgInfo->Body.stuDataBuf;
+	pstuBuff = pMsgInfo->Body.stuDataBuf;
 	
 	if (NULL == pstuBuff)
 	{

@@ -54,7 +54,7 @@ static CPSS_MSG * cpss_msg_find_a_in_b(CPSS_MSG *pMsgList,CPSS_MSG *pMsgInfo)
  * ==========================================================================*/
 static VOS_VOID cpss_msg_memset(CPSS_MSG *pMsgInfo)
 {
-	VOS_Memset(&pMsgInfo->Body,sizeof(CPSS_COM_DATA));
+	BZERO(&pMsgInfo->Body,sizeof(CPSS_COM_DATA));
 //	pMsgInfo->ulBufLength = CPSS_MSG_BUFFER_SIZE;
 	pMsgInfo->nStat = CPSS_MSG_STAT_FREE;
 	pMsgInfo->pClient = NULL;
@@ -67,7 +67,7 @@ static VOS_VOID cpss_msg_memset(CPSS_MSG *pMsgInfo)
 		pMsgInfo->pTimer = NULL;
 	}
 	VOS_Sem_Free(pMsgInfo->Body.stuDataBuf);
-	VOS_Memset(&pMsgInfo->Body,sizeof(CPSS_COM_DATA));
+	BZERO(&pMsgInfo->Body,sizeof(CPSS_COM_DATA));
 }
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_msg_add_a_to_b
@@ -660,7 +660,7 @@ VOS_UINT32 cpss_init_msg_sem()
 	g_cpsMsgSem_Manage->msgtab.nMsgTotalCount = 0;
 	g_cpsMsgSem_Manage->msgtab.nFreeCount = 0;
 	g_cpsMsgSem_Manage->msgtab.nIDCount = 1;
-	VOS_Memset(&g_cpsMsgSem_Manage->msgtab, sizeof(CPSS_MSG_STYLE));
+	BZERO(&g_cpsMsgSem_Manage->msgtab, sizeof(CPSS_MSG_STYLE));
 	return VOS_OK;
 }
 
@@ -674,13 +674,13 @@ VOS_UINT32 cpss_init_msg_sem()
 static CPSS_MSG * cps_get_msg()
 {
 	VOS_CHAR * pstrBuff = NULL;
-	CPSS_MSG * msgTmp = (CPSS_MSG *)VOS_Malloc(sizeof(CPSS_MSG),"get msg info");
+	CPSS_MSG * msgTmp = (CPSS_MSG *)VOS_Sem_Malloc(sizeof(CPSS_MSG));
 	if (NULL == msgTmp)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"get msg address error");
 		return msgTmp;
 	}
-	VOS_Memset(msgTmp, sizeof(CPSS_MSG));
+	BZERO(msgTmp, sizeof(CPSS_MSG));
 	
 	g_cpsMsgSem_Manage->msgtab.nMsgTotalCount++;
 	g_cpsMsgSem_Manage->msgtab.nFreeCount++;
@@ -774,7 +774,7 @@ END_PROC:
 ERROR_EXIT:
 	if (NULL != pMsgTmp)
 	{
-		VOS_Memset(&pMsgTmp->Body, sizeof(CPSS_COM_DATA));
+		BZERO(&pMsgTmp->Body, sizeof(CPSS_COM_DATA));
 		g_cpsMsgSem_Manage->msgtab.nIDCount++;
 		pMsgTmp->Body.msghead.ulMsgID = g_cpsMsgSem_Manage->msgtab.nIDCount;
 		pMsgTmp->ulMsgLength = 0;

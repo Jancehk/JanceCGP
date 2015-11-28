@@ -500,11 +500,11 @@ static VOS_UINT32 dbsvr_update_cpuid_pid(pCPSS_MSG pMsgInfo)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"check DB faild");
 	}
-	VOS_Memcpy(&uCount, pMsgInfo->Body.stuDataBuf.strBuffer, sizeof(VOS_UINT32));
+	VOS_Memcpy(&uCount, pMsgInfo->Body.stuDataBuf, sizeof(VOS_UINT32));
 	while(uIndex < uCount)
 	{
 		VOS_Memcpy(&stuCPuID,
-			pMsgInfo->Body.stuDataBuf.strBuffer+sizeof(VOS_UINT32)+uIndex*sizeof(CPSS_CPUID_INFO),
+			pMsgInfo->Body.stuDataBuf+sizeof(VOS_UINT32)+uIndex*sizeof(CPSS_CPUID_INFO),
 			sizeof(CPSS_CPUID_INFO));
 
 		uRet = dbsvr_open_mdb();
@@ -566,15 +566,15 @@ static VOS_UINT32 dbsvr_responce_cpuid_pid(pCPSS_MSG pMsgInfo)
 			uRet);
 	}
 
-	VOS_Memset(&MsgInfo, sizeof(CPSS_MSG));
+	BZERO(&MsgInfo, sizeof(CPSS_MSG));
 	
 	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_STUCPUID,&uIndex,
-		pMsgInfo->Body.stuDataBuf.strBuffer + sizeof(VOS_UINT32),
-		(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf.strBuffer);
+		pMsgInfo->Body.stuDataBuf + sizeof(VOS_UINT32),
+		(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf);
 	if (VOS_OK != uRet)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"set cpuid to stu is error :%d",
-			(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf.strBuffer);
+			(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf);
 	}
 
 	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_BUFFER,&uIndex,
@@ -582,7 +582,7 @@ static VOS_UINT32 dbsvr_responce_cpuid_pid(pCPSS_MSG pMsgInfo)
 	if (VOS_OK != uRet)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"get cpuid to stu is error :%d",
-			(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf.strBuffer);
+			(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf);
 	}
 
 
@@ -590,7 +590,7 @@ static VOS_UINT32 dbsvr_responce_cpuid_pid(pCPSS_MSG pMsgInfo)
 		&pMsgInfo->Body.msghead,sizeof(CPSS_COM_HEAD));
 
 	MsgInfo.Body.msghead.uType = CPSS_RES_DBSVR_GET;
-	MsgInfo.Body.msghead.uSubType = CPSS_TYPE_CPUID_PID;
+	//MsgInfo.Body.msghead.uSubType = CPSS_TYPE_CPUID_PID;
 
 	VOS_Memcpy(strBuffer, (VOS_CHAR *)&uCount,sizeof(VOS_UINT32));
 	uBuffLen = sizeof(VOS_UINT32) + sizeof(CPSS_CPUID_INFO)*uCount;
@@ -612,13 +612,13 @@ static VOS_UINT32 dbsvr_responce_cpuid_pid(pCPSS_MSG pMsgInfo)
 VOS_UINT32 dbsvr_get_info_proc(pCPSS_MSG pMsgInfo)
 {
 	VOS_UINT32 uRet = VOS_ERR;
-	switch(pMsgInfo->Body.msghead.uSubType)
+	switch(pMsgInfo->Body.msghead.uType)
 	{
 	case CPSS_TYPE_CPUID_PID:
 		uRet = dbsvr_responce_cpuid_pid(pMsgInfo);
 		break;
 	default:
-		DBSvr_PrintErr(__FILE__,__LINE__,"get dbsvr info sub type is not correct:%d",pMsgInfo->Body.msghead.uSubType);
+		DBSvr_PrintErr(__FILE__,__LINE__,"get dbsvr info sub type is not correct:%d",pMsgInfo->Body.msghead.uType);
 		break;
 	}
 	if (uRet != VOS_OK)
@@ -653,7 +653,7 @@ VOS_UINT32 dbsvr_init_proc(pCPSS_MSG pMsgInfo)
 		uRet = VOS_OK;
 		break;
 	default:
-		DBSvr_PrintErr(__FILE__,__LINE__,"get dbsvr info sub type is not correct:%d",pMsgInfo->Body.msghead.uSubType);
+		DBSvr_PrintErr(__FILE__,__LINE__,"get dbsvr info sub type is not correct:%d",pMsgInfo->Body.msghead.uType);
 		break;
 	}
 	if (uRet != VOS_OK)

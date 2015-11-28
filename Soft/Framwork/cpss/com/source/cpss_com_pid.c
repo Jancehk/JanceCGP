@@ -21,6 +21,16 @@
 #include	"cpss_vos_sem.h"
 #include	"cpss_vk_socket.h"
 
+#define VOS_Pid_Malloc(ulSize)			VOS_Malloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_PID))
+#define VOS_Pid_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_PID))
+#define VOS_Pid_Remset(pstrads)			VOS_Remset((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_PID))
+#define VOS_Pid_Memcls(pstrads)			VOS_Memcls((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_PID))
+#define VOS_Pid_Memcat(pstrA,pstrB)		VOS_Memcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_PID))
+#define VOS_Pid_Memsize(pstrads)		VOS_Memsize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_PID))
+#define VOS_Pid_Free(pstrads)			VOS_Free((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_PID))
+
+#define VOS_Pid_Strcat(pstrA,pstrB)		VOS_CpsStrcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_PID))
+
 static CPSS_CPUID_PID_MAP g_CPuID_SubPID_Manage[] = {
 	{CPSS_CONNECT_SUB_SELF,		CPSS_STRING_CGP},
 	{CPSS_CONNECT_SUB_DBSVR,	CPSS_STRING_DBSVR},
@@ -95,7 +105,7 @@ static VOS_UINT32 cpss_check_pid (VOS_UINT32 ulProcessPid)
 static pCPSS_CPUID_TABLE cpss_get_free_cpuid()
 {
 	pCPSS_CPUID_TABLE pstCpuID = NULL;
-	pstCpuID = (pCPSS_CPUID_TABLE)VOS_Malloc(sizeof(CPSS_CPUID_TABLE),"get cpss cpuid table");
+	pstCpuID = (pCPSS_CPUID_TABLE)VOS_Pid_Malloc(sizeof(CPSS_CPUID_TABLE));
 	if (pstCpuID == NULL)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"malloc a new cpuid address is error");
@@ -300,8 +310,8 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 		return ulRet;
 	}
 
-	pstcpsspid = (PCPSS_PID_TABLE)VOS_Malloc(sizeof(CPSS_PID_TABLE), "get cpss pid table");
-	VOS_Memset(pstcpsspid, sizeof(CPSS_PID_TABLE));
+	pstcpsspid = (PCPSS_PID_TABLE)VOS_Pid_Malloc(sizeof(CPSS_PID_TABLE));
+	BZERO(pstcpsspid, sizeof(CPSS_PID_TABLE));
 	if (NULL == pstcpsspid)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, " mem error!");

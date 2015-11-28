@@ -180,7 +180,7 @@ typedef struct _XCAP_RESPONSE_T
 	VOS_UINT32			ulMsgID;
 	XCAP_FIELDS			Res_head_fields[XCAP_FIELDS_NUM];
 	VOS_CHAR		    pstrFilePath[MAX_PATH];
-	CPSS_MEM_BUFFER     pstuBuffer;
+	VOS_CHAR			*pstuBuffer;
 }XCAP_RESPONSE,*pXCAP_RESPONSE;
 typedef struct _XCAP_FIELDS_TEMP_T{
 	VOS_UINT8 m_num;
