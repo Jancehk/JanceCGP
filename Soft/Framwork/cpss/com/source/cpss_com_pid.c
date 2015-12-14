@@ -293,6 +293,7 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 	VOS_UINT32 ulRet = VOS_ERR;
 	VOS_UINT32 ulPidIndex = 0;
 	PCPSS_PID_TABLE pstcpsspid = NULL, pstcpsspidtmp = g_handleManagePid.pstuPidList;
+	CPSS_PID_THREAD_INFO * pPidThreadInfo = NULL;
 	pCPSS_CPUID_TABLE	pstuCPuIDInfo;
 
 	if (NULL == ppid_init_proc)
@@ -301,12 +302,24 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 		return ulRet;
 	}
 
+	if (g_ulSubSystem == 0 &&
+		ulSubSystem == 0)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "set subsystem is error");
+		return ulRet;
+	}
 	if (VOS_OK != cpss_check_pid(ulProcessPid) ||
 		0 == CPSSCPUID)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "Pid Error! C:%u P:%u N:%s",
 			CPSSCPUID,
 			ulProcessPid, ulProcessPidName);
+		return ulRet;
+	}
+	ulPidIndex = cpss_get_id_for_pid_str(ulProcessPidName);
+	if (ulPidIndex <= CPSS_CONNECT_SELF)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "get pid index is error");
 		return ulRet;
 	}
 
@@ -317,8 +330,17 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 		VOS_PrintErr(__FILE__, __LINE__, " mem error!");
 		return ulRet;
 	}
+	pPidThreadInfo = (CPSS_PID_THREAD_INFO*)VOS_Pid_Malloc(sizeof(CPSS_PID_THREAD_INFO)*ulProcessCount);
+	BZERO(pPidThreadInfo, sizeof(CPSS_PID_THREAD_INFO)*ulProcessCount);
+	if (NULL == pPidThreadInfo)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, " mem error!");
+		VOS_Pid_Free(pstcpsspid);
+		return ulRet;
+	}
 	pstcpsspid->ulProcessPID = ulProcessPid;
 	pstcpsspid->ulPidCount = ulProcessCount;
+	pstcpsspid->pPidListInfo = pPidThreadInfo;
 	VOS_Strcpy(pstcpsspid->szPidName, ulProcessPidName);
 	pstcpsspid->ppid_init_proc = ppid_init_proc;
 	pstcpsspid->ppid_timeout_proc = ppid_timeout_proc;
@@ -340,23 +362,11 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 	}
 
 	if (g_ulSubSystem == 0 &&
-		ulSubSystem == 0)
-	{
-		VOS_PrintErr(__FILE__, __LINE__, "set subsystem is error");
-		return ulRet;
-	}
-	if (g_ulSubSystem == 0 &&
 		ulSubSystem != 0)
 	{
 		g_ulSubSystem = ulSubSystem;
 	}
 
-	ulPidIndex = cpss_get_id_for_pid_str(pstcpsspid->szPidName);
-	if (ulPidIndex <= CPSS_CONNECT_SELF)
-	{
-		VOS_PrintErr(__FILE__, __LINE__, "get pid index is error");
-		return ulRet;
-	}
 	ulRet = cpss_set_cpuid_pid(g_ulSubSystem, ulPidIndex,
 		CPSS_STAT_ENABLE, CPSSCPUID, CPSS_SET_TYPE_CPUID);
 	if (VOS_OK != ulRet)
@@ -371,6 +381,8 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "set %s pid is error",
 			pstcpsspid->szPidName);
+		VOS_Pid_Free(pPidThreadInfo);
+		VOS_Pid_Free(pstcpsspid);
 		return ulRet;
 	}
 	pstuCPuIDInfo = g_handleManagePid.pstuCPuIDList;

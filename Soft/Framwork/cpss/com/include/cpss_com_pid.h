@@ -25,6 +25,13 @@ typedef enum _CPSS_STAT_TYPE_M{
 	CPSS_TYPE_SHOW,
 	CPSS_TYPE_NOSHOW,
 };
+typedef struct _CPSS_PID_THREAD_INFO_T
+{
+	VOS_UINT32		nPID_ID;
+	HANDLE			hPidDist;
+	VOS_UINT32		dwPidThreadId;
+	VOS_VOID		* pPidTbl;
+}CPSS_PID_THREAD_INFO, *pCPSS_PID_THREAD_INFO;
 typedef struct CPSS_PID_TABLE_T
 {
 	union {
@@ -33,8 +40,6 @@ typedef struct CPSS_PID_TABLE_T
 		VOS_UINT8		ulSockType;
 		VOS_UINT16		ulSockPort;
 	};
-	HANDLE		hPidDist;
-	VOS_UINT32	dwPidThreadId;
 	VOS_UINT32	ulPidCount;				// PID Count
 	VOS_UINT32  *pCPuID;				// CPUID
 	VOS_UINT32  *pPid;					// PID
@@ -43,6 +48,7 @@ typedef struct CPSS_PID_TABLE_T
 	VOS_UINT32(*ppid_init_proc) (VOS_VOID *arg);
 	VOS_UINT32(*ppid_timeout_proc) (VOS_VOID *pargc, VOS_UINT32 pargv);
 	VOS_VOID * pSocketInfo;
+	CPSS_PID_THREAD_INFO * pPidListInfo;
 	VOS_CHAR szPidName[CPSSPIDMAXNAME];
 	struct CPSS_PID_TABLE_T * prev;
 	struct CPSS_PID_TABLE_T * next;

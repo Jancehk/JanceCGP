@@ -1726,7 +1726,15 @@ VOS_UINT32 cpss_tcp_distribute_proc (VOS_VOID * lpParameter)
 	VOS_CHAR		* stuBuffer = NULL;
 	CPSS_CLIENT_INFO * pClient = NULL;
 	CPSS_SOCKET_LINK * pSocket = NULL;
-	CPSS_PID_TABLE * pstuPidInfo = (CPSS_PID_TABLE*)lpParameter;
+	CPSS_PID_THREAD_INFO * pstuPidThrInfo = (CPSS_PID_THREAD_INFO*)lpParameter;
+	CPSS_PID_TABLE * pstuPidInfo = NULL;
+
+	if (NULL == pstuPidThrInfo)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "cpss distribute thread input Error ");
+		return uRet;
+	}
+	pstuPidInfo = (CPSS_PID_TABLE*)pstuPidThrInfo->pPidTbl;
 	if (NULL == pstuPidInfo)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "cpss distribute input Error ");
@@ -1742,7 +1750,14 @@ VOS_UINT32 cpss_tcp_distribute_proc (VOS_VOID * lpParameter)
 		VOS_PrintErr(__FILE__, __LINE__, "cpss tcp init timeout proc NULL ");
 		return uRet;
 	}
-	VOS_PrintBuffer(&stuBuffer, "T [%s] Distribute", pstuPidInfo->szPidName);
+	if (pstuPidInfo->ulPidCount > 1)
+	{
+		VOS_PrintBuffer(&stuBuffer, "T [%s:%d] Distribute", pstuPidInfo->szPidName, pstuPidThrInfo->nPID_ID);
+	}
+	else
+	{
+		VOS_PrintBuffer(&stuBuffer, "T [%s] Distribute", pstuPidInfo->szPidName);
+	}
 	cpss_thread_success(stuBuffer);
 
 	while(FALSE == g_handleiocpmanage.usExitSystem)
@@ -2007,11 +2022,18 @@ VOS_UINT32 cpss_udp_distribute_proc (VOS_VOID * lpParameter)
 {
 	VOS_UINT32 uRet = VOS_ERR;
 	CPSS_MSG *pMsgInfo = NULL;
-	CPSS_PID_TABLE * pstuPidInfo = (CPSS_PID_TABLE*)lpParameter;
 	CPSS_SOCKET_LINK * pSocket = NULL;
 	CPSS_CLIENT_INFO * pClient = NULL;
 	VOS_CHAR		 * stuBuffer = NULL;
-	//CPSS_MEM_BUFFER		stuBuffer = { 0 };
+	CPSS_PID_THREAD_INFO * pstuPidThrInfo = (CPSS_PID_THREAD_INFO*)lpParameter;
+	CPSS_PID_TABLE * pstuPidInfo = NULL;
+
+	if (NULL == pstuPidThrInfo)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "cpss distribute thread input Error ");
+		return uRet;
+	}
+	pstuPidInfo = (CPSS_PID_TABLE*)pstuPidThrInfo->pPidTbl;
 
 	if (NULL == pstuPidInfo)
 	{
@@ -2033,8 +2055,14 @@ VOS_UINT32 cpss_udp_distribute_proc (VOS_VOID * lpParameter)
 		VOS_PrintErr(__FILE__, __LINE__, "mutex is NULL ");
 		return uRet;
 	}
-
-	VOS_PrintBuffer(&stuBuffer, "U [%s] Distribute", pstuPidInfo->szPidName);
+	if (pstuPidInfo->ulPidCount > 1)
+	{
+		VOS_PrintBuffer(&stuBuffer, "U [%s:%d] Distribute", pstuPidInfo->szPidName, pstuPidThrInfo->nPID_ID);
+	}
+	else
+	{
+		VOS_PrintBuffer(&stuBuffer, "U [%s] Distribute", pstuPidInfo->szPidName);
+	}
 	cpss_thread_success(stuBuffer);
 
 	((CPSS_SOCKET_LINK*)pstuPidInfo->pSocketInfo)->uIStat = CPSS_SKT_STAT_OPENED;
@@ -2248,6 +2276,9 @@ static VOS_UINT32 cpss_socket_open_pid(VOS_UINT32 dwType, CPSS_PID_TABLE * pstuP
 	VOS_UINT32 ulRet = VOS_ERR;
 	VOS_UINT32 uIndex = 0;
 	VOS_INT32	ulSoRet = VOS_ERR;
+	CPSS_PID_THREAD_INFO * pPidListInfoTmp;
+	VOS_CHAR	strBuffer[64] = { 0 };
+	VOS_CHAR	strBufferKey[64] = { 0 };
 
 	if (NULL == pstuPidList)
 	{
@@ -2256,23 +2287,36 @@ static VOS_UINT32 cpss_socket_open_pid(VOS_UINT32 dwType, CPSS_PID_TABLE * pstuP
 	}
 	for (uIndex = 0; uIndex < pstuPidList->ulPidCount; uIndex++)
 	{
+		pPidListInfoTmp = pstuPidList->pPidListInfo + uIndex;
+		pPidListInfoTmp->pPidTbl = pstuPidList;
+		pPidListInfoTmp->nPID_ID = uIndex;
+		if (pstuPidList->ulPidCount>1)
+		{
+			sprintf(strBufferKey, "[%s:%d] Distribute proc", pstuPidList->szPidName, uIndex);
+		}
+		else
+		{
+			sprintf(strBufferKey, "[%s] Distribute proc", pstuPidList->szPidName);
+		}
 		if (VOS_SOCKET_TCP == dwType)
 		{
-			ulSoRet = cpss_create_thread(&pstuPidList->hPidDist,
+			sprintf(strBuffer, "T%s", strBufferKey);
+			ulSoRet = cpss_create_thread(&pPidListInfoTmp->hPidDist,
 				0,
 				cpss_tcp_distribute_proc,
-				(VOS_VOID*)pstuPidList,
-				&pstuPidList->dwPidThreadId,
-				"Distribute proc");
+				(VOS_VOID*)pPidListInfoTmp,
+				&pPidListInfoTmp->dwPidThreadId,
+				strBuffer);
 		}
 		else if (VOS_SOCKET_UDP == dwType)
 		{
-			ulSoRet = cpss_create_thread(&pstuPidList->hPidDist,
+			sprintf(strBuffer, "U%s", strBufferKey);
+			ulSoRet = cpss_create_thread(&pPidListInfoTmp->hPidDist,
 				0,
 				&cpss_udp_distribute_proc,
-				(VOS_VOID*)pstuPidList,
-				&pstuPidList->dwPidThreadId,
-				"U distribute proc");
+				(VOS_VOID*)pPidListInfoTmp,
+				&pPidListInfoTmp->dwPidThreadId,
+				strBuffer);
 			if (VOS_OK != ulSoRet)
 			{
 				VOS_PrintErr(__FILE__, __LINE__, "Rejected!");
