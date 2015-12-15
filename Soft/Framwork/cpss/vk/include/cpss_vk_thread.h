@@ -28,6 +28,12 @@ typedef VOS_UINT32 ( * ThreadFun)( VOS_VOID *);
 //typedef pthread_t * HANDLE;
 typedef pthread_attr_t * STACKSIZE;
 #endif
+
+typedef struct _VOS_THREAD_INFO_T
+{
+	HANDLE			hThread;
+	VOS_UINT32		dwThreadId;
+}VOS_THREAD_INFO, *pVOS_THREAD_INFO;
 typedef struct _VOS_THREAD_MANAGE_T{
 	VOS_UINT8	uInitFlg;
 	VOS_UINT32	uIsExitFlg;

@@ -19,6 +19,7 @@
 #define CPSS_COM_PID_IN
 #include "cpss_common.h"
 #include "cpss_public.h"
+#include "cpss_vk_thread.h"
 typedef enum _CPSS_STAT_TYPE_M{
 	CPSS_STAT_ENABLE = 3,
 	CPSS_STAT_DISABLE,
@@ -27,9 +28,8 @@ typedef enum _CPSS_STAT_TYPE_M{
 };
 typedef struct _CPSS_PID_THREAD_INFO_T
 {
+	VOS_THREAD_INFO hThread;
 	VOS_UINT32		nPID_ID;
-	HANDLE			hPidDist;
-	VOS_UINT32		dwPidThreadId;
 	VOS_VOID		* pPidTbl;
 }CPSS_PID_THREAD_INFO, *pCPSS_PID_THREAD_INFO;
 typedef struct CPSS_PID_TABLE_T

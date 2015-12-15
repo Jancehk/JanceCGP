@@ -316,7 +316,7 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 			ulProcessPid, ulProcessPidName);
 		return ulRet;
 	}
-	ulPidIndex = cpss_get_id_for_pid_str(ulProcessPidName);
+	ulPidIndex = cpss_get_id_for_pid_str((VOS_CHAR*)ulProcessPidName);
 	if (ulPidIndex <= CPSS_CONNECT_SELF)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "get pid index is error");

@@ -712,7 +712,7 @@ END_PROC:
  VOS_VOID cpss_print_trace ()
  {
 	PRINT_INFO		  * pPrintinfo = NULL;
-	VOS_CHAR*			stuBuffer  = {0};
+	VOS_CHAR*			stuBuffer  = NULL;
 	VOS_CHAR			szCurrentPath[256] = {0};
 	return;
 	VOS_PrintBuffer(&stuBuffer,"\n\n**************\n");
@@ -744,7 +744,7 @@ END_PROC:
 		return ;
 	}
 	cpss_write_buffer(szCurrentPath, "msg", stuBuffer, VOS_Strlen(stuBuffer));
-	VOS_Log_Free(stuBuffer);
+	VOS_PrintBufferRelease(stuBuffer);
 	//VOS_PrintDebug("",CPSS_PRINTF_BUFFER,"%s",pstuBuffer->strBuffer);
  }
 /* ===  FUNCTION  ==============================================================
@@ -1520,6 +1520,28 @@ VOS_UINT32 VOS_PrintBuffer (
 		goto END_PROC;
 	}
 	*pstuBufRtn = pstuFmtBuf;
+	ulRet = VOS_OK;
+END_PROC:
+	if (VOS_OK != ulRet)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "print buffer is error exit");
+	}
+	return ulRet;
+}
+/* ===  FUNCTION  =========================================================
+*         Name:  VOS_PrintBufferRelease
+*  Description:
+* ========================================================================*/
+VOS_UINT32 VOS_PrintBufferRelease(VOS_VOID * pstuBuffer)
+{
+	VOS_UINT32 ulRet = VOS_OK;
+
+	if (pstuBuffer == NULL)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "print buffer is param is error");
+		goto END_PROC;
+	}
+	VOS_Log_Free(pstuBuffer);
 	ulRet = VOS_OK;
 END_PROC:
 	if (VOS_OK != ulRet)

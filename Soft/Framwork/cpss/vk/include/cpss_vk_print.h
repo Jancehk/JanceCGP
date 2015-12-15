@@ -212,6 +212,11 @@ VOS_UINT32 VOS_PrintBuffer (
 		const VOS_STRING fmt, ...);
 
 /* ===  FUNCTION  =========================================================
+*         Name:  VOS_PrintBufferRelease
+*  Description:
+* ========================================================================*/
+VOS_UINT32 VOS_PrintBufferRelease(VOS_VOID * pstuBuffer);
+/* ===  FUNCTION  =========================================================
  *         Name:  VOS_PrintDump
  *  Description:  
  * ========================================================================*/

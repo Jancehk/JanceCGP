@@ -1228,7 +1228,7 @@ VOS_UINT32 cpss_tcp_send_proc (VOS_VOID * lpPareter)
 		pstuMsg = g_handleiocpmanage.stMsgTL.msgtab.StyleSend.TypeTCP.pUseHead;
 		if (NULL == pstuMsg)
 		{
-			ulRet = VOS_Wait_Event(&g_handleiocpmanage.pTSendMsgEvent, 500);//INFINITE
+			ulRet = VOS_Wait_Event(&g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_TSEND].pMsgEvent, 500);//INFINITE
 			if (VOS_OK != ulRet)
 			{
 				VOS_PrintErr(__FILE__, __LINE__, "tcp send Wait Event error");
@@ -1346,7 +1346,7 @@ VOS_UINT32 cpss_tcp_send_msg (VOS_VOID *pVoidMsg)
 	}
 	cpss_move_tcp_send_free_to_used(pSendMsg);
 
-	ulRet = VOS_Set_Event(&g_handleiocpmanage.pTSendMsgEvent);
+	ulRet = VOS_Set_Event(&g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_TSEND].pMsgEvent);
 	if (VOS_OK != ulRet)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"set Event faild,CpuID:%d,Pid:%d",
@@ -1385,7 +1385,7 @@ VOS_UINT32 cpss_udp_send_msg (VOS_VOID *pVoidMsg)
 	}
 	cpss_move_udp_send_free_to_used(pSendMsg);
 
-	ulRet = VOS_Set_Event(&g_handleiocpmanage.pUSendMsgEvent);
+	ulRet = VOS_Set_Event(&g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_USEND].pMsgEvent);
 	if (VOS_OK != ulRet)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"set Event faild,CpuID:%d,Pid:%d",
@@ -1596,7 +1596,7 @@ VOS_UINT32 cpss_udp_send_proc (VOS_VOID * lpParameter)
 	VOS_UINT32			bcastAddr = 0;
 	VOS_UINT16			bPort = 0;
 
-	if (0 == g_handleiocpmanage.pUSendMsgEvent.strmutex[0])
+	if (0 == g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_USEND].pMsgEvent.strmutex[0])
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "udp send  Event is NULL");
 		return VOS_ERR;
@@ -1612,7 +1612,7 @@ VOS_UINT32 cpss_udp_send_proc (VOS_VOID * lpParameter)
 		pstuMsg = g_handleiocpmanage.stMsgTL.msgtab.StyleSend.TypeUDP.pUseHead;
 		if (NULL == pstuMsg)
 		{
-			ulRet = VOS_Wait_Event(&g_handleiocpmanage.pUSendMsgEvent,200);
+			ulRet = VOS_Wait_Event(&g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_USEND].pMsgEvent, 200);
 			if (VOS_OK != ulRet)
 			{
 				VOS_PrintErr(__FILE__,__LINE__,"udp send Wait Event error");
@@ -2228,6 +2228,7 @@ static VOS_UINT32 cpss_socket_udp_open (CPSS_SOCKET_LINK * pSocketLink)
 			return ulRet;
 		}
 	}
+#if 0
 	/*设置返还选项为假，禁止将发送的数据返还给本地接口*/
 	optval = 0;
 	if (setsockopt(pSocketLink->nlSocketfd, IPPROTO_IP, IP_MULTICAST_LOOP,
@@ -2247,7 +2248,7 @@ static VOS_UINT32 cpss_socket_udp_open (CPSS_SOCKET_LINK * pSocketLink)
 		closesocket(pSocketLink->nlSocketfd);
 		return ulRet;
 	}
-	
+#endif
 	//初始化Event
 	sprintf(strMsgEvent, "UDP[%s]", pSocketLink->pstuPid->szPidName);
 	
@@ -2301,21 +2302,21 @@ static VOS_UINT32 cpss_socket_open_pid(VOS_UINT32 dwType, CPSS_PID_TABLE * pstuP
 		if (VOS_SOCKET_TCP == dwType)
 		{
 			sprintf(strBuffer, "T%s", strBufferKey);
-			ulSoRet = cpss_create_thread(&pPidListInfoTmp->hPidDist,
+			ulSoRet = cpss_create_thread(&pPidListInfoTmp->hThread.hThread,
 				0,
 				cpss_tcp_distribute_proc,
 				(VOS_VOID*)pPidListInfoTmp,
-				&pPidListInfoTmp->dwPidThreadId,
+				&pPidListInfoTmp->hThread.dwThreadId,
 				strBuffer);
 		}
 		else if (VOS_SOCKET_UDP == dwType)
 		{
 			sprintf(strBuffer, "U%s", strBufferKey);
-			ulSoRet = cpss_create_thread(&pPidListInfoTmp->hPidDist,
+			ulSoRet = cpss_create_thread(&pPidListInfoTmp->hThread.hThread,
 				0,
 				&cpss_udp_distribute_proc,
 				(VOS_VOID*)pPidListInfoTmp,
-				&pPidListInfoTmp->dwPidThreadId,
+				&pPidListInfoTmp->hThread.dwThreadId,
 				strBuffer);
 			if (VOS_OK != ulSoRet)
 			{
@@ -2345,10 +2346,11 @@ VOS_UINT32 cpss_iocp_init ()
 	VOS_UINT32 ulRet = VOS_ERR;
 	CPSS_SOCKET_LINK * hSocketLinkTemp = NULL;
 	CPSS_PID_TABLE	*	pstuPidList  = NULL;
-	VOS_UINT32 dwTcpThreadID = 0,dwUdpThreadID = 0;
+	int nIndex = 0;
 	VOS_UINT32 dwType = 0;
 	VOS_UINT32 ulProcessPid = 0;
 	VOS_CHAR   strMutexKey[36] = {0};
+
 
 	if (NULL == g_handleManagePid.pstuCPuIDList || NULL == g_handleManagePid.pstuPidList)
 	{
@@ -2360,7 +2362,55 @@ VOS_UINT32 cpss_iocp_init ()
 		CPSSCPUID);
 	VOS_PrintInfo(__FILE__, __LINE__, "DBSvr  CPuID:[%u]",
 		DBSVRCPUID);
+	g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_ACCEPT].FunProc = cpss_tcp_accept_client_proc;
+	g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_ACCEPT].hThread.hThread = NULL;
+	VOS_Strcpy(g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_ACCEPT].strThreadName, "Accept");
 
+	g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_TSEND].FunProc = cpss_tcp_send_proc;
+	g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_TSEND].hThread.hThread = NULL;
+	VOS_Strcpy(g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_TSEND].strThreadName, "T send");
+
+	g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_TRECV].FunProc = cpss_tcp_recv_proc;
+	g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_TRECV].hThread.hThread = NULL;
+	VOS_Strcpy(g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_TRECV].strThreadName, "T recv");
+
+	g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_USEND].FunProc = cpss_udp_send_proc;
+	g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_USEND].hThread.hThread = NULL;
+	VOS_Strcpy(g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_USEND].strThreadName, "U send");
+
+	g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_URECV].FunProc = cpss_udp_recv_proc;
+	g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_URECV].hThread.hThread = NULL;
+	VOS_Strcpy(g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_URECV].strThreadName, "U recv");
+
+	for (int nIndex = 0; nIndex < CPSS_IOCP_THREAD_COUNT; nIndex++)
+	{
+		if (NULL != g_handleiocpmanage.hIOThread[nIndex].hThread.hThread)
+		{
+			VOS_PrintWarn(__FILE__, __LINE__, "%s system is already exist",
+				g_handleiocpmanage.hIOThread[nIndex].strThreadName);
+			continue;
+		}
+		sprintf(strMutexKey, "TSENDMSG%d", time(NULL));
+		ulRet = VOS_Init_Event(&g_handleiocpmanage.hIOThread[nIndex].pMsgEvent, strMutexKey);
+		if (VOS_OK != ulRet)
+		{
+			VOS_PrintErr(__FILE__, __LINE__, "init Tcp Send Event");
+			return ulRet;
+		}
+		sprintf(strMutexKey, "%s proc", g_handleiocpmanage.hIOThread[nIndex].strThreadName);
+		ulRet = cpss_create_thread(&g_handleiocpmanage.hIOThread[nIndex].hThread.hThread,
+			0,
+			g_handleiocpmanage.hIOThread[nIndex].FunProc,
+			(VOS_VOID*)&g_handleiocpmanage,
+			&g_handleiocpmanage.hIOThread[nIndex].hThread.dwThreadId,
+			strMutexKey);
+		if (VOS_OK != ulRet)
+		{
+			VOS_PrintErr(__FILE__, __LINE__, "create thread for %s Rejected!",
+				g_handleiocpmanage.hIOThread[nIndex].strThreadName);
+			return ulRet;
+		}
+	}
 	pstuPidList = g_handleManagePid.pstuPidList;
 	while (NULL != pstuPidList)
 	{
@@ -2424,106 +2474,6 @@ VOS_UINT32 cpss_iocp_init ()
 		pstuPidList = pstuPidList->next;
 	}
 
-	if (NULL == g_handleiocpmanage.ulTcpAccept)
-	{
-		ulRet = cpss_create_thread(&g_handleiocpmanage.ulTcpAccept,
-			0,
-			cpss_tcp_accept_client_proc,
-			(VOS_VOID*)&g_handleiocpmanage,
-			&g_handleiocpmanage.dwTThreadId,
-			"T accept proc");
-		if (VOS_OK != ulRet)
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "create thread for accept Rejected!");
-			return ulRet;
-		}
-	}
-	else
-	{
-		VOS_PrintWarn(__FILE__, __LINE__, "Accept system is already exist");
-	}
-	if (NULL == g_handleiocpmanage.hTcpRecv)
-	{
-		ulRet = cpss_create_thread(&g_handleiocpmanage.hTcpRecv,
-			0,
-			cpss_tcp_recv_proc,
-			(VOS_VOID*)&g_handleiocpmanage,
-			&dwTcpThreadID,
-			"T recv proc");
-		if (VOS_OK != ulRet)
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "create thread for client error");
-			return ulRet;
-		}
-	}
-	else
-	{
-		VOS_PrintWarn(__FILE__, __LINE__, "TCP Recv system is already exist");
-	}
-	if (NULL == g_handleiocpmanage.hTcpSend)
-	{
-		sprintf(strMutexKey, "TSENDMSG%d", time(NULL));
-		ulRet = VOS_Init_Event(&g_handleiocpmanage.pTSendMsgEvent, strMutexKey);
-		if (VOS_OK != ulRet)
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "init Tcp Send Event");
-			return ulRet;
-		}
-		ulRet = cpss_create_thread(&g_handleiocpmanage.hTcpSend,
-			0,
-			cpss_tcp_send_proc,
-			(VOS_VOID*)&g_handleiocpmanage,
-			&dwTcpThreadID,
-			"T send proc");
-		if (VOS_OK != ulRet)
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "create thread for client error");
-			return ulRet;
-		}
-	}
-	else
-	{
-		VOS_PrintWarn(__FILE__, __LINE__, "TCP Send system is already exist");
-	}
-	if (NULL == g_handleiocpmanage.hUdpRecv)
-	{
-		ulRet = cpss_create_thread(&g_handleiocpmanage.hUdpRecv,
-			0,
-			cpss_udp_recv_proc,
-			(VOS_VOID*)&g_handleiocpmanage,
-			&dwTcpThreadID,
-			"U recv proc");
-		if (VOS_OK != ulRet)
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "create thread for client error");
-			return ulRet;
-		}
-	}
-	else
-	{
-		VOS_PrintWarn(__FILE__, __LINE__, "UDP Recv system is already exist");
-	}
-	if (NULL == g_handleiocpmanage.hUdpSend)
-	{
-		sprintf(strMutexKey, "U_SEND");
-		ulRet = VOS_Init_Event(&g_handleiocpmanage.pUSendMsgEvent, strMutexKey);
-		if (VOS_OK != ulRet)
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "init Udp Send Event");
-			return ulRet;
-		}
-		ulRet = cpss_create_thread(&g_handleiocpmanage.hUdpSend,
-			0,
-			cpss_udp_send_proc,
-			(VOS_VOID*)&g_handleiocpmanage,
-			&dwTcpThreadID,
-			"U send proc");
-		if (VOS_OK != ulRet)
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "create thread for client error");
-			return ulRet;
-		}
-	}
 	ulRet = VOS_OK;
 	return ulRet;
 }		/* -----  end of function cpss_socket_init  ----- */
@@ -2648,23 +2598,16 @@ VOS_UINT32 cpss_socket_init ()
 	//memset(&g_handleiocpmanage, 0, sizeof(CPSS_IOCP_MANAGE));
 	//	g_handleiocpmanage.nlSocketTcpfd = 0;
 	//	g_handleiocpmanage.nlSocketUdpfd = 0;
-	g_handleiocpmanage.dwTThreadId = 0;
-	g_handleiocpmanage.dwUThreadId = 0;
 	g_handleiocpmanage.pUsedSocketHead = NULL;
 	g_handleiocpmanage.pUsedSocketTail = NULL;
 	g_handleiocpmanage.pFreeSocketHead = NULL;
 	g_handleiocpmanage.pFreeSocketTail = NULL;
-	g_handleiocpmanage.hTcpRecv = NULL;
-	g_handleiocpmanage.hTcpSend = NULL;
-	g_handleiocpmanage.hUdpRecv = NULL;
-	g_handleiocpmanage.hUdpSend = NULL;
 	g_handleiocpmanage.pFreeTCPClientHead = NULL;
 	g_handleiocpmanage.pFreeTCPClientTial = NULL;
 	g_handleiocpmanage.pUsedTCPClientHead = NULL;
 	g_handleiocpmanage.pUsedTCPClientTial = NULL;
 	g_handleiocpmanage.ulClientCount  = 0;
 	g_handleiocpmanage.ulClientOnline = 0;
-	g_handleiocpmanage.ulTcpAccept	  = 0;
 	
 	g_handleiocpmanage.usExitSystem  = FALSE;
 

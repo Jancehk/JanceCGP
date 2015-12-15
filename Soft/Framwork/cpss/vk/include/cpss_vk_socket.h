@@ -74,6 +74,15 @@ typedef enum CPSS_SKT_STAT_M{
 	CPSS_SKT_STAT_OPENING,		//4 打开中
 	CPSS_SKT_STAT_OPENED,		//5 打开完了
 };
+typedef enum _CPSS_IOCP_THREAD_LIST_M
+{
+	CPSS_IOCP_THREAD_ACCEPT,
+	CPSS_IOCP_THREAD_TSEND,
+	CPSS_IOCP_THREAD_TRECV,
+	CPSS_IOCP_THREAD_USEND,
+	CPSS_IOCP_THREAD_URECV,
+	CPSS_IOCP_THREAD_COUNT,
+};
 typedef struct CPSS_CLT_CMD_T
 {
 	VOS_UINT32  nCmdID;
@@ -132,30 +141,26 @@ typedef struct CPSS_CLIENT_INFO_T
 	VOS_CHAR			*pstuBuffer;
 	VOS_UINT32			nBufferLeng;
 }CPSS_CLIENT_INFO, *pCPSS_CLIENT_INFO;
-
+typedef struct _CPSS_IOCP_THREAD_INFO_T
+{
+	VOS_THREAD_INFO hThread;
+	VOS_Event	pMsgEvent;
+	ThreadFun    FunProc;
+	VOS_CHAR	strThreadName[32];
+}CPSS_IOCP_THREAD_INFO, *pCPSS_IOCP_THREAD_INFO;
 typedef struct CPSS_IOCP_MANAGE_T
 {
-	HANDLE	    ulTcpAccept;	//Tcp Handle
-	HANDLE		hTcpRecv;
-	HANDLE		hUdpRecv;
-	HANDLE		hTcpSend;
-	HANDLE		hUdpSend;
-	VOS_UINT32	dwTThreadId;
-	VOS_UINT32	dwUThreadId;
+	CPSS_IOCP_THREAD_INFO hIOThread[CPSS_IOCP_THREAD_COUNT];
+	CPSS_PID_THREAD_INFO pPidListInfo;
 	VOS_UINT8	usExitSystem;
 	VOS_UINT32  ulClientIndex;
 	VOS_UINT32  ulClientCount;
 	VOS_UINT32  ulClientOnline;
-	VOS_Event	pTSendMsgEvent;
-	VOS_Event	pUSendMsgEvent;
-	VOS_Event	pTRecvMsgEvent;
-	VOS_Event	pURecvMsgEvent;
 	VOS_MUTEX			hSocketMutex;
 	CPSS_SOCKET_LINK *	pUsedSocketHead;		// Socket Used List Head
 	CPSS_SOCKET_LINK *	pUsedSocketTail;		// Socket Used List Tail
 	CPSS_SOCKET_LINK *	pFreeSocketHead;		// Socket Used List Head
 	CPSS_SOCKET_LINK *	pFreeSocketTail;		// Socket Used List Tail
-	//CPSS_MANAGE_PID	 * hManagePid;		// PID List head
 	CPSS_MSG_SEM_MANAGE stMsgTL;
 	VOS_MUTEX			hClientMutex;
 	pCPSS_CLIENT_INFO	pUsedTCPClientHead;  //
@@ -163,7 +168,9 @@ typedef struct CPSS_IOCP_MANAGE_T
 	pCPSS_CLIENT_INFO	pFreeTCPClientHead;
 	pCPSS_CLIENT_INFO	pFreeTCPClientTial;
 }CPSS_IOCP_MANAGE,*PCPSS_IOCP_MANAGE;
+
 CPSS_IOCP_MANAGE g_handleiocpmanage;
+
 #define __AATEST_
 #define  VOS_PrintMsg(pstrinfo,pMsgInfo) 
 #ifndef __AATEST_
