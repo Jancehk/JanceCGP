@@ -195,7 +195,7 @@ VOS_UINT32 swp_init (int argc, char ** argv )
 	}
 	VOS_PrintInfo(__FILE__, __LINE__, "CGP IOCP_INIT OK");
 	
-	ulRet = cpss_subsystem_init(CPSS_TYPE_SYSTEM_INIT,CPSS_CMD_SYSTEM_INIT);
+	ulRet = cpss_subsystem_init(cps_set_msg_type(CPSS_OBJ_PID_FW, CPSS_SYSTEM, CPSS_TYPE_SYS, CPSS_MSG_INIT), CPSS_CMD_SYSTEM_INIT);
 	if (VOS_OK != ulRet)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "CGP Sub System Init Error");

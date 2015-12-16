@@ -43,34 +43,59 @@ typedef enum _CPSS_MSG_STAT_M{
 };
 
 typedef enum _CPSS_MSG_TYPE_M{
-	CPSS_MSG_TYPE_FREE=4,		/*空闲中*/
-	CPSS_MSG_TYPE_PRERECV,		/*接受准备中*/
-	CPSS_MSG_TYPE_RECVING,		/*接受中*/
+	CPSS_MSG_TYPE_FREE=4,			/*空闲中*/
+	CPSS_MSG_TYPE_PRERECV,			/*接受准备中*/
+	CPSS_MSG_TYPE_RECVING,			/*接受中*/
 	CPSS_MSG_TYPE_RECVED,			/*接受完了*/
 	CPSS_MSG_TYPE_PRESEND,			/*发送准备中*/
 	CPSS_MSG_TYPE_SENDING,			/*发送中*/
 	CPSS_MSG_TYPE_SENDED,			/*发送完了*/
 };
-typedef enum CPSS_TYPE_T{
-	CPSS_TYPE_SYSTEM_INIT=0x31,
-	CPSS_TYPE_SYSTEM_TELNET,
-	CPSS_TYPE_SYSTEM_HTTP,
-	CPSS_TYPE_SYSTEM_FTP,
-	CPSS_TYPE_SYSTEM_TCP,
-	CPSS_TYPE_SYSTEM_UDP,
-	CPSS_REQ_DBSVR_GET,				/*recv get cpuid or pid info*/
-	CPSS_RES_DBSVR_GET,				/*send res cpuid or pid info*/
-	CPSS_REQ_DBSVR_USE,				/*req use*/
-	CPSS_RES_DBSVR_USE,				/*res use or pass*/
-	CPSS_REQ_XCAP_GET,
-	CPSS_RES_XCAP_GET,
-	CPSS_TYPE_SYSTEM_UNIT,
+/****************/
+/*   请求方式方法    */
+/****************/
+typedef enum CPSS_MSG_TYPE_M{
+	CPSS_MSG_INIT = 0x01,				/* 初始化 */
+	CPSS_MSG_UNIT,						/* 反初始化 */
+	CPSS_MSG_REQ,						/* 请求 */
+	CPSS_MSG_RES,						/* 应答 */
+	CPSS_MSG_SET,						/* 设定 */
+	CPSS_MSG_DEL,						/* 删除 */
+	CPSS_MSG_REG,						/* 注册 */
+	CPSS_MSG_CHK,						/* 检查 */
 };
+
+/****************/
+/*   请求内容    */
+/****************/
+typedef enum CPSS_REQUEST_CONTENT_M{
+	CPSS_TYPE_SYS = 0x01,
+	CPSS_TYPE_CPUIDPID,
+	CPSS_TYPE_USER,
+};
+/****************/
+/*   请求类型   */
+/****************/
+typedef enum CPSS_REQUEST_TYPE_M{
+	CPSS_SYSTEM = 0x01,
+};
+/****************/
+/*   请求PID对象 */
+/****************/
+typedef enum CPSS_OBJ_PID_M{
+	CPSS_OBJ_PID_FW,
+	CPSS_OBJ_PID_DBSVR,
+	CPSS_OBJ_PID_XCAP,
+	CPSS_OBJ_PID_MONEY,
+};
+
+/*
 typedef enum CPSS_TYPE_SUB_T{
 	CPSS_TYPE_CPUID_PID=0x11,
-	CPSS_TYPE_CHECK_USE,			/*check use or pass*/
+	CPSS_TYPE_CHECK_USE,
 	CPSS_TYPE_GET_SUBURL,
 };
+*/
 typedef enum CPSS_CMD_T{
 	CPSS_CMD_SYSTEM_INIT=0x21,
 	CPSS_CMD_SYSTEM_TELNET,

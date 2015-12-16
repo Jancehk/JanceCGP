@@ -209,7 +209,7 @@ VOS_UINT32 cpss_iocp_init ();
  *  OutPut     :    
  *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 cpss_subsystem_init (VOS_UINT8 uType, VOS_UINT8 uCmd);
+VOS_UINT32 cpss_subsystem_init (VOS_UINT32 uType, VOS_UINT32 uCmd);
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_iocp_init
  *  Description: 

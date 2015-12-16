@@ -31,7 +31,7 @@
 
 #define VOS_Pid_Strcat(pstrA,pstrB)		VOS_CpsStrcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_PID))
 
-static CPSS_CPUID_PID_MAP g_CPuID_SubPID_Manage[] = {
+static CPSS_CPUID_PID_MAP g_CPuID_CPuID_Manage[] = {
 	{CPSS_CONNECT_SUB_SELF,		CPSS_STRING_CGP},
 	{CPSS_CONNECT_SUB_DBSVR,	CPSS_STRING_DBSVR},
 	{CPSS_CONNECT_SUB_XCAP,		CPSS_STRING_XCAP},
@@ -628,7 +628,7 @@ static VOS_VOID cpss_print_cpuid_pid (VOS_CHAR * strType, pCPSS_CPUID_INFO pstuC
 	}
 	VOS_PrintInfo(__FILE__, __LINE__, "%s [%s:%s] CPuID[%u] PID[%d]",
 		strType,
-		g_CPuID_SubPID_Manage[pstuCPuID->ulSubSys- CPSS_CONNECT_SUB_SELF].szPidName,
+		g_CPuID_CPuID_Manage[pstuCPuID->ulSubSys - CPSS_CONNECT_SUB_SELF].szPidName,
 		g_CPuID_PID_Manage[pstuCPuID->ulIndex -CPSS_CONNECT_SELF].szPidName,
 		pstuCPuID->ulProcessCPuID,
 		pstuCPuID->ulPid);

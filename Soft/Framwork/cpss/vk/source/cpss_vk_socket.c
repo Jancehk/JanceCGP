@@ -1068,7 +1068,7 @@ static VOS_UINT32 cpss_check_msg_complete(pCPSS_CLIENT_INFO pClientInfo, pCPSS_S
 	//pstuMsg = pSocketInfo->pstuRecvMsg;
 	if (CPSS_SOCKET_TELNET == pClientInfo->uClientStat)
 	{
-		pstuMsg->Body.msghead.uType = CPSS_TYPE_SYSTEM_TELNET;
+		//pstuMsg->Body.msghead.uType = CPSS_TYPE_SYSTEM_TELNET;
 		ulRet = cpss_move_tcp_recv_free_to_used(pstuMsg);
 		if (VOS_OK != ulRet)
 		{
@@ -2390,7 +2390,7 @@ VOS_UINT32 cpss_iocp_init ()
 				g_handleiocpmanage.hIOThread[nIndex].strThreadName);
 			continue;
 		}
-		sprintf(strMutexKey, "TSENDMSG%d", time(NULL));
+		sprintf(strMutexKey, "%sMSG%d", g_handleiocpmanage.hIOThread[nIndex].strThreadName, time(NULL));
 		ulRet = VOS_Init_Event(&g_handleiocpmanage.hIOThread[nIndex].pMsgEvent, strMutexKey);
 		if (VOS_OK != ulRet)
 		{
@@ -2484,7 +2484,7 @@ VOS_UINT32 cpss_iocp_init ()
  *  OutPut     :    
  *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 cpss_subsystem_init (VOS_UINT8 uType, VOS_UINT8 uCmd)
+VOS_UINT32 cpss_subsystem_init (VOS_UINT32 uType, VOS_UINT32 uCmd)
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 	CPSS_SOCKET_LINK * hSocketLink = NULL;

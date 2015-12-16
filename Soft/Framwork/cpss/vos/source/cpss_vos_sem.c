@@ -1396,6 +1396,47 @@ VOS_UINT32 cps_get_msg_mem_data(CPSS_MSG * msgTmp)
 	}
 	return VOS_OK;
 }
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  cps_get_msg_mem_data
+*  Description:  从请求内容中得到消息类型
+* ==========================================================================*/
+VOS_UINT32 cps_set_msg_type(VOS_UINT8 uObjPid, VOS_UINT8 uReqType, VOS_UINT8 uReqContent, VOS_UINT8 uMsgType)
+{
+	return uObjPid << 24 | uReqType << 16 | uReqContent << 8 | uMsgType;
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  cps_get_objpid_from_msg
+*  Description:  从消息中得到对象PID
+* ==========================================================================*/
+VOS_UINT8 cps_get_objpid_from_msg(VOS_UINT32 ulMsgType)
+{
+	return ulMsgType >> 24;
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  cps_get_reqtype_from_msg
+*  Description:  从消息中得到请求类型
+* ==========================================================================*/
+VOS_UINT8 cps_get_reqtype_from_msg(VOS_UINT32 ulMsgType)
+{
+	return cps_get_objpid_from_msg(ulMsgType << 8);
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  cps_get_reqcontent_from_msg
+*  Description:  从消息中得到请求内容
+* ==========================================================================*/
+VOS_UINT8 cps_get_reqcontent_from_msg(VOS_UINT32 ulMsgType)
+{
+	return cps_get_objpid_from_msg(ulMsgType << 16);
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  cps_get_msgtype_from_msg
+*  Description:  从消息中得到请求方式
+* ==========================================================================*/
+VOS_UINT8 cps_get_msgtype_from_msg(VOS_UINT32 ulMsgType)
+{
+	return cps_get_objpid_from_msg(ulMsgType << 24);
+}
 /* ===  FUNCTION  ==============================================================
 *         Name:  cps_uninit_msg_sem
 *  Description:  平台卸载消息队列
