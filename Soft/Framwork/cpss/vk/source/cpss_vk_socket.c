@@ -2545,7 +2545,19 @@ VOS_UINT32 cpss_subsystem_init (VOS_UINT32 uType, VOS_UINT32 uCmd)
 		pMsgInfo->Body.msghead.uType = uType;
 		pMsgInfo->Body.msghead.uCmd = uCmd;
 
-		ulRet = cpss_move_udp_recv_free_to_used(pMsgInfo);
+		switch (hSocketLink->nlSocketType & VOS_SOCKET_TYPE>>16)
+		{
+		case VOS_SOCKET_TCP:
+			ulRet = cpss_move_tcp_recv_free_to_used(pMsgInfo);
+			break;
+		case VOS_SOCKET_UDP:
+			ulRet = cpss_move_udp_recv_free_to_used(pMsgInfo);
+			break;
+		default:
+			VOS_PrintErr(__FILE__, __LINE__, "socket type is error");
+			hSocketLink = hSocketLink->next;
+			continue;
+		}
 		if (VOS_OK != ulRet)
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "move tcp to used error ");

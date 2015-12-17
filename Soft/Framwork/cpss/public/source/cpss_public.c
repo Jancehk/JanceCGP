@@ -435,8 +435,12 @@ VOS_UINT32 VOS_Set_Event(VOS_Event * pEvent)
  * ==========================================================================*/
 VOS_UINT32 VOS_Wait_Event(VOS_Event * pEvent, VOS_UINT32 uTime)
 {
-	
-	VOS_UINT32 nRet = VOS_ERR;
+	VOS_UINT32 nRet = VOS_ERR; 
+#if (OS_TYPE == OS_TYPE_LINUX)
+	struct timeval tt;
+	struct timespec ts;
+#endif
+
 #if (OS_TYPE == OS_TYPE_WINDOW)
 	VOS_UINT32 pWRet = VOS_ERR;
 	pWRet = WaitForSingleObject(pEvent->hEvent, uTime);//INFINITE
@@ -445,7 +449,12 @@ VOS_UINT32 VOS_Wait_Event(VOS_Event * pEvent, VOS_UINT32 uTime)
 		nRet = VOS_OK;
 	}
 #elif (OS_TYPE == OS_TYPE_LINUX)
-	if (sem_wait(&pEvent->sem))
+	gettimeofday(&tt,NULL);  
+	ts.tv_sec = tt.tv_sec;  
+	ts.tv_nsec = tt.tv_usec*1000 + uTime * 1000 * 1000;
+	ts.tv_sec += ts.tv_nsec/(1000 * 1000 *1000);
+	ts.tv_nsec %= (1000 * 1000 *1000);
+	if(sem_timedwait(&pEvent->sem,&ts))//if (sem_wait(&pEvent->sem))
 	{
 		nRet = VOS_OK;
 	} 
