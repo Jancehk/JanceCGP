@@ -88,6 +88,7 @@ typedef enum _VOS_CLIENT_STAT_M{
 #define VOS_SOCKET_STAT		0x000F0000
 #define VOS_SOCKET_PORT		0X0000FFFF
 
+#define VOS_SOCKET_NO		0x04000000
 #define VOS_SOCKET_IN		0x08000000
 #define VOS_SOCKET_OUT		0x0C000000
 
@@ -100,6 +101,7 @@ typedef enum _VOS_SOCKET_M
 
 #define VOS_TCP_PID			(VOS_SOCKET_TCP<<16)
 #define VOS_UDP_PID			(VOS_SOCKET_UDP<<16)
+#define VOS_ACC_PID			(VOS_SOCKET_ACC<<16)
 
 #if (OS_TYPE == OS_TYPE_WINDOW)
 #define VOS_Sleep(x)  Sleep(x*10)

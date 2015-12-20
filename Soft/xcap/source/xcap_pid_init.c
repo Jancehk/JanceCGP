@@ -42,6 +42,44 @@ VOS_UINT32 VOS_ProcessInit()
 
 	return VOS_OK;
 }
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  framwork_init_proc
+*  Description:  初始化共同服务器
+* ==========================================================================*/
+static VOS_UINT32 xcap_system_proc(pCPSS_MSG pMsgInfo)
+{
+	VOS_UINT32 uRet = VOS_ERR;
+	VOS_UINT8 nCheck = 0;
+	if (NULL == pMsgInfo)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "msg head is null");
+		return uRet;
+	}
+
+	switch (cps_get_reqcontent_from_msg(pMsgInfo->Body.msghead.uType))
+	{
+	case CPSS_TYPE_SYS:
+		if (CPSS_CMD_SYSTEM_INIT == cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
+		{
+			XCAP_PrintInfo(__FILE__, __LINE__, "XCAP System Init OK");
+			uRet = VOS_OK;
+		}
+		else
+		if (CPSS_CMD_SYSTEM_UNIT == cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
+		{
+			uRet = VOS_OK;
+		}
+		break;
+	default:
+		VOS_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
+			pMsgInfo->Body.msghead.uType,
+			pMsgInfo->Body.msghead.uCmd);
+		break;
+	}
+	return uRet;
+}
+
 /* ===  FUNCTION  ==============================================================
  *         Name:  pid_init_proc
  *  Description: 
@@ -53,27 +91,20 @@ VOS_UINT32 pid_init_xcap_proc(VOS_VOID *arg)
 {
 	VOS_UINT32		uRet = VOS_ERR;
 	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)arg;
-	switch (pMsgInfo->Body.msghead.uType)
+	switch (cps_get_reqtype_from_msg(pMsgInfo->Body.msghead.uType))
 	{
-	case CPSS_TYPE_SYSTEM_INIT: 
-		if (CPSS_CMD_SYSTEM_INIT == pMsgInfo->Body.msghead.uCmd)
+	case CPSS_REQUEST_SYSTEM:
+		uRet = xcap_system_proc(pMsgInfo);
+		if (VOS_OK != uRet)
 		{
-			XCAP_PrintInfo(__FILE__,__LINE__,"XCAP System Init OK");
-			uRet = VOS_OK;
-		}else
-		if (CPSS_CMD_SYSTEM_UNIT == pMsgInfo->Body.msghead.uCmd)
-		{
-			uRet = VOS_OK;
+			XCAP_PrintErr(__FILE__, __LINE__, "send url to XCAP Error ");
 		}
 		break;
-	case CPSS_TYPE_SYSTEM_HTTP:
-		if (VOS_OK != xcap_request_URL(pMsgInfo))
+	case XCAP_REQUEST_URL:
+		uRet = xcap_request_URL(pMsgInfo);
+		if (VOS_OK != uRet)
 		{
-			XCAP_PrintErr(__FILE__,__LINE__,"send url to XCAP Error ");
-		}
-		else
-		{
-			uRet = VOS_OK;
+			XCAP_PrintErr(__FILE__, __LINE__, "send url to XCAP Error ");
 		}
 		break;
 	default:

@@ -141,33 +141,46 @@ static VOS_UINT32 get_xcap_root(VOS_CHAR * pstrInput)
 }
 
 /* ===  FUNCTION  ==============================================================
- *         Name:  money_proc_init
+ *         Name:  money_system_proc
  *  Description:  发送telnet的数据
  * ==========================================================================*/
-VOS_UINT32 money_proc_init(VOS_VOID *pVoidMsg)
+VOS_UINT32 money_system_proc(VOS_VOID *pVoidMsg)
 {
 	VOS_UINT32 uRet = VOS_ERR;
 	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pVoidMsg;
-	switch(pMsgInfo->Body.msghead.uCmd)
+
+	if (NULL == pMsgInfo)
 	{
-	case CPSS_CMD_SYSTEM_INIT:
-		uRet = VOS_OK;
-		break;
-	case CPSS_CMD_SYSTEM_UNIT:
-		uRet = VOS_OK;
+		Money_PrintErr(__FILE__, __LINE__, "msg head is null");
+		return uRet;
+	}
+
+	switch (cps_get_reqcontent_from_msg(pMsgInfo->Body.msghead.uType))
+	{
+	case CPSS_TYPE_SYS:
+		if (CPSS_MSG_INIT == cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
+		{
+			Money_PrintErr(__FILE__, __LINE__, "MONEY System Init OK");
+			uRet = VOS_OK;
+		}
+		else if (CPSS_MSG_UNIT == cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
+		{
+			uRet = VOS_OK;
+		}
 		break;
 	default:
-		Money_PrintErr(__FILE__,__LINE__,"uCmd %X",pMsgInfo->Body.msghead.uCmd);
-		uRet=VOS_ERR;
+		Money_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
+			pMsgInfo->Body.msghead.uType,
+			pMsgInfo->Body.msghead.uCmd);
 		break;
 	}
 	return uRet;
 }
 /* ===  FUNCTION  ==============================================================
- *         Name:  proc_xcap_url_result
- *  Description:  发送telnet的数据
+ *         Name:  money_deal_proc
+ *  Description:  记账管理系统主要业务逻辑
  * ==========================================================================*/
-VOS_UINT32 proc_xcap_url_result(VOS_VOID *pVoidMsg)
+VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 {
 	VOS_UINT32		uRet = VOS_ERR;
 	VOS_CHAR		strUrlName[XCAP_HOST_LENGTH] = {0};
@@ -181,7 +194,7 @@ VOS_UINT32 proc_xcap_url_result(VOS_VOID *pVoidMsg)
 		Money_PrintErr(__FILE__,__LINE__,"input msg info is NULL");
 		goto END_PROC;
 	}
-	stuXcapSerMgr =(pXCAP_SER_MGR)pMsgInfo->Body.stuDataBuf;
+	stuXcapSerMgr =(pXCAP_SER_MGR)pMsgInfo->Body.strDataBuf;
 	if (0x0A != stuXcapSerMgr->uStat)
 	{
 		Money_PrintErr(__FILE__,__LINE__,"Recv buffer is Error");
@@ -190,7 +203,7 @@ VOS_UINT32 proc_xcap_url_result(VOS_VOID *pVoidMsg)
 	Money_PrintInfo(__FILE__,__LINE__,"GET URL %p:%s",
 		stuXcapSerMgr->Req_Mgr, 
 		&stuXcapSerMgr->URL);
-	VOS_Memcpy(&MsgInfo.Body.stuDataBuf, stuXcapSerMgr, sizeof(XCAP_SER_MGR));
+	VOS_Memcpy(&MsgInfo.Body.strDataBuf, stuXcapSerMgr, sizeof(XCAP_SER_MGR));
 	
 	uNum = get_xcap_root(&stuXcapSerMgr->URL);
 	if (uNum >=  0 && uNum < sizeof(g_rootInfo)/sizeof(XCAP_ROOT_INFO))
@@ -211,21 +224,20 @@ VOS_UINT32 proc_xcap_url_result(VOS_VOID *pVoidMsg)
 	{
 		Money_PrintErr(__FILE__,__LINE__,"get_xcap_root error %d", uNum);
 	}
-	//if (0 != MsgInfo.Body.stuDataBuf.nSize)
+	//if (0 != MsgInfo.Body.strDataBuf.nSize)
 	{
-		Money_PrintInfo(__FILE__,__LINE__,"RES :\n%s", MsgInfo.Body.stuDataBuf+sizeof(XCAP_SER_MGR));
+		Money_PrintInfo(__FILE__,__LINE__,"RES :\n%s", MsgInfo.Body.strDataBuf+sizeof(XCAP_SER_MGR));
 		
 		VOS_Memcpy(&MsgInfo.Body.msghead.stSrcProc,
 			&pMsgInfo->Body.msghead.stDstProc,	sizeof(CPSS_COM_PID));
 		VOS_Memcpy(&MsgInfo.Body.msghead.stDstProc,
 			&pMsgInfo->Body.msghead.stSrcProc,	sizeof(CPSS_COM_PID));
 
-		MsgInfo.Body.msghead.ulRecvMsgID = pMsgInfo->Body.msghead.ulMsgID;
+		//MsgInfo.Body.msghead.ulRecvMsgID = pMsgInfo->Body.msghead.ulMsgID;
 		
-		Money_PrintInfo(__FILE__,__LINE__,"Recv MsgID:%d\n", pMsgInfo->Body.msghead.ulMsgID);
+		//Money_PrintInfo(__FILE__,__LINE__,"Recv MsgID:%d\n", pMsgInfo->Body.msghead.ulMsgID);
 		
-		uRet = send_udp_data(&MsgInfo, "", 0,VOS_SEND_SKT_TYPE_FINISH,
-			CPSS_RES_XCAP_GET,CPSS_TYPE_GET_SUBURL);
+		//uRet = send_udp_data(&MsgInfo, "", 0,VOS_SEND_SKT_TYPE_FINISH,	CPSS_RES_XCAP_GET,CPSS_TYPE_GET_SUBURL);
 		if (VOS_OK != uRet)
 		{
 			Money_PrintErr(__FILE__,__LINE__,"send udp data error");
@@ -289,7 +301,7 @@ VOS_UINT32 get_xcap_root_body(VOS_CHAR * pstrInput,VOS_VOID * pMsgVoid)
 	
 
 	//pMsgInfo.Body.msghead.ulMsgLength = 0;
-	pstuBuff = pMsgInfo->Body.stuDataBuf;
+	pstuBuff = pMsgInfo->Body.strDataBuf;
 	
 	if (NULL == pstuBuff)
 	{

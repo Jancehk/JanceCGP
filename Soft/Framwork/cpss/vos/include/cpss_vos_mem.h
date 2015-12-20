@@ -35,22 +35,22 @@ typedef enum CPSS_MEM_BUFFER_STAT_M{
 typedef enum CPSS_MEM_RECORD_STAT_M{
 	CPSS_MEM_RECORD_STAT_FREE = 1,
 	CPSS_MEM_RECORD_STAT_RESE,
+	CPSS_MEM_RECORD_STAT_REMV,
 	CPSS_MEM_RECORD_STAT_USED,
 };
 
 typedef struct _CPSS_MEM_RECORD_T
 {
-	VOS_UINT32	nSize;			/* buferr 长度 */
-	VOS_UINT8   nState;			/* malloc state */
-	VOS_VOID	*pstrVoid;		/* buffer 内容 */
-	VOS_UINT32	nFileLine;		/* malloc line in file */
-	VOS_CHAR	strFileName[32];	/* malloc in where */
+	VOS_UINT32	nSize;					/* buferr 长度 */
+	VOS_UINT8   nState;					/* malloc state */
+	VOS_VOID	*pstrVoid;				/* buffer 内容 */
+	VOS_UINT32	nFileLine;				/* malloc line in file */
+	VOS_CHAR	strFileName[32];		/* malloc in where */
 	struct _CPSS_MEM_RECORD_T * prev;
 	struct _CPSS_MEM_RECORD_T * next;
 }CPSS_MEM_RECORD, *pCPSS_MEM_RECORD;
 typedef struct _CPSS_MEM_RECORD_HEAD_T
 {
-	VOS_UINT32	uMemCount;		/* mem size */
 	VOS_UINT32	uMemSize;		/* mem size */
 	VOS_UINT32 nTotalCount;		/* mem record count */
 	CPSS_MEM_RECORD * head;
@@ -60,7 +60,6 @@ typedef struct _CPSS_MEM_RECORD_HEAD_T
 typedef struct _CPSS_MSG_MEM_MANAGE_T
 {
 	VOS_MUTEX  hMutex;
-	VOS_UINT32 uMemCount;
 	VOS_UINT32 uMemSize;
 	VOS_UINT32 nTotalCount;
 	VOS_UINT32 rfu;

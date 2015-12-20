@@ -17,49 +17,32 @@
  */
 #include "DBSvr_user.h"
 #include "DBSvr_pid_init.h"
-VOS_UINT32 VOS_ProcessInit()
-{
-	if (VOS_OK != VOS_RegistPidInit(CPSS_CONNECT_SUB_DBSVR, CPSS_PID_DBSvr,"DBSVR",1, pid_init_proc, dbsvr_pid_timeout_proc))
-	{
-		DBSvr_PrintErr(__FILE__, __LINE__, "Regist Telnet Server is Error");
-		return VOS_ERR;
-	}
-	
-	return VOS_OK;
-}
-
 
 VOS_UINT32 pid_init_proc(VOS_VOID *arg)
 {
 	VOS_UINT32		uRet = VOS_ERR;
 	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)arg;
-	
-	switch (pMsgInfo->Body.msghead.uType)
+
+	switch (cps_get_reqtype_from_msg(pMsgInfo->Body.msghead.uType))
 	{
-	case CPSS_TYPE_SYSTEM_INIT:
+	case CPSS_REQUEST_SYSTEM:
 		uRet = dbsvr_init_proc(pMsgInfo);
 		if (VOS_OK != uRet)
 		{
-			DBSvr_PrintInfo(__FILE__,__LINE__,"DBSvr init Faild");
+			DBSvr_PrintInfo(__FILE__, __LINE__, "DBSvr init Faild");
 		}
 		break;
-	case CPSS_REQ_DBSVR_GET:
-		uRet = dbsvr_get_info_proc(pMsgInfo);
+	case DBSVR_REQUEST_MGR:
+		uRet = DBSVR_deal_proc(pMsgInfo);
 		if (VOS_OK != uRet)
 		{
-			DBSvr_PrintInfo(__FILE__,__LINE__,"get info to DBSvr Faild");
-		}
-		break;
-	case CPSS_REQ_DBSVR_USE:
-		uRet = dbsvr_user_proc(pMsgInfo);
-		if (VOS_OK != uRet)
-		{
-			DBSvr_PrintInfo(__FILE__,__LINE__,"get check user Faild");
+			VOS_PrintErr(__FILE__, __LINE__, "DBSvr deal proc faild");
 		}
 		break;
 	default:
-			DBSvr_PrintErr(__FILE__,__LINE__,"DBsvr Req type is error:%d",
-				pMsgInfo->Body.msghead.uType);
+		VOS_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
+			pMsgInfo->Body.msghead.uType,
+			pMsgInfo->Body.msghead.uCmd);
 		break;
 	}
 	return VOS_OK;
@@ -74,5 +57,15 @@ VOS_UINT32 pid_init_proc(VOS_VOID *arg)
  * ==========================================================================*/
 VOS_UINT32 dbsvr_pid_timeout_proc(VOS_VOID *argc,VOS_UINT32 argv)
 {
+	return VOS_OK;
+}
+VOS_UINT32 VOS_ProcessInit()
+{
+	if (VOS_OK != VOS_RegistPidInit(CPSS_CONNECT_SUB_DBSVR, CPSS_PID_DBSvr, "DBSVR", 1, pid_init_proc, dbsvr_pid_timeout_proc))
+	{
+		DBSvr_PrintErr(__FILE__, __LINE__, "Regist Telnet Server is Error");
+		return VOS_ERR;
+	}
+
 	return VOS_OK;
 }

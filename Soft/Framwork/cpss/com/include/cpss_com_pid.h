@@ -75,7 +75,7 @@ typedef struct _CPSS_CPUID_PID_MAP_T
 	VOS_CHAR	szPidName[CPSSPIDMAXNAME];
 }CPSS_CPUID_PID_MAP,*pCPSS_CPUID_PID_MAP;
 
-static CPSS_MANAGE_PID g_handleManagePid ;   //管理PID的全局变量
+CPSS_MANAGE_PID g_handleManagePid ;   //管理PID的全局变量
 VOS_UINT32 g_ulSubSystem;
 #define CPSSCPUID	cpss_get_cpuid_pid(CPSS_CONNECT_SUB_SELF,CPSS_CONNECT_SELF, CPSS_GET_TYPE_CPUID)
 //g_handleManagePid.pstuCPuIDList[].ulProcessCPuID

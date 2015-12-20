@@ -17,7 +17,246 @@
  */
 #include "cpss_vos_mem.h"
 static CPSS_MSG_MEM_MANAGE g_cpssMem_Manage;
+typedef enum _MEM_RECORD_MGR_TYPE_M_
+{
+	MEM_RECORD_MGR_INSERTF = 0x01,
+	MEM_RECORD_MGR_INSERTU,
+	MEM_RECORD_MGR_REMOVEF,
+	MEM_RECORD_MGR_REMOVEU,
+	MEM_RECORD_MGR_GETFREE,
+	MEM_RECORD_MGR_CHECK,
+};
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_print_record_info
+*  Description:  打印空的内存管理记录器
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static VOID cpss_mem_print_record_info(VOS_CHAR* pstrKey, VOS_VOID* pstuVoid)
+{
+	CPSS_MEM_RECORD * pstuMemRecord = NULL;
+	VOS_UINT32 nIndex = 0,nTimes = 0;
+	FILE * hFile = NULL;
+	hFile = fopen("D:\\aa.txt","a+");
+	pstuMemRecord = g_cpssMem_Manage.stuMemFHeadList.head;
+	fprintf(hFile, "find %s --> %p\r\n", pstrKey,pstuVoid);
+	fprintf(hFile, "ToTal:%d Free Count:%d\r\n", g_cpssMem_Manage.nTotalCount, g_cpssMem_Manage.stuMemFHeadList.nTotalCount);
+	while (NULL != pstuMemRecord)
+	{
+		fprintf(hFile, "%04d S:%02d,S:%p P:%p N:%p%s[%d]\r\n", ++nTimes, pstuMemRecord->nState, pstuMemRecord, pstuMemRecord->prev, pstuMemRecord->next, pstuMemRecord->strFileName, pstuMemRecord->nFileLine);
+		pstuMemRecord = pstuMemRecord->next;
+	}
+	for (nIndex = 0; nIndex < CPSS_MEM_HEAD_KEY_CPSS_TOTAL; nIndex++)
+	{
+		pstuMemRecord = g_cpssMem_Manage.stuMemUHeadList[nIndex].head;
+		fprintf(hFile, "%d Count:%d\r\n", nIndex, g_cpssMem_Manage.stuMemUHeadList[nIndex].nTotalCount);
+		nTimes = 0;
+		while (NULL != pstuMemRecord)
+		{
+			fprintf(hFile, "%04d S:%02d,S:%p P:%p N:%p%s[%d]\r\n", ++nTimes, pstuMemRecord->nState, pstuMemRecord, pstuMemRecord->prev, pstuMemRecord->next, pstuMemRecord->strFileName, pstuMemRecord->nFileLine);
+			pstuMemRecord = pstuMemRecord->next;
+		}
+	}
+	fclose(hFile);
 
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_record_manager
+*  Description:  管理内存管理记录器
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static VOS_UINT32 cpss_mem_record_manager(VOS_UINT32 nMemRdKey, CPSS_MEM_RECORD **recode, VOS_UINT32 nType)
+{
+	VOS_INT32 uRet = VOS_ERR;
+	CPSS_MEM_RECORD ** head = NULL;
+	CPSS_MEM_RECORD ** tail = NULL;
+	CPSS_MEM_RECORD * pstuMemRecord = NULL;
+
+	if (NULL == recode)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "mem record manager param is error");
+		return uRet;
+	}
+	if (VOS_OK != VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex))
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "add lock error");
+		return uRet;
+	}
+	switch (nType)
+	{
+	case MEM_RECORD_MGR_INSERTF:
+	case MEM_RECORD_MGR_INSERTU:
+		pstuMemRecord = *recode;
+		if (NULL == pstuMemRecord || NULL != pstuMemRecord->next || NULL != pstuMemRecord->prev)
+		{
+			goto EXIT_ERR;
+		}
+		if (nType == MEM_RECORD_MGR_INSERTF)
+		{
+			head = &g_cpssMem_Manage.stuMemFHeadList.head;
+			tail = &g_cpssMem_Manage.stuMemFHeadList.tail;
+		}
+		if (nType == MEM_RECORD_MGR_INSERTU)
+		{
+			if (nMemRdKey >= CPSS_MEM_HEAD_KEY_CPSS_TOTAL)
+			{
+				goto EXIT_ERR;
+			}
+			head = &g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head;
+			tail = &g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail;
+		}
+		if (NULL == *head &&
+			NULL == *tail)
+		{
+			*head = pstuMemRecord;
+			*tail = pstuMemRecord;
+		}
+		else if (NULL != *head &&
+				 NULL != *tail)
+		{
+			((CPSS_MEM_RECORD*)*tail)->next = pstuMemRecord;
+			pstuMemRecord->prev = (CPSS_MEM_RECORD*)*tail;
+			(CPSS_MEM_RECORD*)*tail = pstuMemRecord;
+		}
+		else
+		{
+			goto EXIT_ERR;
+		}
+		if (nType == MEM_RECORD_MGR_INSERTF)
+		{
+			if (CPSS_MEM_HEAD_KEY_CPSS_TOTAL < nMemRdKey)
+			{
+				g_cpssMem_Manage.nTotalCount++;
+			}
+			g_cpssMem_Manage.stuMemFHeadList.nTotalCount++;
+			pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_FREE;
+			//cpss_mem_print_record_info("free insert", pstuMemRecord);
+		}else
+		if (nType == MEM_RECORD_MGR_INSERTU)
+		{
+			g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].nTotalCount++;
+			g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].uMemSize += pstuMemRecord->nSize;
+			g_cpssMem_Manage.uMemSize += pstuMemRecord->nSize;
+			pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_USED;
+			//cpss_mem_print_record_info("used insert", pstuMemRecord);
+		}
+		break;
+	case MEM_RECORD_MGR_REMOVEF:
+	case MEM_RECORD_MGR_REMOVEU:
+		pstuMemRecord = *recode;
+		if (NULL == pstuMemRecord )
+		{
+			goto EXIT_ERR;
+		}
+		if (nType == MEM_RECORD_MGR_REMOVEF)
+		{
+			head = &g_cpssMem_Manage.stuMemFHeadList.head;
+			tail = &g_cpssMem_Manage.stuMemFHeadList.tail;
+		}
+		if (nType == MEM_RECORD_MGR_REMOVEU)
+		{
+			if (nMemRdKey >= CPSS_MEM_HEAD_KEY_CPSS_TOTAL)
+			{
+				goto EXIT_ERR;
+			}
+			head = &g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head;
+			tail = &g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail;
+		}
+		if (*head == *tail)
+		{
+			if (pstuMemRecord != *head)
+			{
+				goto EXIT_ERR;
+			}
+			(CPSS_MEM_RECORD*)*head = NULL;
+			(CPSS_MEM_RECORD*)*tail = NULL;
+		}
+		else if (NULL == pstuMemRecord->prev && NULL != pstuMemRecord->next)
+		{
+			if (pstuMemRecord != *head)
+			{
+				goto EXIT_ERR;
+			}
+			(CPSS_MEM_RECORD*)*head = pstuMemRecord->next;
+			((CPSS_MEM_RECORD*)*head)->prev = NULL;
+			pstuMemRecord->next = NULL;
+		}
+		else if (NULL != pstuMemRecord->prev && NULL == pstuMemRecord->next)
+		{
+			if (pstuMemRecord != *tail)
+			{
+				goto EXIT_ERR;
+			}
+			(CPSS_MEM_RECORD*)*tail = pstuMemRecord->prev;
+			((CPSS_MEM_RECORD*)*tail)->next = NULL;
+			pstuMemRecord->prev = NULL;
+		}
+		else if (NULL != pstuMemRecord->prev && NULL != pstuMemRecord->next)
+		{
+			pstuMemRecord->prev->next = pstuMemRecord->next;
+			pstuMemRecord->next->prev = pstuMemRecord->prev;
+		}
+		else
+		{
+			goto EXIT_ERR;
+		}
+		if (nType == MEM_RECORD_MGR_REMOVEF)
+		{
+			g_cpssMem_Manage.stuMemFHeadList.nTotalCount--;
+			//cpss_mem_print_record_info("free remove", pstuMemRecord);
+		}
+		else if (nType == MEM_RECORD_MGR_REMOVEU)
+		{
+			g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].nTotalCount--;
+			g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].uMemSize -= pstuMemRecord->nSize;
+			g_cpssMem_Manage.uMemSize -= pstuMemRecord->nSize;
+			//cpss_mem_print_record_info("used reemove", pstuMemRecord);
+			if (NULL != pstuMemRecord->pstrVoid)
+			{
+				free(pstuMemRecord->pstrVoid);
+			}
+			BZERO(pstuMemRecord, sizeof(CPSS_MEM_RECORD));
+		}
+		pstuMemRecord->next = NULL;
+		pstuMemRecord->prev = NULL;
+		pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_RESE;
+		break;
+	case MEM_RECORD_MGR_GETFREE:
+		if (NULL != *recode)
+		{
+			goto EXIT_ERR;
+		}
+		pstuMemRecord = g_cpssMem_Manage.stuMemFHeadList.head;
+		while (NULL != pstuMemRecord)
+		{
+			if (CPSS_MEM_RECORD_STAT_FREE == pstuMemRecord->nState)
+			{
+				pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_RESE;
+				break;
+			}
+			pstuMemRecord = pstuMemRecord->next;
+		}
+		*recode = pstuMemRecord;
+		break;
+	default:
+		VOS_PrintErr(__FILE__, __LINE__, "mem record manager type is error[%d]",nType);
+		goto EXIT_ERR;
+		break;
+	}
+	uRet = VOS_OK;
+EXIT_OK:
+	if (VOS_OK != VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex))
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "del lock error");
+		return uRet;
+	}
+	return uRet;
+EXIT_ERR:
+	goto EXIT_OK;
+}
 /* ===  FUNCTION  ==============================================================
 *         Name:  cpss_mem_get_record_info
 *  Description:  得到空的内存管理记录器
@@ -29,26 +268,12 @@ static CPSS_MEM_RECORD *cpss_mem_get_record_info()
 {
 	VOS_INT32 uRet = 0;
 	CPSS_MEM_RECORD * pstuMemRecord = NULL;
-	uRet = VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex);
+FREE_RECODE_CHECK:
+	pstuMemRecord = NULL;
+	uRet = cpss_mem_record_manager(0, &pstuMemRecord, MEM_RECORD_MGR_GETFREE);
 	if (VOS_OK != uRet)
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "add lock error");
-		return NULL;
-	}
-	pstuMemRecord = g_cpssMem_Manage.stuMemFHeadList.head;
-	while (NULL != pstuMemRecord)
-	{
-		if (CPSS_MEM_RECORD_STAT_FREE == pstuMemRecord->nState)
-		{
-			pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_RESE;
-			break;
-		}
-		pstuMemRecord = pstuMemRecord->next;
-	}
-	uRet = VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex);
-	if (VOS_OK != uRet)
-	{
-		VOS_PrintErr(__FILE__, __LINE__, "del lock error");
+		VOS_PrintErr(__FILE__, __LINE__, "get free recode is error");
 		return NULL;
 	}
 	if (NULL == pstuMemRecord)
@@ -60,42 +285,13 @@ static CPSS_MEM_RECORD *cpss_mem_get_record_info()
 			return NULL;
 		}
 		BZERO(pstuMemRecord, sizeof(CPSS_MEM_RECORD));
-		pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_FREE;
-		uRet = VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex);
+		uRet = cpss_mem_record_manager(CPSS_MEM_HEAD_KEY_CPSS_TOTAL+3, &pstuMemRecord, MEM_RECORD_MGR_INSERTF);
 		if (VOS_OK != uRet)
 		{
-			VOS_PrintErr(__FILE__, __LINE__, "add lock error");
+			VOS_PrintErr(__FILE__, __LINE__, "get free recode is error");
 			return NULL;
 		}
-		if (NULL == g_cpssMem_Manage.stuMemFHeadList.head &&
-			NULL == g_cpssMem_Manage.stuMemFHeadList.tail)
-		{
-			g_cpssMem_Manage.stuMemFHeadList.head = pstuMemRecord;
-			g_cpssMem_Manage.stuMemFHeadList.tail = pstuMemRecord;
-			g_cpssMem_Manage.stuMemFHeadList.nTotalCount++;
-			pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_RESE;
-			g_cpssMem_Manage.nTotalCount++;
-		}
-		else if (NULL != g_cpssMem_Manage.stuMemFHeadList.tail)
-		{
-			g_cpssMem_Manage.stuMemFHeadList.tail->next = pstuMemRecord;
-			pstuMemRecord->prev = g_cpssMem_Manage.stuMemFHeadList.tail;
-			g_cpssMem_Manage.stuMemFHeadList.nTotalCount++;
-			g_cpssMem_Manage.stuMemFHeadList.tail = pstuMemRecord;
-			pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_RESE;
-			g_cpssMem_Manage.nTotalCount++;
-		}
-		else
-		{
-			free(pstuMemRecord);
-			pstuMemRecord = NULL;
-			VOS_PrintErr(__FILE__, __LINE__, "link is error");
-		}
-		uRet = VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex);
-		if (VOS_OK != uRet)
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "del lock error");
-		}
+		goto FREE_RECODE_CHECK;
 	}
 	return pstuMemRecord;
 }
@@ -109,6 +305,7 @@ static CPSS_MEM_RECORD *cpss_mem_get_record_info()
 static CPSS_MEM_RECORD *cpss_mem_find_record_info(VOS_UINT32 nMemRdKey, VOS_VOID* pstuVoid)
 {
 	VOS_UINT32 uRet = VOS_ERR;
+	int nIndex = 0;
 	CPSS_MEM_RECORD * pstuMemRecord = g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head;
 	
 	if (VOS_OK != VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex))
@@ -118,17 +315,39 @@ static CPSS_MEM_RECORD *cpss_mem_find_record_info(VOS_UINT32 nMemRdKey, VOS_VOID
 	}
 	while (NULL != pstuMemRecord)
 	{
+		nIndex++;
 		if (pstuMemRecord->pstrVoid == pstuVoid)
 		{
 			break;
 		}
 		pstuMemRecord = pstuMemRecord->next;
 	}
+	if (NULL == pstuMemRecord)
+	{
+		cpss_mem_print_record_info("check list", pstuVoid);
+		for (nIndex = 0; nIndex < CPSS_MEM_HEAD_KEY_CPSS_TOTAL; nIndex++)
+		{
+			if (nIndex == nMemRdKey)
+			{
+				continue;
+			}
+			pstuMemRecord = g_cpssMem_Manage.stuMemUHeadList[nIndex].head;
+			while (NULL != pstuMemRecord)
+			{
+				if (pstuMemRecord->pstrVoid == pstuVoid)
+				{
+					break;
+				}
+				pstuMemRecord = pstuMemRecord->next;
+			}
+		}
+	}
 	uRet = VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex);
 	if (VOS_OK != uRet)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "del lock error");
 	}
+
 	return pstuMemRecord;
 }
 /* ===  FUNCTION  ==============================================================
@@ -140,86 +359,21 @@ static CPSS_MEM_RECORD *cpss_mem_find_record_info(VOS_UINT32 nMemRdKey, VOS_VOID
 * ==========================================================================*/
 static VOS_INT32 cpss_mem_move_to_used(VOS_UINT32 nMemRdKey, CPSS_MEM_RECORD * pstuMemRecord)
 {
-	VOS_INT32 uRet = VOS_OK;
+	VOS_INT32 uRet = VOS_ERR;
 
-	if (VOS_OK != VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex))
+	uRet = cpss_mem_record_manager(nMemRdKey, &pstuMemRecord, MEM_RECORD_MGR_REMOVEF);
+	if (VOS_OK != uRet)
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "add lock error");
+		VOS_PrintErr(__FILE__, __LINE__, "get free recode is error");
 		return uRet;
 	}
-	/*
-	if (NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head &&
-		NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail)
+	uRet = cpss_mem_record_manager(nMemRdKey, &pstuMemRecord, MEM_RECORD_MGR_INSERTU);
+	if (VOS_OK != uRet)
 	{
-		pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_FREE;
-		goto ERR_EXIT;
-	}*/
-	if (NULL == pstuMemRecord->next &&
-		NULL == pstuMemRecord->prev &&
-		g_cpssMem_Manage.stuMemFHeadList.head == g_cpssMem_Manage.stuMemFHeadList.tail &&
-		1 == g_cpssMem_Manage.stuMemFHeadList.nTotalCount)
-	{
-		g_cpssMem_Manage.stuMemFHeadList.head = NULL;
-		g_cpssMem_Manage.stuMemFHeadList.tail = NULL;
-	}
-	else if (NULL == pstuMemRecord->prev && NULL != pstuMemRecord->next)
-	{
-		g_cpssMem_Manage.stuMemFHeadList.head = pstuMemRecord->next;
-		g_cpssMem_Manage.stuMemFHeadList.head->prev = NULL;
-		pstuMemRecord->next = NULL;
-	}
-	else if (NULL != pstuMemRecord->prev && NULL == pstuMemRecord->next)
-	{
-		g_cpssMem_Manage.stuMemFHeadList.tail = pstuMemRecord->prev;
-		g_cpssMem_Manage.stuMemFHeadList.tail->next = NULL;
-		pstuMemRecord->prev = NULL;
-	}
-	else if (NULL != pstuMemRecord->prev && NULL != pstuMemRecord->next)
-	{
-		pstuMemRecord->prev->next = pstuMemRecord->next;
-		pstuMemRecord->next->prev = pstuMemRecord->prev;
-	}
-	else
-	{
-		pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_FREE;
-		VOS_PrintErr(__FILE__, __LINE__, "free link is error in Key[%d]", nMemRdKey);
-		goto ERR_EXIT;
-	}
-	g_cpssMem_Manage.stuMemFHeadList.nTotalCount--;
-
-	if (NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head &&
-		NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail)
-	{
-		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head = pstuMemRecord;
-		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail = pstuMemRecord;
-	}
-	else if (NULL != g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head &&
-			 NULL != g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail)
-	{
-		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail->next = pstuMemRecord;
-		pstuMemRecord->prev = g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail;
-		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail = pstuMemRecord;
-	}
-	else
-	{
-		free(pstuMemRecord);
-		pstuMemRecord = NULL;
-		VOS_PrintErr(__FILE__, __LINE__, "link is error in Key[%d]", nMemRdKey);
-		goto ERR_EXIT;
-	}
-	pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_USED;
-	g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].nTotalCount++;
-	g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].uMemSize += pstuMemRecord->nSize;
-	g_cpssMem_Manage.uMemSize += pstuMemRecord->nSize;
-OK_EXIT:
-	if (VOS_OK != VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex))
-	{
-		VOS_PrintErr(__FILE__, __LINE__, "del lock error");
+		VOS_PrintErr(__FILE__, __LINE__, "get free recode is error");
+		return uRet;
 	}
 	return uRet;
-ERR_EXIT:
-	uRet = VOS_ERR;
-	goto OK_EXIT;
 }
 
 /* ===  FUNCTION  ==============================================================
@@ -233,90 +387,19 @@ static VOS_INT32 cpss_mem_move_to_free(VOS_UINT32 nMemRdKey, CPSS_MEM_RECORD * p
 {
 	VOS_INT32 uRet = VOS_OK;
 
-	if (VOS_OK != VOS_Mutex_Lock(&g_cpssMem_Manage.hMutex))
+	uRet = cpss_mem_record_manager(nMemRdKey, &pstuMemRecord, MEM_RECORD_MGR_REMOVEU);
+	if (VOS_OK != uRet)
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "add lock error");
+		VOS_PrintErr(__FILE__, __LINE__, "get free recode is error");
 		return uRet;
 	}
-	if (NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head &&
-		NULL == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail)
+	uRet = cpss_mem_record_manager(nMemRdKey, &pstuMemRecord, MEM_RECORD_MGR_INSERTF);
+	if (VOS_OK != uRet)
 	{
-		goto ERR_EXIT;
-	}
-	if (NULL == pstuMemRecord->next &&
-		NULL == pstuMemRecord->prev &&
-		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail &&
-		1 == g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].nTotalCount)
-	{
-		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head = NULL;
-		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail = NULL;
-	}
-	else if (NULL == pstuMemRecord->prev && NULL != pstuMemRecord->next)
-	{
-		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head = pstuMemRecord->next;
-		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].head->prev = NULL;
-		pstuMemRecord->next = NULL;
-	}
-	else if (NULL != pstuMemRecord->prev && NULL == pstuMemRecord->next)
-	{
-		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail = pstuMemRecord->prev;
-		g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].tail->next = NULL;
-		pstuMemRecord->prev = NULL;
-	}
-	else if(NULL != pstuMemRecord->prev && NULL != pstuMemRecord->next)
-	{
-		pstuMemRecord->prev->next = pstuMemRecord->next;
-		pstuMemRecord->next->prev = pstuMemRecord->prev;
-	}
-	else
-	{
-		VOS_PrintErr(__FILE__, __LINE__, "free link is error in Key[%d]", nMemRdKey);
-		goto ERR_EXIT;
-	}
-	g_cpssMem_Manage.uMemSize -= pstuMemRecord->nSize;
-	g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].uMemSize -= pstuMemRecord->nSize;
-	g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].nTotalCount--;
-	pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_RESE;
-	pstuMemRecord->nSize = 0;
-	pstuMemRecord->nFileLine = 0;
-
-	if (NULL != pstuMemRecord->pstrVoid)
-	{
-		free(pstuMemRecord->pstrVoid);
-		pstuMemRecord->pstrVoid = NULL;
-	}
-	BZERO(pstuMemRecord, sizeof(CPSS_MEM_RECORD));
-	pstuMemRecord->nState = CPSS_MEM_RECORD_STAT_FREE;
-	if ( NULL == g_cpssMem_Manage.stuMemFHeadList.head &&
-		 NULL == g_cpssMem_Manage.stuMemFHeadList.tail )
-	{
-		g_cpssMem_Manage.stuMemFHeadList.head = pstuMemRecord;
-		g_cpssMem_Manage.stuMemFHeadList.tail = pstuMemRecord;
-	}
-	else if ( NULL != g_cpssMem_Manage.stuMemFHeadList.head &&
-			  NULL != g_cpssMem_Manage.stuMemFHeadList.tail )
-	{
-		g_cpssMem_Manage.stuMemFHeadList.tail->next = pstuMemRecord;
-		pstuMemRecord->prev = g_cpssMem_Manage.stuMemFHeadList.tail;
-		g_cpssMem_Manage.stuMemFHeadList.tail = pstuMemRecord;
-	}
-	else
-	{
-		free(pstuMemRecord);
-		pstuMemRecord = NULL;
-		VOS_PrintErr(__FILE__, __LINE__, "link is error in Key[%d]", nMemRdKey);
-		goto ERR_EXIT;
-	}
-	g_cpssMem_Manage.stuMemFHeadList.nTotalCount++;
-OK_EXIT:
-	if ( VOS_OK != VOS_Mutex_Unlock(&g_cpssMem_Manage.hMutex) )
-	{
-		VOS_PrintErr(__FILE__, __LINE__, "del lock error");
+		VOS_PrintErr(__FILE__, __LINE__, "get free recode is error");
+		return uRet;
 	}
 	return uRet;
-ERR_EXIT:
-	uRet = VOS_ERR;
-	goto OK_EXIT;
 }
 
 /* ===  FUNCTION  ==============================================================
@@ -390,7 +473,7 @@ VOS_VOID * cpss_mem_malloc(VOS_INT32 ulSize,
 	pstuMemRecord->nSize = ulSize;
 	pstuMemRecord->pstrVoid = uRetVoid;
 	pstuMemRecord->nFileLine = nLine;
-	ulFileNameLen = strlen(strFile)-32;
+	ulFileNameLen = strlen(strFile)-30;
 	if (ulFileNameLen <= 0)
 	{
 		ulFileNameLen = 0;
@@ -432,7 +515,7 @@ VOS_VOID * cpss_mem_realloc(VOS_UINT32 nMemRdKey, void * vAdress, VOS_INT32 ulSi
 	}
 	pstuMemRecord->pstrVoid = pstrBuffer;
 	pstuMemRecord->nFileLine = nLine;
-	ulFileNameLen = strlen(strFile) - 32;
+	ulFileNameLen = strlen(strFile) - 30;
 	if (ulFileNameLen <= 0)
 	{
 		ulFileNameLen = 0;
@@ -456,13 +539,14 @@ VOS_VOID * cpss_mem_reset(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * strFi
 	{
 		return NULL;
 	}
+	//cpss_mem_print_record_info(vAdress);
 	pstuMemRecord = cpss_mem_find_record_info(nMemRdKey, vAdress);
 	if (NULL == pstuMemRecord)
 	{
 		return NULL;
 	}
 	pstuMemRecord->nFileLine = nLine;
-	ulFileNameLen = strlen(strFile) - 32;
+	ulFileNameLen = strlen(strFile) - 30;
 	if (ulFileNameLen <= 0)
 	{
 		ulFileNameLen = 0;
@@ -561,16 +645,12 @@ VOS_UINT32 cpss_mem_free(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * strFil
 	pstuMemRecord = cpss_mem_find_record_info(nMemRdKey, vAdress);
 	if (NULL == pstuMemRecord)
 	{
-		free(vAdress);
-		vAdress = NULL;
-		VOS_PrintInfo(__FILE__, __LINE__, "free memory find is error key:%d %x\n",
+		VOS_PrintErr(__FILE__, __LINE__, "free memory find is error key:%d %x\n",
 			nMemRdKey, vAdress);
 		return uRet;
 	}
 	if (VOS_OK != cpss_mem_move_to_free(nMemRdKey, pstuMemRecord))
 	{
-		free(vAdress);
-		vAdress = NULL;
 		VOS_PrintInfo(__FILE__, __LINE__, "free memory find is error key:%d %x\n",
 			nMemRdKey, vAdress);
 		return uRet;

@@ -500,11 +500,11 @@ static VOS_UINT32 dbsvr_update_cpuid_pid(pCPSS_MSG pMsgInfo)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"check DB faild");
 	}
-	VOS_Memcpy(&uCount, pMsgInfo->Body.stuDataBuf, sizeof(VOS_UINT32));
+	VOS_Memcpy(&uCount, pMsgInfo->Body.strDataBuf, sizeof(VOS_UINT32));
 	while(uIndex < uCount)
 	{
 		VOS_Memcpy(&stuCPuID,
-			pMsgInfo->Body.stuDataBuf+sizeof(VOS_UINT32)+uIndex*sizeof(CPSS_CPUID_INFO),
+			pMsgInfo->Body.strDataBuf+sizeof(VOS_UINT32)+uIndex*sizeof(CPSS_CPUID_INFO),
 			sizeof(CPSS_CPUID_INFO));
 
 		uRet = dbsvr_open_mdb();
@@ -569,12 +569,12 @@ static VOS_UINT32 dbsvr_responce_cpuid_pid(pCPSS_MSG pMsgInfo)
 	BZERO(&MsgInfo, sizeof(CPSS_MSG));
 	
 	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_STUCPUID,&uIndex,
-		pMsgInfo->Body.stuDataBuf + sizeof(VOS_UINT32),
-		(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf);
+		pMsgInfo->Body.strDataBuf + sizeof(VOS_UINT32),
+		(VOS_UINT32 *)&pMsgInfo->Body.strDataBuf);
 	if (VOS_OK != uRet)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"set cpuid to stu is error :%d",
-			(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf);
+			(VOS_UINT32 *)&pMsgInfo->Body.strDataBuf);
 	}
 
 	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_BUFFER,&uIndex,
@@ -582,23 +582,25 @@ static VOS_UINT32 dbsvr_responce_cpuid_pid(pCPSS_MSG pMsgInfo)
 	if (VOS_OK != uRet)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"get cpuid to stu is error :%d",
-			(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf);
+			(VOS_UINT32 *)&pMsgInfo->Body.strDataBuf);
 	}
 
 
 	VOS_Memcpy(&MsgInfo.Body.msghead, 
 		&pMsgInfo->Body.msghead,sizeof(CPSS_COM_HEAD));
 
-	MsgInfo.Body.msghead.uType = CPSS_RES_DBSVR_GET;
+	MsgInfo.Body.msghead.uType = cps_set_msg_type( CPSS_REQUEST_SYSTEM, CPSS_TYPE_SYS, CPSS_MSG_RESU);
 	//MsgInfo.Body.msghead.uSubType = CPSS_TYPE_CPUID_PID;
 
 	VOS_Memcpy(strBuffer, (VOS_CHAR *)&uCount,sizeof(VOS_UINT32));
 	uBuffLen = sizeof(VOS_UINT32) + sizeof(CPSS_CPUID_INFO)*uCount;
 
-	uRet = dbsvr_send_data(&MsgInfo, strBuffer, uBuffLen, VOS_SEND_SKT_TYPE_FINISH);
+	uRet = cpss_send_data(&MsgInfo,
+		strBuffer, uBuffLen,
+		VOS_SEND_SKT_TYPE_FINISH | VOS_SEND_SKT_TYPE_UDP);
 	if (VOS_OK != uRet)
 	{
-		DBSvr_PrintErr(__FILE__,__LINE__,"send udp data error");
+		DBSvr_PrintErr(__FILE__, __LINE__, "send udp data error");
 	}
 	return uRet;
 }
@@ -609,12 +611,12 @@ static VOS_UINT32 dbsvr_responce_cpuid_pid(pCPSS_MSG pMsgInfo)
  *  OutPut     :    
  *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 dbsvr_get_info_proc(pCPSS_MSG pMsgInfo)
+static VOS_UINT32 dbsvr_get_info_proc(pCPSS_MSG pMsgInfo)
 {
 	VOS_UINT32 uRet = VOS_ERR;
-	switch(pMsgInfo->Body.msghead.uType)
+	switch (cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
 	{
-	case CPSS_TYPE_CPUID_PID:
+	case CPSS_MSG_REG:
 		uRet = dbsvr_responce_cpuid_pid(pMsgInfo);
 		break;
 	default:
@@ -640,7 +642,6 @@ VOS_UINT32 dbsvr_init_proc(pCPSS_MSG pMsgInfo)
 	switch(pMsgInfo->Body.msghead.uCmd)
 	{
 	case CPSS_CMD_SYSTEM_INIT:
-		//g_psockHandle = pMsgInfo->pClient;
 		uRet = VOS_OK;
 		DBSvr_PrintInfo(__FILE__,__LINE__,"DBSvr init OK");
 		break;
@@ -659,6 +660,49 @@ VOS_UINT32 dbsvr_init_proc(pCPSS_MSG pMsgInfo)
 	if (uRet != VOS_OK)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"get dbsvr info sub fun error");
+	}
+	return uRet;
+}
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  DBSVR_deal_proc
+*  Description:  初始化共同服务器
+*  Description: 
+*  Input      :    
+*  OutPut     :    
+*  Return     :  
+* ==========================================================================*/
+VOS_UINT32 DBSVR_deal_proc(pCPSS_MSG pMsgInfo)
+{
+	VOS_UINT32 uRet = VOS_ERR;
+	VOS_UINT8 nCheck = 0;
+	if (NULL == pMsgInfo)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "msg head is null");
+		return uRet;
+	}
+
+	switch (cps_get_reqcontent_from_msg(pMsgInfo->Body.msghead.uType))
+	{
+	case DBSVR_TYPE_CPUIDPID:
+		uRet = dbsvr_get_info_proc(pMsgInfo);
+		if (VOS_OK != uRet)
+		{
+			DBSvr_PrintInfo(__FILE__, __LINE__, "get info to DBSvr Faild");
+		}
+		break;
+	case DBSVR_TYPE_USER:
+		uRet = dbsvr_user_proc(pMsgInfo);
+		if (VOS_OK != uRet)
+		{
+			DBSvr_PrintInfo(__FILE__, __LINE__, "get check user Faild");
+		}
+		break;
+	default:
+		VOS_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
+			pMsgInfo->Body.msghead.uType,
+			pMsgInfo->Body.msghead.uCmd);
+		break;
 	}
 	return uRet;
 }

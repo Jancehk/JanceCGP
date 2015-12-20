@@ -18,27 +18,6 @@
 #include "cpss_fs_telnet.h"
 #include "cpss_vk_socket.h"
 
-
-/* ===  FUNCTION  ==============================================================
- *         Name:  cpss_telnet_init
- *  Description:  初始化telnet服务器
- *  Input      :    
- *  OutPut     :    
- *  Return     :  
- * ==========================================================================*/
-VOS_UINT32 cpss_telnet_init()
-{
-	VOS_UINT32 ulRet = VOS_ERR;
-	if (VOS_OK != VOS_RegistPidInit(0,CPSS_PID_TELNET, CPSS_STRING_TELNET, 1,telnet_init_proc, telnet_timeout_proc))
-	{
-		TELNET_PrintErr(__FILE__, __LINE__, "Regist Telnet Server is Error");
-		return VOS_ERR;
-	}
-//	TELNET_PrintInfo(__FILE__, __LINE__, "Regist Telnet Server OK");
-
-	return VOS_OK;
-}
-
 /* ===  FUNCTION  ==============================================================
  *         Name:  telnet_send_data
  *  Description:  发送telnet的数据
@@ -106,55 +85,55 @@ static VOS_VOID telnet_del_cmd(CPSS_CLIENT_INFO * pClient, VOS_UINT32 uBufLen)
  *  OutPut     :  
  *  Return     :  
  * ==========================================================================*/
-static VOS_VOID telnet_init_send(pCPSS_MSG pMsgInfo)
+static VOS_UINT32 telnet_init_send(pCPSS_MSG pMsgInfo)
 {
-	VOS_CHAR strSendBuff[CPSS_MSG_BUFFER_SIZE] = {0};
+	VOS_CHAR strDataBuff[CPSS_MSG_BUFFER_SIZE] = {0};
 	TELNET_ACI stuACI;
-	switch(pMsgInfo->Body.msghead.uCmd)
+	switch (cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
 	{
-	case CPSS_CMD_SYSTEM_INIT:
+	case CPSS_MSG_INIT:
 		VOS_PrintInfo(__FILE__,__LINE__,"TELNET System Init OK");
 		break;
-	case CPSS_CMD_SYSTEM_UNIT:
+	case CPSS_MSG_UNIT:
 		break;
-	case CPSS_CMD_SYSTEM_TELNET:
+	case CPSS_MSG_REG:
 		stuACI.mACI  = 0xFF;
 		stuACI.mACI1 = 0xFD;
 		stuACI.mACI2 = 0x25;
-		VOS_Memcpy(strSendBuff,&stuACI, sizeof(TELNET_ACI));
-		telnet_send_data(pMsgInfo, strSendBuff, 3, VOS_SEND_SKT_TYPE_FINISH);
+		VOS_Memcpy(strDataBuff,&stuACI, sizeof(TELNET_ACI));
+		telnet_send_data(pMsgInfo, strDataBuff, 3, VOS_SEND_SKT_TYPE_FINISH);
 		break;
 	}
 /*
-	strSendBuff[3] = 0xFF;
-	strSendBuff[4] = 0xFB;
-	strSendBuff[5] = 0x01;
+	strDataBuff[3] = 0xFF;
+	strDataBuff[4] = 0xFB;
+	strDataBuff[5] = 0x01;
 
-	strSendBuff[6] = 0xFF;
-	strSendBuff[7] = 0xFB;
-	strSendBuff[8] = 0x03;
+	strDataBuff[6] = 0xFF;
+	strDataBuff[7] = 0xFB;
+	strDataBuff[8] = 0x03;
 	
-	strSendBuff[9] = 0xFF;
-	strSendBuff[10] = 0xFD;
-	strSendBuff[11] = 0x27;
+	strDataBuff[9] = 0xFF;
+	strDataBuff[10] = 0xFD;
+	strDataBuff[11] = 0x27;
 	
-	strSendBuff[12] = 0xFF;
-	strSendBuff[13] = 0xFD;
-	strSendBuff[14] = 0x1F;
+	strDataBuff[12] = 0xFF;
+	strDataBuff[13] = 0xFD;
+	strDataBuff[14] = 0x1F;
 	
-	strSendBuff[15] = 0xFF;
-	strSendBuff[16] = 0xFD;
-	strSendBuff[17] = 0x00;
+	strDataBuff[15] = 0xFF;
+	strDataBuff[16] = 0xFD;
+	strDataBuff[17] = 0x00;
 	
-	strSendBuff[18] = 0xFF;
-	strSendBuff[19] = 0xFB;
-	strSendBuff[20] = 0x00;
+	strDataBuff[18] = 0xFF;
+	strDataBuff[19] = 0xFB;
+	strDataBuff[20] = 0x00;
 */
 
-//	sprintf(strSendBuff,"Jance CGP Server Runing Ver:%s\r\nUsename:", cpss_getver());
-//	telnet_send_data(pMsgInfo, strSendBuff, strlen(strSendBuff));
+//	sprintf(strDataBuff,"Jance CGP Server Runing Ver:%s\r\nUsename:", cpss_getver());
+//	telnet_send_data(pMsgInfo, strDataBuff, strlen(strDataBuff));
 //	TELNET_PrintInfo(__FILE__, __LINE__, "Printf info ");
-	return;
+	return VOS_OK;
 }
 
 
@@ -167,10 +146,10 @@ static VOS_VOID telnet_init_send(pCPSS_MSG pMsgInfo)
  * ==========================================================================*/
 static VOS_VOID telnet_hello_send(pCPSS_MSG pMsgInfo)
 {
-	VOS_CHAR strSendBuff[CPSS_MSG_BUFFER_SIZE] = {0};
+	VOS_CHAR strDataBuff[CPSS_MSG_BUFFER_SIZE] = {0};
 
-	sprintf(strSendBuff,"Jance CGP Server Runing Ver:%s\r\nUsename:", cpss_getver());
-	telnet_send_data(pMsgInfo, strSendBuff, strlen(strSendBuff), VOS_SEND_SKT_TYPE_FINISH);
+	sprintf(strDataBuff,"Jance CGP Server Runing Ver:%s\r\nUsename:", cpss_getver());
+	telnet_send_data(pMsgInfo, strDataBuff, strlen(strDataBuff), VOS_SEND_SKT_TYPE_FINISH);
 //	TELNET_PrintInfo(__FILE__, __LINE__, "Printf info hello send");
 	return;
 }
@@ -184,7 +163,7 @@ static VOS_VOID telnet_hello_send(pCPSS_MSG pMsgInfo)
  * ==========================================================================*/
 static VOS_VOID telnet_ACI_CMD_proc(pCPSS_MSG pMsgInfo)
 {
-	VOS_CHAR strSendBuff[CPSS_MSG_BUFFER_SIZE] = {0};
+	VOS_CHAR strDataBuff[CPSS_MSG_BUFFER_SIZE] = {0};
 	VOS_CHAR strMsgEvent[125] = {0};
 	pCPSS_CLIENT_INFO pClientInfo =NULL;
 	
@@ -206,15 +185,15 @@ TRY_EVENT:
 		goto TRY_EVENT;
 	}
 
-	pMsgInfo->Body.msghead.uCmd = pMsgInfo->Body.stuDataBuf[0];
-	if (CPSS_TELNET_WILL == pMsgInfo->Body.msghead.uCmd)
+	pMsgInfo->Body.msghead.uCmd = pMsgInfo->Body.strDataBuf[0];
+	if (CPSS_REQUEST_TELNET_WILL == pMsgInfo->Body.msghead.uCmd)
 	{
 		telnet_hello_send(pMsgInfo);
 	}
-/*	strSendBuff[0] = 0xFF;
-	strSendBuff[1] = 0xFD;
-	strSendBuff[2] = 0x25;
-	telnet_send_data(pMsgInfo, strSendBuff, 3);
+/*	strDataBuff[0] = 0xFF;
+	strDataBuff[1] = 0xFD;
+	strDataBuff[2] = 0x25;
+	telnet_send_data(pMsgInfo, strDataBuff, 3);
 */
 //	TELNET_PrintInfo(__FILE__, __LINE__, "Printf info ");
 	return;
@@ -228,7 +207,7 @@ TRY_EVENT:
  * ==========================================================================*/
 static VOS_UINT32 telnet_CTL_CMD_proc(pCPSS_MSG pMsgInfo)
 {
-	VOS_CHAR strSendBuff[CPSS_MSG_BUFFER_SIZE] = {0};
+	VOS_CHAR strDataBuff[CPSS_MSG_BUFFER_SIZE] = {0};
 	VOS_CHAR strMsgEvent[125] = {0};
 	pCPSS_CLIENT_INFO pClientInfo =NULL;
 	return VOS_OK;
@@ -239,9 +218,9 @@ static VOS_UINT32 telnet_CTL_CMD_proc(pCPSS_MSG pMsgInfo)
 		return VOS_ERR;
 	}
 
-	//pMsgInfo->Body.msghead.uCmd = pMsgInfo->Body.stuDataBuf.strBuffer[1];
-	pMsgInfo->Body.msghead.uCmd = (VOS_UINT32)pMsgInfo->Body.stuDataBuf;
-	if (CPSS_TELNET_WILL == pMsgInfo->Body.msghead.uCmd)
+	//pMsgInfo->Body.msghead.uCmd = pMsgInfo->Body.strDataBuf.strBuffer[1];
+	pMsgInfo->Body.msghead.uCmd = (VOS_UINT32)pMsgInfo->Body.strDataBuf;
+	if (CPSS_REQUEST_TELNET_WILL == pMsgInfo->Body.msghead.uCmd)
 	{
 		telnet_hello_send(pMsgInfo);
 	}
@@ -261,7 +240,7 @@ static VOS_VOID telnet_sytem_proc(pCPSS_MSG pMsgInfo)
 	CPSS_CLIENT_INFO  * pClient = NULL;
 	VOS_CHAR		  * pstuBuffer = NULL;
 	VOS_CHAR		  * pBuf = NULL;
-	VOS_CHAR			strSendBuff[CPSS_MSG_BUFFER_SIZE] = {0};
+	VOS_CHAR			strDataBuff[CPSS_MSG_BUFFER_SIZE] = {0};
 	VOS_UINT32			nCmdLeng = 0;
 	VOS_UINT32			nIndex = 0;
 	VOS_UINT32			nSendLen = 0;
@@ -277,7 +256,7 @@ static VOS_VOID telnet_sytem_proc(pCPSS_MSG pMsgInfo)
 		return;
 	}
 	
-	VOS_Remset(pClient->pstuBuffer, pMsgInfo->Body.stuDataBuf);
+	VOS_Remset(pClient->pstuBuffer, pMsgInfo->Body.strDataBuf);
 	pBuf = pClient->pstuBuffer;
 	if (NULL == pBuf || 0 == *pBuf)
 	{
@@ -288,12 +267,12 @@ static VOS_VOID telnet_sytem_proc(pCPSS_MSG pMsgInfo)
 	nCmdLeng = VOS_Strlen(pBuf);
 	if (0X08 == *pBuf)
 	{
-		strSendBuff[0] = 0x08;
-		strSendBuff[1] = 0x20;
-		strSendBuff[2] = 0x08;
+		strDataBuff[0] = 0x08;
+		strDataBuff[1] = 0x20;
+		strDataBuff[2] = 0x08;
 		if (0 < nCmdLeng)
 		{
-			if(VOS_OK == telnet_send_data(pMsgInfo, strSendBuff, VOS_Strlen(strSendBuff), VOS_SEND_SKT_TYPE_FINISH))
+			if(VOS_OK == telnet_send_data(pMsgInfo, strDataBuff, VOS_Strlen(strDataBuff), VOS_SEND_SKT_TYPE_FINISH))
 			{
 				telnet_del_cmd(pClient,1);
 			}
@@ -381,6 +360,86 @@ static VOS_VOID telnet_sytem_proc(pCPSS_MSG pMsgInfo)
 	return;
 }
 /* ===  FUNCTION  ==============================================================
+*         Name:  framwork_init_proc
+*  Description:  初始化共同服务器
+* ==========================================================================*/
+static VOS_UINT32 telnet_system_proc(pCPSS_MSG pMsgInfo)
+{
+	VOS_UINT32 uRet = VOS_ERR;
+	VOS_UINT8 nCheck = 0;
+	if (NULL == pMsgInfo)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "msg head is null");
+		return uRet;
+	}
+
+	switch (cps_get_reqcontent_from_msg(pMsgInfo->Body.msghead.uType))
+	{
+	case CPSS_TYPE_SYS:
+		uRet = telnet_init_send(pMsgInfo);
+		if (VOS_OK != uRet)
+		{
+			VOS_PrintErr(__FILE__, __LINE__, "fram work init faild");
+		}
+		break;
+	default:
+		VOS_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
+			pMsgInfo->Body.msghead.uType,
+			pMsgInfo->Body.msghead.uCmd);
+		break;
+	}
+	return uRet;
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  framwork_init_proc
+*  Description:  初始化共同服务器
+* ==========================================================================*/
+static VOS_UINT32 telnet_deal_proc(pCPSS_MSG pMsgInfo)
+{
+	VOS_UINT32 uRet = VOS_ERR;
+	VOS_UINT8 nCheck = 0;
+	if (NULL == pMsgInfo)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "msg head is null");
+		return uRet;
+	}
+
+	switch (cps_get_reqcontent_from_msg(pMsgInfo->Body.msghead.uType))
+	{
+	case CPSS_TYPE_SYS:
+		if (CPSS_MSG_DEAL != cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
+		{
+			VOS_PrintErr(__FILE__, __LINE__, "telnet deal type is error");
+		}
+		nCheck = pMsgInfo->Body.strDataBuf[0];
+		switch (nCheck)
+		{
+		case CPSS_REQUEST_TELNET_IAC:
+			telnet_ACI_CMD_proc(pMsgInfo);
+			return VOS_OK;
+		case CPSS_REQUEST_TELNET_CTL:
+			return telnet_CTL_CMD_proc(pMsgInfo);
+		}
+		if (0 == nCheck)
+		{
+			TELNET_PrintInfo(__FILE__, __LINE__, "=========[Client:%p,RecvLeng:%d,Msg:%p Next:%pPrev:%p]==\n",
+				pMsgInfo->pClient, pMsgInfo->Body.msghead.ulMsgLength,
+				pMsgInfo, pMsgInfo->next, pMsgInfo->prev);
+		}
+		else
+		{
+			telnet_sytem_proc(pMsgInfo);
+		}
+		break;
+	default:
+		VOS_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
+			pMsgInfo->Body.msghead.uType,
+			pMsgInfo->Body.msghead.uCmd);
+		break;
+	}
+	return uRet;
+}
+/* ===  FUNCTION  ==============================================================
  *         Name:  telnet_init_proc
  *  Description:  初始化telnet服务器
  *  Input      :  
@@ -390,37 +449,25 @@ static VOS_VOID telnet_sytem_proc(pCPSS_MSG pMsgInfo)
 VOS_UINT32 telnet_init_proc(VOS_VOID *parg)
 {
 	pCPSS_MSG pMsgInfo = (pCPSS_MSG)parg;
-	VOS_UINT8 nCheck = 0;
-	switch (pMsgInfo->Body.msghead.uType)
+	VOS_UINT32 uRet = VOS_ERR;
+	switch (cps_get_reqtype_from_msg(pMsgInfo->Body.msghead.uType))
 	{
-	case CPSS_TYPE_SYSTEM_INIT:
-		telnet_init_send(pMsgInfo);
-		break;
-	case CPSS_CMD_SYSTEM_UNIT:
-		break;
-	case CPSS_TYPE_SYSTEM_TELNET:
-		nCheck = pMsgInfo->Body.stuDataBuf[0];
-		switch (nCheck)
+	case CPSS_REQUEST_SYSTEM:
+		uRet = telnet_system_proc(pMsgInfo);
+		if (VOS_OK != uRet)
 		{
-		case CPSS_TELNET_IAC:
-			telnet_ACI_CMD_proc(pMsgInfo);
-			return VOS_OK;
-		case CPSS_TELNET_CTL:
-			return telnet_CTL_CMD_proc(pMsgInfo);
+			VOS_PrintErr(__FILE__, __LINE__, "telnet system init faild");
 		}
-		if (0 ==  nCheck)
+		break;
+	case CPSS_REQUEST_TELNET:
+		uRet = telnet_deal_proc(pMsgInfo);
+		if (VOS_OK != uRet)
 		{
-			TELNET_PrintInfo(__FILE__, __LINE__, "=========[Client:%p,RecvLeng:%d,Msg:%p Next:%pPrev:%p]==\n",
-				pMsgInfo->pClient, pMsgInfo->Body.msghead.ulMsgLength,
-				pMsgInfo,pMsgInfo->next,pMsgInfo->prev);
-		}
-		else
-		{
-			telnet_sytem_proc(pMsgInfo);
+			VOS_PrintErr(__FILE__, __LINE__, "telnet deal proc faild");
 		}
 		break;
 	default:
-		TELNET_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x", 
+		VOS_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
 			pMsgInfo->Body.msghead.uType,
 			pMsgInfo->Body.msghead.uCmd);
 		break;
@@ -438,3 +485,24 @@ VOS_UINT32 telnet_timeout_proc(VOS_VOID *pargc,VOS_UINT32 pargv)
 {
 	return VOS_OK;
 }
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  CPSS_REQUEST_TELNET_init
+*  Description:  初始化telnet服务器
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_UINT32 CPSS_REQUEST_TELNET_init()
+{
+	VOS_UINT32 ulRet = VOS_ERR;
+	if (VOS_OK != VOS_RegistPidInit(0, CPSS_PID_TELNET, CPSS_STRING_TELNET, 1, telnet_init_proc, telnet_timeout_proc))
+	{
+		TELNET_PrintErr(__FILE__, __LINE__, "Regist Telnet Server is Error");
+		return VOS_ERR;
+	}
+	//	TELNET_PrintInfo(__FILE__, __LINE__, "Regist Telnet Server OK");
+
+	return VOS_OK;
+}
+

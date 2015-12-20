@@ -37,25 +37,25 @@ VOS_UINT32 pid_init_proc(VOS_VOID *arg)
 {
 	VOS_UINT32 uRet = VOS_ERR;
 	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)arg;
-	
-	switch(pMsgInfo->Body.msghead.uType)
+
+	switch (cps_get_reqtype_from_msg(pMsgInfo->Body.msghead.uType))
 	{
-	case CPSS_TYPE_SYSTEM_INIT:
-		uRet = money_proc_init(pMsgInfo);
+	case CPSS_REQUEST_SYSTEM:
+		uRet = money_system_proc(pMsgInfo);
 		if (VOS_OK != uRet)
 		{
-			Money_PrintErr(__FILE__,__LINE__,"get all cpuid faild");
+			Money_PrintErr(__FILE__, __LINE__, "get all cpuid faild");
 		}
 		break;
-	case CPSS_REQ_XCAP_GET:
-		uRet = proc_xcap_url_result(pMsgInfo);
+	case MONEY_REQUEST_MGR:
+		uRet = money_deal_proc(pMsgInfo);
 		if (VOS_OK != uRet)
 		{
-			Money_PrintErr(__FILE__,__LINE__,"xcap url proc faild");
+			Money_PrintErr(__FILE__, __LINE__, "money deal faild");
 		}
 		break;
 	default:
-		Money_PrintErr(__FILE__,__LINE__,"uType %X",pMsgInfo->Body.msghead.uType);
+		Money_PrintErr(__FILE__, __LINE__, "this function is not support");
 		break;
 	}
 	return uRet;

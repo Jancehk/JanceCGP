@@ -24,8 +24,9 @@
 #define VOS_Skt_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
 #define VOS_Skt_Remset(pstrads)			VOS_Remset((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
 #define VOS_Skt_MemSize(pstrads)		VOS_MemSize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_Memcls(pstrads)			VOS_Memcls((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_Memcat(pstrA,pstrB)		VOS_Memcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
 #define VOS_Skt_Free(pstrads)			VOS_Free((pstrads), CPSS_MEM_HEAD_KEY_CPSS_SKT))
-
 /* ===  FUNCTION  ==============================================================
 *         Name:  cpss_socket_delete
 *  Description:  将socket从指定的链表上移出
@@ -706,7 +707,12 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 		return ulRet;
 	}
 	msgTmp->pClient = pClientInfo;
-	msgTmp->nType = CPSS_MSG_TYPE_RECVING;
+	if (msgTmp->nRState != CPSS_MSG_RS_STAT_FREE || CPSS_MSG_SELF_STAT_RESERVE != msgTmp->nSelfStat)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "get msg status is error[%d:%d]", msgTmp->nSelfStat, msgTmp->nRState);
+		return ulRet;
+	}
+	msgTmp->nRState = CPSS_MSG_RS_STAT_RECVING;
 
 	if (CPSS_SOCKET_PACKAGE_OFF == (pClientInfo->uClientStat & CPSS_SOCKET_PACKAGE_OFF))
 	{
@@ -723,7 +729,7 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 			return VOS_CLIENT_DISCONNECT;
 		}
 		ulMsgLength = recv(pSocketInfo->nlSocketfd,
-			msgTmp->Body.stuDataBuf,
+			msgTmp->Body.strDataBuf,
 			CPSS_MSG_BUFFER_SIZE,0);
 
 		if (0 == ulMsgLength)
@@ -744,7 +750,6 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 	{
 		ulBodySize = CPSS_MSG_HEAD_SIZE;//CPSS_MSG_HEAD_SIZE+CPSS_MSG_BUFFER_SIZE;
 		ulMsgIndex = 0;
-		msgTmp->nType = CPSS_MSG_TYPE_RECVING;
 		while (ulMsgIndex != ulBodySize)
 		{
 			ulMsgLength = recv(pSocketInfo->nlSocketfd,
@@ -785,7 +790,7 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 		while (ulMsgIndex != ulBodySize && ulBodySize >0)
 		{
 			ulMsgLength = recv(pSocketInfo->nlSocketfd,
-				msgTmp->Body.stuDataBuf + ulMsgIndex,
+				msgTmp->Body.strDataBuf + ulMsgIndex,
 				ulBodySize - ulMsgIndex, 0);
 			
 			VOS_PrintDebug(__FILE__, __LINE__, "recv data total size is %d:%d",
@@ -800,6 +805,7 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 		}
 		msgTmp->ulMsgLength = ulMsgIndex;
 	}
+	msgTmp->nRState = CPSS_MSG_RS_STAT_RECVED;
 	//pSocketInfo->pstuRecvMsg = msgTmp;
 END_OK_PROC:
 	return ulRet;
@@ -876,7 +882,7 @@ EXITPROC:
 	return pMsg;
 }
 /* ===  FUNCTION  ==============================================================
- *         Name:  cpss_check_send_msg
+ *         Name:  cpss_get_send_msg
  *  Description: 
  *  Input      : 
  *  OutPut     : 
@@ -886,6 +892,7 @@ static CPSS_MSG * cpss_get_send_msg(CPSS_MSG * pMsg)
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 	CPSS_MSG * pSendMsg = NULL;
+	CPSS_MSG * pRecvMsg = NULL;
 
 	if (NULL != pMsg->pTimer)
 	{
@@ -897,13 +904,13 @@ static CPSS_MSG * cpss_get_send_msg(CPSS_MSG * pMsg)
 		VOS_PrintErr(__FILE__,__LINE__,"get Msg info is NULL");
 		return pSendMsg;
 	}
-	
+	VOS_Memcpy(pSendMsg->Body.msghead.strSegName, CPSS_COMM_SEG_NAME, sizeof(CPSS_COMM_SEG_NAME));
+
 	VOS_Memcpy(&pSendMsg->Body.msghead.stSrcProc,
 		&pMsg->Body.msghead.stDstProc,sizeof(CPSS_COM_PID));
 	VOS_Memcpy(&pSendMsg->Body.msghead.stDstProc,
 		&pMsg->Body.msghead.stSrcProc,sizeof(CPSS_COM_PID));
 	pSendMsg->pClient = pMsg->pClient;
-	//pSendMsg->nStat = pMsg->nStat;
 	
 	VOS_PrintDebug(__FILE__,__LINE__,"Src:CpuID:%d,Pid:%d Des:CpuID:%d,Pid:%d",
 		pMsg->Body.msghead.stSrcProc.ulCpuID,
@@ -912,18 +919,34 @@ static CPSS_MSG * cpss_get_send_msg(CPSS_MSG * pMsg)
 		pMsg->Body.msghead.stDstProc.ulPID);
 	
 	pSendMsg->Body.msghead.uType    = pMsg->Body.msghead.uType;
-	//pSendMsg->Body.msghead.uSubType = pMsg->Body.msghead.uSubType;
 	pSendMsg->Body.msghead.uCmd     = pMsg->Body.msghead.uCmd;
-	//pSendMsg->Body.msghead.uSubCmd  = pMsg->Body.msghead.uSubCmd;
-	
-	pSendMsg->Body.msghead.ulRecvMsgID = pMsg->Body.msghead.ulMsgID;
-	
-	pSendMsg->Body.stuDataBuf = (VOS_CHAR*)VOS_Skt_Remset(pMsg->Body.stuDataBuf);
-	//VOS_Memcpy(&(), &(), sizeof(CPSS_MEM_BUFFER));
+
+	/* 设置接受和发送消息的ID */
+	if (0 != pMsg->ulMsgID)
+	{
+		pRecvMsg = cpss_get_recv_msg_for_id(pMsg->ulMsgID);
+		if (NULL == pRecvMsg)
+		{
+			VOS_PrintErr(__FILE__, __LINE__, "get recv Msg for id:%d", pMsg->ulMsgID);
+			return NULL;
+		}
+		/* 给发送出去的消息中记录该消息是否有接受消息ID */
+		pSendMsg->Body.msghead.ulRecvMsgID = pMsg->ulMsgID;
+		if (0 != pMsg->Body.msghead.ulParentMsgID)
+		{
+			pSendMsg->Body.msghead.ulParentMsgID = pMsg->Body.msghead.ulParentMsgID;
+			pRecvMsg->nRState = CPSS_MSG_RS_STAT_SENDING;
+		}
+		else
+		{
+			pRecvMsg->nRState = CPSS_MSG_RS_STAT_SENDED;
+		}
+	}
+
+	pSendMsg->Body.strDataBuf = (VOS_CHAR*)VOS_Skt_Remset(pMsg->Body.strDataBuf);
+	pMsg->Body.strDataBuf = NULL;
 	pSendMsg->Body.msghead.ulMsgLength = pMsg->Body.msghead.ulMsgLength;
 	
-	//BZERO(&pMsg->Body.stuDataBuf,sizeof(CPSS_MEM_BUFFER));
-
 	return pSendMsg;
 }
 /* ===  FUNCTION  ==============================================================
@@ -961,9 +984,15 @@ static VOS_UINT32 cpss_udp_recv_msg(pCPSS_SOCKET_LINK hSocketLink,  VOS_UINT32 u
 	// 接受数据包头
 	stusktaddrsz = sizeof(stusktaddr);
 
+	if (msgTmp->nRState != CPSS_MSG_RS_STAT_FREE || CPSS_MSG_SELF_STAT_RESERVE != msgTmp->nSelfStat)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "get msg status is error[%d:%d]", msgTmp->nSelfStat, msgTmp->nRState);
+		return ulRet;
+	}
+	msgTmp->nRState = CPSS_MSG_RS_STAT_RECVING;
+
 	ulBodySize = CPSS_MSG_HEAD_SIZE;//CPSS_MSG_HEAD_SIZE+CPSS_MSG_BUFFER_SIZE;
 	ulMsgIndex = 0;
-	msgTmp->nType = CPSS_MSG_TYPE_RECVING;
 	while (ulMsgIndex != ulBodySize)
 	{
 		ulMsgLength = recvfrom(
@@ -983,8 +1012,8 @@ static VOS_UINT32 cpss_udp_recv_msg(pCPSS_SOCKET_LINK hSocketLink,  VOS_UINT32 u
 		}
 		if (0 == ulMsgLength)
 		{
-			VOS_PrintErr(__FILE__,__LINE__,"recvfrom head %d:ere%d",ulMsgLength,WSAGetLastError());
-			continue;
+			VOS_PrintErr(__FILE__, __LINE__, "recvfrom head %d:ere%d", ulMsgLength, WSAGetLastError());
+			goto END_PROC;
 		}
 		ulMsgIndex +=ulMsgLength;
 	}
@@ -1005,7 +1034,7 @@ static VOS_UINT32 cpss_udp_recv_msg(pCPSS_SOCKET_LINK hSocketLink,  VOS_UINT32 u
 	{
 		ulMsgLength = recvfrom(
 			hSocketLink->nlSocketfd,
-			msgTmp->Body.stuDataBuf + ulMsgIndex,
+			msgTmp->Body.strDataBuf + ulMsgIndex,
 			ulBodySize - ulMsgIndex,
 			0,
 			&stusktaddr,
@@ -1024,6 +1053,7 @@ static VOS_UINT32 cpss_udp_recv_msg(pCPSS_SOCKET_LINK hSocketLink,  VOS_UINT32 u
 
 	msgTmp->ulMsgLength = ulMsgIndex;
 	msgTmp->pClient = hSocketLink;
+	msgTmp->nRState = CPSS_MSG_RS_STAT_RECVED;
 	ulSocRet = VOS_OK;
 
 END_PROC:
@@ -1247,7 +1277,7 @@ VOS_UINT32 cpss_tcp_send_proc (VOS_VOID * lpPareter)
 			VOS_PrintErr(__FILE__, __LINE__, "send socket is disonnect ");
 			goto ERR_CONTINUE;
 		}
-		if (CPSS_MSG_STAT_USEING != pstuMsg->nStat)/*VOS_CLIENT_DISCONNECT*/
+		if (CPSS_MSG_SELF_STAT_USEING != pstuMsg->nSelfStat)/*VOS_CLIENT_DISCONNECT*/
 		{
 			VOS_PrintErr(__FILE__,__LINE__,"send stat is disonnect ");
 			goto ERR_CONTINUE;
@@ -1274,7 +1304,7 @@ VOS_UINT32 cpss_tcp_send_proc (VOS_VOID * lpPareter)
 			}
 			nSendLength = CPSS_MSG_HEAD_SIZE;
 		}
-		nSendSize = send(pSocket->nlSocketfd, (VOS_CHAR*)pstuMsg->Body.stuDataBuf, pstuMsg->Body.msghead.ulMsgLength, 0);
+		nSendSize = send(pSocket->nlSocketfd, (VOS_CHAR*)pstuMsg->Body.strDataBuf, pstuMsg->Body.msghead.ulMsgLength, 0);
 		if (0 == nSendSize)
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "send date leng:%d errorCode=%d",
@@ -1294,7 +1324,7 @@ VOS_UINT32 cpss_tcp_send_proc (VOS_VOID * lpPareter)
 
 		VOS_PrintDebug(__FILE__, __LINE__, "tcp send msg [%p]ID:%d recv msg ID:%d",
 			pstuMsg,
-			pstuMsg->Body.msghead.ulMsgID,
+			pstuMsg->ulMsgID,
 			pstuMsg->Body.msghead.ulRecvMsgID);
 		goto CLR_CONTINUE;
 ERR_CONTINUE:
@@ -1417,7 +1447,7 @@ VOS_UINT32 cpss_copy_msg(VOS_VOID *pVoidMsgRecv, VOS_VOID * pVoidMsgSend)
 		&pMsgSend->Body.msghead.stSrcProc,sizeof(CPSS_COM_PID));
 	VOS_Memcpy(&pMsgRecv->Body.msghead.stDstProc, 
 		&pMsgSend->Body.msghead.stDstProc,sizeof(CPSS_COM_PID));
-	pMsgRecv->Body.msghead.ulMsgID = pMsgSend->Body.msghead.ulMsgID;
+	//pMsgRecv->Body.msghead.ulMsgID = pMsgSend->Body.msghead.ulMsgID;
 	return VOS_OK;
 }
 /* ===  FUNCTION  ==============================================================
@@ -1431,6 +1461,7 @@ VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 	VOS_UINT32 ulMsgLength =0;
+	VOS_CHAR * strSendBuff = NULL;
 	CPSS_MSG		 *  pMsgInfo = NULL;
 
 	if (NULL == pVoidMsg)
@@ -1442,26 +1473,35 @@ VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 
 	pMsgInfo = (pCPSS_MSG)pVoidMsg;
 	if (NULL != strBuffer && 0 < uBufLen)
 	{
-		/*if (VOS_OK != VOS_PrintBufferBin(&pMsgInfo->Body.stuDataBuf, strBuffer, uBufLen,
-			&ulMsgLength))
+		strSendBuff = (VOS_CHAR*)VOS_Skt_Malloc(uBufLen);
+		if (NULL == strSendBuff)
 		{
-			VOS_PrintErr(__FILE__, __LINE__, "cpss print buffer bin is error");
+			VOS_PrintErr(__FILE__, __LINE__, "send data get memory is error:%d",GetLastError());
 			return ulRet;
 		}
-		if (ulMsgLength != pMsgInfo->Body.msghead.ulMsgLength)
+		VOS_Memcpy(strSendBuff, strBuffer, uBufLen);
+		if (NULL == pMsgInfo->Body.strDataBuf)
 		{
-			VOS_PrintDebug(__FILE__, __LINE__, "send len:%d != buff len:%d",
-				pMsgInfo->Body.msghead.ulMsgLength, ulMsgLength);
-			pMsgInfo->Body.msghead.ulMsgLength = ulMsgLength;
-		}*/
+			pMsgInfo->Body.strDataBuf = (VOS_CHAR*)VOS_Skt_Remset(strSendBuff);
+		}
+		else
+		{
+			strSendBuff = (VOS_CHAR*)VOS_Skt_Memcat(pMsgInfo->Body.strDataBuf, strSendBuff);
+			if (NULL == strSendBuff)
+			{
+				VOS_PrintErr(__FILE__, __LINE__, "send data get memory is error:%d", GetLastError());
+				return ulRet;
+			}
+			pMsgInfo->Body.strDataBuf = strSendBuff;
+		}
+		VOS_PrintDebug(__FILE__, __LINE__, "send len:%d != buff len:%d",
+			pMsgInfo->Body.msghead.ulMsgLength, ulMsgLength);
+		pMsgInfo->Body.msghead.ulMsgLength += ulMsgLength;
 	}
 	if (VOS_SEND_SKT_TYPE_INSERT == (uType & VOS_SEND_SKT_TYPE_INSERT))
 	{
 		return VOS_OK;
 	}
-	
-	//pMsgInfo->Body.msghead.ulMsgLength += CPSS_MSG_BUF_HEAD_SIZE;
-	pMsgInfo->nType = CPSS_MSG_TYPE_SENDING;
 	if (VOS_SEND_SKT_TYPE_TCP == (uType & VOS_SEND_SKT_TYPE_TCP))
 	{
 		ulRet = cpss_tcp_send_msg(pMsgInfo);
@@ -1478,7 +1518,7 @@ VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 
 			VOS_PrintErr(__FILE__, __LINE__, "cpss send udp data error");
 		}
 	}
-	//BZERO(&pMsgInfo->Body.stuDataBuf, sizeof(CPSS_MEM_BUFFER));
+	//BZERO(&pMsgInfo->Body.strDataBuf, sizeof(CPSS_MEM_BUFFER));
 	return ulRet;
 }
 
@@ -1666,16 +1706,17 @@ VOS_UINT32 cpss_udp_send_proc (VOS_VOID * lpParameter)
 			nSendSize,sizeof(CPSS_COM_HEAD),
 			pstuMsg->Body.msghead.ulMsgLength);
 
-		while (NULL != pstuMsg->Body.stuDataBuf)
+		while (NULL != pstuMsg->Body.strDataBuf)
 		{
 			//nSendLength = CPSS_MSG_BUF_HEAD_SIZE + pstuBuf->nSize;
 			nSendSize = sendto(pSocketInfo->nlSocketfd,
-				(VOS_CHAR*)pstuMsg->Body.stuDataBuf, nSendLength, 0,
+				(VOS_CHAR*)pstuMsg->Body.strDataBuf, nSendLength, 0,
 				(struct sockaddr *)&stusktaddr, sizeof(stusktaddr));
-			if (0xFFFFFFFF == nSendSize)
+			if (0xFFFFFFFF == nSendSize || 0 == nSendSize)
 			{
 				VOS_PrintErr(__FILE__,__LINE__,"send head leng:%d errorCode=%d",
 					nSendSize, GetLastError());
+				break;
 			}
 			VOS_PrintDebug(__FILE__,__LINE__,"send body data %d:%d",nSendSize,nSendLength);
 			if (nSendSize != nSendLength)
@@ -1695,7 +1736,7 @@ VOS_UINT32 cpss_udp_send_proc (VOS_VOID * lpParameter)
 				nSendLength, pstuMsg->Body.msghead.ulMsgLength);
 		}
 		VOS_PrintDebug(__FILE__, __LINE__, "udp send msg ID:%d recv msg ID:%d",
-			pstuMsg->Body.msghead.ulMsgID,
+			pstuMsg->ulMsgID,
 			pstuMsg->Body.msghead.ulRecvMsgID);
 		
 		VOS_PrintMsg("udp Send Proc 2 msg", pstuMsg);
@@ -1759,6 +1800,7 @@ VOS_UINT32 cpss_tcp_distribute_proc (VOS_VOID * lpParameter)
 		VOS_PrintBuffer(&stuBuffer, "T [%s] Distribute", pstuPidInfo->szPidName);
 	}
 	cpss_thread_success(stuBuffer);
+	VOS_PrintBufferRelease(stuBuffer);
 
 	while(FALSE == g_handleiocpmanage.usExitSystem)
 	{
@@ -1805,22 +1847,21 @@ VOS_UINT32 cpss_tcp_distribute_proc (VOS_VOID * lpParameter)
 		
 		if (CPSS_SOCKET_XCAP == pClient->uClientStat)
 		{
-			pMsgInfo->Body.msghead.uType = CPSS_TYPE_SYSTEM_HTTP;
+			//pMsgInfo->Body.msghead.uType = CPSS_TYPE_SYSTEM_HTTP;
 		}
 /*
 		pMsgInfo->pTimer = (VOS_VOID *)cpss_set_timer(300, cpss_tcp_timer_used_to_free_proc, 
 			pMsgInfo, sizeof(CPSS_MSG));
 */
-		pMsgInfo->nStat = CPSS_MSG_STAT_USED;
-		pMsgInfo->nType = CPSS_MSG_TYPE_RECVED;
+		pMsgInfo->nRState = CPSS_MSG_RS_STAT_DOING;
 		if (VOS_OK != pstuPidInfo->ppid_init_proc((VOS_VOID *)pMsgInfo))
 		{
-			VOS_PrintInfo(__FILE__,__LINE__,"Msg:%p Socket:%p Type:%x Stat:%x exec is faild",
-				pMsgInfo,pSocket,pMsgInfo->nType,pMsgInfo->nStat);
+			VOS_PrintInfo(__FILE__,__LINE__,"Msg:%p Socket:%p Stat:%x exec is faild",
+				pMsgInfo, pSocket, pMsgInfo->nRState);
 		}
-		if (CPSS_MSG_TYPE_SENDING != pMsgInfo->nType)
+		if (CPSS_MSG_RS_STAT_SENDED != pMsgInfo->nRState)
 		{
-			cpss_move_tcp_recv_used_to_free(pMsgInfo);
+			cpss_move_recv_used_to_free(pMsgInfo);
 		}
 	}
 	return uRet;
@@ -1914,7 +1955,7 @@ static VOS_UINT32 cpss_tcp_accept_client (CPSS_SOCKET_LINK * pstuSocket)
 		pstuMsgInfo->Body.msghead.stSrcProc.ulCpuID = get_cpuid_from_str(pClientInfo->strIPaddress);
 		pstuMsgInfo->Body.msghead.stSrcProc.ulPID   = VOS_SOCKET_IN | VOS_TCP_PID |pRecvSocket->uPort;
 		pstuMsgInfo->pClient = pClientInfo;
-		pstuMsgInfo->Body.msghead.uType = CPSS_TYPE_SYSTEM_INIT;
+		//pstuMsgInfo->Body.msghead.uType = CPSS_TYPE_SYSTEM_INIT;
 		if (CPSS_SOCKET_TELNET == pClientInfo->uClientStat)
 		{
 			pstuMsgInfo->Body.msghead.uCmd = CPSS_CMD_SYSTEM_TELNET;//CPSS_TYPE_SYSTEM_TELNET;
@@ -2064,6 +2105,7 @@ VOS_UINT32 cpss_udp_distribute_proc (VOS_VOID * lpParameter)
 		VOS_PrintBuffer(&stuBuffer, "U [%s] Distribute", pstuPidInfo->szPidName);
 	}
 	cpss_thread_success(stuBuffer);
+	VOS_PrintBufferRelease(stuBuffer);
 
 	((CPSS_SOCKET_LINK*)pstuPidInfo->pSocketInfo)->uIStat = CPSS_SKT_STAT_OPENED;
 	while(FALSE == g_handleiocpmanage.usExitSystem)
@@ -2088,8 +2130,8 @@ VOS_UINT32 cpss_udp_distribute_proc (VOS_VOID * lpParameter)
 		pMsgInfo->pTimer = (VOS_VOID *)cpss_set_timer(300, cpss_tcp_timer_used_to_free_proc, 
 			pMsgInfo, sizeof(CPSS_MSG));
 		*/	
-		pMsgInfo->nStat = CPSS_MSG_STAT_USED;
-		pMsgInfo->nType = CPSS_MSG_TYPE_RECVED;
+		pMsgInfo->nRState = CPSS_MSG_RS_STAT_DOING;
+
 		VOS_PrintDebug(__FILE__, __LINE__, "PID:%d pSocket:%p pMsg:%p", *pstuPidInfo->pPid,
 			pstuPidInfo->pSocketInfo, pMsgInfo);
 
@@ -2099,16 +2141,15 @@ VOS_UINT32 cpss_udp_distribute_proc (VOS_VOID * lpParameter)
 
 		if (VOS_OK != pstuPidInfo->ppid_init_proc((VOS_VOID *)pMsgInfo))
 		{
-			VOS_PrintInfo(__FILE__,__LINE__,"Msg:%p Socket:%p Type:%x Stat:%x exec is faild",
-				pMsgInfo,pSocket,pMsgInfo->nType,pMsgInfo->nStat);
+			VOS_PrintInfo(__FILE__,__LINE__,"Msg:%p Socket:%p Stat:%x exec is faild",
+				pMsgInfo, pSocket, pMsgInfo->nRState);
 		}
-		
 		VOS_PrintMsg("udp distribute output msg", pMsgInfo);
 
-		if (CPSS_MSG_TYPE_SENDING != pMsgInfo->nType)
+		if (CPSS_MSG_RS_STAT_SENDED != pMsgInfo->nRState)
 		{
-			cpss_move_udp_recv_used_to_free(pMsgInfo);
-		}	
+			cpss_move_recv_used_to_free(pMsgInfo);
+		}
 	}
 	return uRet;
 }		/* -----  end of function cpss_udp_accept_client  ----- */
@@ -2228,7 +2269,7 @@ static VOS_UINT32 cpss_socket_udp_open (CPSS_SOCKET_LINK * pSocketLink)
 			return ulRet;
 		}
 	}
-#if 0
+
 	/*设置返还选项为假，禁止将发送的数据返还给本地接口*/
 	optval = 0;
 	if (setsockopt(pSocketLink->nlSocketfd, IPPROTO_IP, IP_MULTICAST_LOOP,
@@ -2248,7 +2289,6 @@ static VOS_UINT32 cpss_socket_udp_open (CPSS_SOCKET_LINK * pSocketLink)
 		closesocket(pSocketLink->nlSocketfd);
 		return ulRet;
 	}
-#endif
 	//初始化Event
 	sprintf(strMsgEvent, "UDP[%s]", pSocketLink->pstuPid->szPidName);
 	
@@ -2351,7 +2391,6 @@ VOS_UINT32 cpss_iocp_init ()
 	VOS_UINT32 ulProcessPid = 0;
 	VOS_CHAR   strMutexKey[36] = {0};
 
-
 	if (NULL == g_handleManagePid.pstuCPuIDList || NULL == g_handleManagePid.pstuPidList)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "CGP Reg Socket Init Error");
@@ -2415,56 +2454,60 @@ VOS_UINT32 cpss_iocp_init ()
 	while (NULL != pstuPidList)
 	{
 		ulProcessPid = 0;
-		hSocketLinkTemp = cpss_get_socket_from_pid(pstuPidList->szPidName,
-												   *pstuPidList->pPid);
-		if (NULL == hSocketLinkTemp)
+		if (0 != (VOS_SOCKET_IN & *pstuPidList->pPid))
 		{
-			VOS_PrintErr(__FILE__, __LINE__, "get socket handle error");
-			return ulRet;
-		}
-		dwType = hSocketLinkTemp->nlSocketType & VOS_SOCKET_TYPE>>16;
-		hSocketLinkTemp->pstuPid = pstuPidList;
-		switch(dwType)
-		{
-		case VOS_SOCKET_TCP:
-			if (VOS_OK == cpss_socket_tcp_open(hSocketLinkTemp))
+			hSocketLinkTemp = cpss_get_socket_from_pid(pstuPidList->szPidName,
+				*pstuPidList->pPid);
+			if (NULL == hSocketLinkTemp)
 			{
-				VOS_PrintInfo(__FILE__,__LINE__,"T PID:[%08d:%s] Port:%d",
-					*pstuPidList->pPid,
-					pstuPidList->szPidName,
-					hSocketLinkTemp->uPort);
+				VOS_PrintErr(__FILE__, __LINE__, "get socket handle error");
+				return ulRet;
 			}
-			else
+			dwType = hSocketLinkTemp->nlSocketType & VOS_SOCKET_TYPE >> 16;
+			hSocketLinkTemp->pstuPid = pstuPidList;
+			switch (dwType)
 			{
-				VOS_PrintErr(__FILE__,__LINE__,"CGP T Init Error PID:[%s] Port:%d", 
-					pstuPidList->szPidName,
-					hSocketLinkTemp->uPort);
+			case VOS_SOCKET_TCP:
+				if (VOS_OK == cpss_socket_tcp_open(hSocketLinkTemp))
+				{
+					VOS_PrintInfo(__FILE__, __LINE__, "T PID:[%08d:%s] Port:%d",
+						*pstuPidList->pPid,
+						pstuPidList->szPidName,
+						hSocketLinkTemp->uPort);
+				}
+				else
+				{
+					VOS_PrintErr(__FILE__, __LINE__, "CGP T Init Error PID:[%s] Port:%d",
+						pstuPidList->szPidName,
+						hSocketLinkTemp->uPort);
+					pstuPidList = pstuPidList->next;
+					continue;
+				}
+				break;
+			case VOS_SOCKET_UDP:
+				if (VOS_OK == cpss_socket_udp_open(hSocketLinkTemp))
+
+				{
+					VOS_PrintInfo(__FILE__, __LINE__, "U PID:[%08d:%s] Port:%d",
+						*pstuPidList->pPid,
+						pstuPidList->szPidName,
+						hSocketLinkTemp->uPort);
+				}
+				else
+				{
+					VOS_PrintErr(__FILE__, __LINE__, "CGP U Init Error PID:[%s] Port:%d",
+						pstuPidList->szPidName,
+						hSocketLinkTemp->uPort);
+					pstuPidList = pstuPidList->next;
+					continue;
+				}
+				break;
+			default:
+				VOS_PrintErr(__FILE__, __LINE__,
+					"CGP Socket Init Type Error(%d)", hSocketLinkTemp->nlSocketType);
 				pstuPidList = pstuPidList->next;
 				continue;
 			}
-			break;
-		case VOS_SOCKET_UDP:
-			if (VOS_OK == cpss_socket_udp_open(hSocketLinkTemp))
-			
-			{
-				VOS_PrintInfo(__FILE__,__LINE__,"U PID:[%08d:%s] Port:%d",
-					*pstuPidList->pPid,
-					pstuPidList->szPidName,
-					hSocketLinkTemp->uPort);
-			}
-			else
-			{
-				VOS_PrintErr(__FILE__, __LINE__, "CGP U Init Error PID:[%s] Port:%d",
-					pstuPidList->szPidName,
-					hSocketLinkTemp->uPort);
-				pstuPidList = pstuPidList->next;
-				continue;
-			}
-			break;
-		default:
-			VOS_PrintErr(__FILE__, __LINE__, 
-				"CGP Socket Init Type Error(%d)",hSocketLinkTemp->nlSocketType);
-			continue;
 		}
 		pstuPidList->pSocketInfo = hSocketLinkTemp;
 		if (VOS_OK != cpss_socket_open_pid(dwType,pstuPidList))
@@ -2512,15 +2555,14 @@ VOS_UINT32 cpss_subsystem_init (VOS_UINT32 uType, VOS_UINT32 uCmd)
 			hSocketLink = hSocketLink->next;
 			continue;
 		}
-		if (VOS_SOCKET_ACC != hSocketLink->nlSocketType &&
-			VOS_SOCKET_UDP != hSocketLink->nlSocketType)
-		{
-			hSocketLink = hSocketLink->next;
-			continue;
-		}
 		if (NULL == hSocketLink->pstuPid)
 		{
 			VOS_PrintErr(__FILE__,__LINE__,"Socket:%p PID is NULL",hSocketLink);
+			hSocketLink = hSocketLink->next;
+			continue;
+		}
+		if (VOS_SOCKET_ACC == hSocketLink->nlSocketType)
+		{
 			hSocketLink = hSocketLink->next;
 			continue;
 		}
@@ -2544,8 +2586,9 @@ VOS_UINT32 cpss_subsystem_init (VOS_UINT32 uType, VOS_UINT32 uCmd)
 		cps_set_msg_src_cpuid(pMsgInfo, CPSSFWCPUID, CPSSFWPID);
 		pMsgInfo->Body.msghead.uType = uType;
 		pMsgInfo->Body.msghead.uCmd = uCmd;
+		pMsgInfo->nRState = CPSS_MSG_RS_STAT_RECVED;
 
-		switch (hSocketLink->nlSocketType & VOS_SOCKET_TYPE>>16)
+		switch (hSocketLink->nlSocketType)
 		{
 		case VOS_SOCKET_TCP:
 			ulRet = cpss_move_tcp_recv_free_to_used(pMsgInfo);

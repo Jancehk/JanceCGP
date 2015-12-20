@@ -29,8 +29,8 @@
 VOS_UINT32 framwork_init_proc(VOS_VOID *parg);
 
 /* ===  FUNCTION  ==============================================================
- *         Name:  telnet_timeout_proc
- *  Description:  telnet服务器消息超时处理
+ *         Name:  framwork_timeout_proc
+ *  Description:  平台服务器消息超时处理
  * ==========================================================================*/
 VOS_UINT32 framwork_timeout_proc(VOS_VOID *pargc,VOS_UINT32 pargv);
 
@@ -40,13 +40,5 @@ VOS_UINT32 framwork_timeout_proc(VOS_VOID *pargc,VOS_UINT32 pargv);
  * ==========================================================================*/
 VOS_UINT32 cpss_framwork_init();
 
-/* ===  FUNCTION  ==============================================================
- *         Name:  framwork_send_data
- *  Description:  发送telnet的数据
- * ==========================================================================*/
-VOS_UINT32 framwork_send_data(VOS_VOID *pVoidMsg, 
-							  VOS_VOID * pstuBuffer, 
-							  VOS_UINT32 uBufLen, 
-							  VOS_UINT32 uType);
 
 #endif

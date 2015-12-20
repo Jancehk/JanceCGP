@@ -74,16 +74,16 @@ void Money_PrintWarn (
 		const VOS_STRING fmt, ...);
 
 /* ===  FUNCTION  ==============================================================
- *         Name:  money_proc_init
+ *         Name:  money_system_proc
  *  Description:  发送telnet的数据
  * ==========================================================================*/
-VOS_UINT32 money_proc_init(VOS_VOID *pVoidMsg);
+VOS_UINT32 money_system_proc(VOS_VOID *pVoidMsg);
 
 /* ===  FUNCTION  ==============================================================
- *         Name:  proc_xcap_url_result
- *  Description:  发送telnet的数据
+ *         Name:  money_deal_proc
+ *  Description:  记账系统主要处理逻辑
  * ==========================================================================*/
-VOS_UINT32 proc_xcap_url_result(VOS_VOID *pVoidMsg);
+VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg);
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  get_xcap_root_body

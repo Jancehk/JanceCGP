@@ -22,13 +22,13 @@
 #include "cpss_public.h"
 #include "cpss_msg.h"
 
-#define CPSS_TELNET_IAC			0XFF
-#define CPSS_TELNET_DONT		0XFE
-#define CPSS_TELNET_DO			0XFD
-#define CPSS_TELNET_WILLNT		0XFC
-#define CPSS_TELNET_WILL		0XFB
-#define CPSS_TELNET_SB			0XFA
-#define CPSS_TELNET_CTL			0X1B
+#define CPSS_REQUEST_TELNET_IAC			0XFF
+#define CPSS_REQUEST_TELNET_DONT		0XFE
+#define CPSS_REQUEST_TELNET_DO			0XFD
+#define CPSS_REQUEST_TELNET_WILLNT		0XFC
+#define CPSS_REQUEST_TELNET_WILL		0XFB
+#define CPSS_REQUEST_TELNET_SB			0XFA
+#define CPSS_REQUEST_TELNET_CTL			0X1B
 typedef struct _STU_TELNET_ACI_T
 {
 	VOS_UINT8 mACI;
@@ -55,13 +55,13 @@ VOS_UINT32 telnet_init_proc(VOS_VOID *parg);
 VOS_UINT32 telnet_timeout_proc(VOS_VOID *pargc,VOS_UINT32 pargv);
 
 /* ===  FUNCTION  ==============================================================
- *         Name:  cpss_telnet_init
+ *         Name:  CPSS_REQUEST_TELNET_init
  *  Description:  初始化telnet服务器
  *  Input      :    
  *  OutPut     :    
  *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 cpss_telnet_init();
+VOS_UINT32 CPSS_REQUEST_TELNET_init();
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  telnet_send_data

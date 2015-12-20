@@ -56,7 +56,7 @@ static VOS_VOID cpss_msg_memset(CPSS_MSG *pMsgInfo)
 {
 	BZERO(&pMsgInfo->Body,sizeof(CPSS_COM_DATA));
 //	pMsgInfo->ulBufLength = CPSS_MSG_BUFFER_SIZE;
-	pMsgInfo->nStat = CPSS_MSG_STAT_FREE;
+	pMsgInfo->nRState = CPSS_MSG_SELF_STAT_FREE;
 	pMsgInfo->pClient = NULL;
 /*	
 	VOS_PrintInfo(__FILE__, __LINE__, "memset kill timer is:%p:%p ",pMsgInfo,pMsgInfo->pTimer);
@@ -66,7 +66,7 @@ static VOS_VOID cpss_msg_memset(CPSS_MSG *pMsgInfo)
 /*		cpss_kill_timer(pMsgInfo->pTimer);*/
 		pMsgInfo->pTimer = NULL;
 	}
-	VOS_Sem_Free(pMsgInfo->Body.stuDataBuf);
+	VOS_Sem_Free(pMsgInfo->Body.strDataBuf);
 	BZERO(&pMsgInfo->Body,sizeof(CPSS_COM_DATA));
 }
 /* ===  FUNCTION  ==============================================================
@@ -120,9 +120,9 @@ static VOS_VOID cpss_print_msginfo_debug(VOS_VOID * pstuBuffer,CPSS_MSG *pstuMsg
 		VOS_PrintBuffer(pstuBuffer, "msg tab link [%p]->[%p][ID:%d Stat:%d:%s Clit:%p Len:%d]\n", 
 			pstuMsg,
 			pstuMsg->next,
-			pstuMsg->Body.msghead.ulMsgID,
-			pstuMsg->nStat,
-			pstrStat[pstuMsg->nStat-CPSS_MSG_STAT_FREE],
+			pstuMsg->ulMsgID,
+			pstuMsg->nSelfStat,
+			pstrStat[pstuMsg->nSelfStat - CPSS_MSG_SELF_STAT_FREE],
 			pstuMsg->pClient,
 			pstuMsg->ulMsgLength);
 		pstuMsg = pstuMsg->next;
@@ -311,7 +311,7 @@ static CPSS_MSG * cpss_get_msg_use_id_in_tab(CPSS_MSG_TAB *pMsgTab, VOS_UINT32 u
 	tmpMsg = pMsgTab->pUseHead;
 	while(NULL != tmpMsg)
 	{
-		if (tmpMsg->Body.msghead.ulMsgID = ulMsgID)
+		if (tmpMsg->ulMsgID = ulMsgID)
 		{
 			break;
 		}
@@ -363,7 +363,7 @@ static VOS_UINT32 cpss_move_msg_a_to_b(CPSS_MSG_TAB *pMsgTab, CPSS_MSG * pMsgInf
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "add msg is error :%p",a);
 		}
-		a->nStat = CPSS_MSG_STAT_FREE;
+		a->nSelfStat = CPSS_MSG_SELF_STAT_FREE;
 		uRet = VOS_OK;
 		break;
 	case MOVE_FREE_TO_USED:
@@ -396,7 +396,7 @@ static VOS_UINT32 cpss_move_msg_a_to_b(CPSS_MSG_TAB *pMsgTab, CPSS_MSG * pMsgInf
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "add msg is error :%p",a);
 		}
-		a->nStat = CPSS_MSG_STAT_USEING;
+		a->nSelfStat = CPSS_MSG_SELF_STAT_USEING;
 		uRet = VOS_OK;
 		break;
 	default:
@@ -733,9 +733,9 @@ CPSS_MSG * cpss_get_msg_info()
 
 		while(NULL != pMsgTmp)
 		{
-			if (CPSS_MSG_STAT_FREE == pMsgTmp->nStat)
+			if (CPSS_MSG_SELF_STAT_FREE == pMsgTmp->nRState)
 			{
-				pMsgTmp->nStat = CPSS_MSG_STAT_RESERVE;
+				pMsgTmp->nRState = CPSS_MSG_SELF_STAT_RESERVE;
 				break;
 			}
 			pMsgTmp= pMsgTmp->next;
@@ -776,10 +776,10 @@ ERROR_EXIT:
 	{
 		BZERO(&pMsgTmp->Body, sizeof(CPSS_COM_DATA));
 		g_cpsMsgSem_Manage->msgtab.nIDCount++;
-		pMsgTmp->Body.msghead.ulMsgID = g_cpsMsgSem_Manage->msgtab.nIDCount;
+		pMsgTmp->ulMsgID = g_cpsMsgSem_Manage->msgtab.nIDCount;
 		pMsgTmp->ulMsgLength = 0;
-		pMsgTmp->nStat = CPSS_MSG_STAT_RESERVE;
-		pMsgTmp->nType = CPSS_MSG_TYPE_FREE;
+		pMsgTmp->nSelfStat = CPSS_MSG_SELF_STAT_RESERVE;
+		pMsgTmp->nRState = CPSS_MSG_RS_STAT_FREE;
 	}
 	else
 	{
@@ -1004,12 +1004,12 @@ VOS_UINT32 cpss_move_udp_recv_used_to_free_use_msgid(VOS_UINT32 ulMsgID, VOS_UIN
 VOS_UINT32 cpss_move_recv_used_to_free_use_msgid(VOS_UINT32 ulMsgID)
 {
 	VOS_UINT32 uRet = VOS_ERR;
-	uRet = cpss_move_tcp_recv_used_to_free_use_msgid(ulMsgID,1);
+	uRet = cpss_move_udp_recv_used_to_free_use_msgid(ulMsgID, 1);
 	if (VOS_OK == uRet)
 	{
 		return uRet;
 	}
-	uRet = cpss_move_udp_recv_used_to_free_use_msgid(ulMsgID,1);
+	uRet = cpss_move_tcp_recv_used_to_free_use_msgid(ulMsgID, 1);
 	if (VOS_OK != uRet)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "[%d]move ID D_R Queued F-U-T", ulMsgID);
@@ -1197,6 +1197,30 @@ END_PROC:
 	return pMsgInfo;
 }
 /* ===  FUNCTION  ==============================================================
+*         Name:  cpss_move_tcp_recv_used_to_free
+*  Description:  将tcp的recv消息从空闲的列表移动到使用中
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_UINT32 cpss_move_recv_used_to_free(CPSS_MSG *pMsgInfo)
+{
+	CPSS_MSG *pPreRecvMsg = NULL;
+	if (NULL == pMsgInfo)
+	{
+		return VOS_ERR;
+	}
+	if (0 != pMsgInfo->Body.msghead.ulRecvMsgID)
+	{
+		if (VOS_OK != cpss_move_recv_used_to_free(cpss_get_recv_msg_for_id(pMsgInfo->Body.msghead.ulRecvMsgID)))
+		{
+			return VOS_ERR;
+		}
+	}
+	cpss_move_recv_used_to_free_use_msgid(pMsgInfo->ulMsgID);
+	return VOS_OK;
+}
+/* ===  FUNCTION  ==============================================================
  *         Name:  cpss_get_tcp_recv_msg_for_id
  *  Description:  利用消息ID在tcp 消息接受队列中得到msg
  *  Input      : 
@@ -1237,7 +1261,8 @@ CPSS_MSG * cpss_get_used_msg(VOS_UINT32 ulPID, VOS_UINT32 uType)
 	
 	while (NULL != pMsgInfo)
 	{
-		if (CPSS_MSG_STAT_USEING == pMsgInfo->nStat)
+		if (CPSS_MSG_RS_STAT_RECVED == pMsgInfo->nRState && 
+			CPSS_MSG_SELF_STAT_USEING == pMsgInfo->nSelfStat)
 		{
 			if (pMsgInfo->Body.msghead.stDstProc.ulPID == ulPID)
 			{
@@ -1375,21 +1400,21 @@ VOS_UINT32 cps_get_msg_mem_data(CPSS_MSG * msgTmp)
 		VOS_PrintWarn(__FILE__, __LINE__, "recv data size is large %d:ere", msgTmp->Body.msghead.ulMsgLength);
 		return ulRtn;
 	}
-	if (NULL == msgTmp->Body.stuDataBuf)
+	if (NULL == msgTmp->Body.strDataBuf)
 	{
-		msgTmp->Body.stuDataBuf = (VOS_CHAR*)VOS_Sem_Malloc(msgTmp->Body.msghead.ulMsgLength);
+		msgTmp->Body.strDataBuf = (VOS_CHAR*)VOS_Sem_Malloc(msgTmp->Body.msghead.ulMsgLength);
 	}
 	else
 	{
-		pstrTmp = (VOS_CHAR*)VOS_Sem_Realloc(msgTmp->Body.stuDataBuf, msgTmp->Body.msghead.ulMsgLength);
+		pstrTmp = (VOS_CHAR*)VOS_Sem_Realloc(msgTmp->Body.strDataBuf, msgTmp->Body.msghead.ulMsgLength);
 		if (NULL != pstrTmp)
 		{
-			msgTmp->Body.stuDataBuf = pstrTmp;
-			VOS_Sem_Free(msgTmp->Body.stuDataBuf);
-			msgTmp->Body.stuDataBuf = NULL;
+			msgTmp->Body.strDataBuf = pstrTmp;
+			VOS_Sem_Free(msgTmp->Body.strDataBuf);
+			msgTmp->Body.strDataBuf = NULL;
 		}
 	}
-	if (NULL == msgTmp->Body.stuDataBuf)
+	if (NULL == msgTmp->Body.strDataBuf)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "get msg data size is error");
 		return ulRtn;
@@ -1401,17 +1426,9 @@ VOS_UINT32 cps_get_msg_mem_data(CPSS_MSG * msgTmp)
 *         Name:  cps_get_msg_mem_data
 *  Description:  从请求内容中得到消息类型
 * ==========================================================================*/
-VOS_UINT32 cps_set_msg_type(VOS_UINT8 uObjPid, VOS_UINT8 uReqType, VOS_UINT8 uReqContent, VOS_UINT8 uMsgType)
+VOS_UINT32 cps_set_msg_type(VOS_UINT8 uReqType, VOS_UINT8 uReqContent, VOS_UINT8 uMsgType)
 {
-	return uObjPid << 24 | uReqType << 16 | uReqContent << 8 | uMsgType;
-}
-/* ===  FUNCTION  ==============================================================
-*         Name:  cps_get_objpid_from_msg
-*  Description:  从消息中得到对象PID
-* ==========================================================================*/
-VOS_UINT8 cps_get_objpid_from_msg(VOS_UINT32 ulMsgType)
-{
-	return ulMsgType >> 24;
+	return uReqType << 16 | uReqContent << 8 | uMsgType;
 }
 /* ===  FUNCTION  ==============================================================
 *         Name:  cps_get_reqtype_from_msg
@@ -1419,7 +1436,7 @@ VOS_UINT8 cps_get_objpid_from_msg(VOS_UINT32 ulMsgType)
 * ==========================================================================*/
 VOS_UINT8 cps_get_reqtype_from_msg(VOS_UINT32 ulMsgType)
 {
-	return cps_get_objpid_from_msg(ulMsgType << 8);
+	return (ulMsgType&0x00FF0000) >> 16;
 }
 /* ===  FUNCTION  ==============================================================
 *         Name:  cps_get_reqcontent_from_msg
@@ -1427,7 +1444,7 @@ VOS_UINT8 cps_get_reqtype_from_msg(VOS_UINT32 ulMsgType)
 * ==========================================================================*/
 VOS_UINT8 cps_get_reqcontent_from_msg(VOS_UINT32 ulMsgType)
 {
-	return cps_get_objpid_from_msg(ulMsgType << 16);
+	return (ulMsgType & 0x0000FF00) >> 8;
 }
 /* ===  FUNCTION  ==============================================================
 *         Name:  cps_get_msgtype_from_msg
@@ -1435,7 +1452,7 @@ VOS_UINT8 cps_get_reqcontent_from_msg(VOS_UINT32 ulMsgType)
 * ==========================================================================*/
 VOS_UINT8 cps_get_msgtype_from_msg(VOS_UINT32 ulMsgType)
 {
-	return cps_get_objpid_from_msg(ulMsgType << 24);
+	return ulMsgType & 0x000000FF;
 }
 /* ===  FUNCTION  ==============================================================
 *         Name:  cps_uninit_msg_sem
@@ -1474,16 +1491,16 @@ VOS_VOID cps_show_msg_info(CPSS_MSG * msgTmp)
 		msgTmp,
 		msghead->stDstProc.ulCpuID,
 		msghead->stDstProc.ulPID,
-		msgdata->msghead.ulMsgID,
+		msgTmp->ulMsgID,
 		msghead->stSrcProc.ulCpuID,
 		msghead->stSrcProc.ulPID,
 		msgdata->msghead.ulRecvMsgID);
 
 	uLength = sprintf(strbuff+uLength,"\nStat:%d Client:%08X prev:%08X next:%08X\n%s",
-		msgTmp->nStat,
+		msgTmp->nRState,
 		msgTmp->pClient,
 		msgTmp->prev,
 		msgTmp->next,
-		msgTmp->Body.stuDataBuf);
+		msgTmp->Body.strDataBuf);
 	VOS_PrintInfo("",CPSS_PRINTF_BUFFER,strbuff);
 }

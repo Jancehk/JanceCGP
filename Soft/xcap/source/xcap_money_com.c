@@ -39,30 +39,6 @@ VOS_UINT32 money_send_data(VOS_VOID *pVoidMsg, VOS_VOID * pstuBuffer, VOS_UINT32
 	}
 	return uRet;
 }
-/* ===  FUNCTION  ==============================================================
- *         Name:  money_proc_init
- *  Description:  发送telnet的数据
- * ==========================================================================*/
-static VOS_UINT32 money_proc_init(VOS_VOID *pVoidMsg)
-{
-	VOS_UINT32 uRet = VOS_ERR;
-	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pVoidMsg;
-	switch(pMsgInfo->Body.msghead.uCmd)
-	{
-	case CPSS_CMD_SYSTEM_INIT:
-		XCAP_PrintInfo(__FILE__,__LINE__,"Init Money Client OK");
-		uRet = VOS_OK;
-		break;
-	case CPSS_CMD_SYSTEM_UNIT:
-		uRet = VOS_OK;
-		break;
-	default:
-		XCAP_PrintErr(__FILE__,__LINE__,"uCmd %X",pMsgInfo->Body.msghead.uCmd);
-		uRet=VOS_ERR;
-		break;
-	}
-	return uRet;
-}
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  set_cpuid_from_dbsvr
@@ -76,7 +52,7 @@ static VOS_UINT32 set_cpuid_from_dbsvr(pCPSS_MSG pMsgInfo)
 	VOS_UINT32		uRet = VOS_ERR,uIndex = 0;
 	VOS_CHAR	  * pstrBuffer = NULL;
 
-	pstrBuffer = pMsgInfo->Body.stuDataBuf;
+	pstrBuffer = pMsgInfo->Body.strDataBuf;
 	if (NULL == pstrBuffer)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"set cpuid param is error");
@@ -88,29 +64,9 @@ static VOS_UINT32 set_cpuid_from_dbsvr(pCPSS_MSG pMsgInfo)
 	if (VOS_OK != uRet)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"set cpuid to stu is error :%d",
-			(VOS_UINT32 *)&pMsgInfo->Body.stuDataBuf);
+			(VOS_UINT32 *)&pMsgInfo->Body.strDataBuf);
 	}
 	return VOS_OK;
-}
-/* ===  FUNCTION  ==============================================================
- *         Name:  dbsvr_proc_init
- *  Description:  发送telnet的数据
- * ==========================================================================*/
-static VOS_UINT32 dbsvr_proc_init(VOS_VOID *pVoidMsg)
-{
-	VOS_UINT32 uRet = VOS_ERR;
-	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pVoidMsg;
-	switch(pMsgInfo->Body.msghead.uType)
-	{
-	case CPSS_TYPE_CPUID_PID:
-		//uRet = set_cpuid_from_dbsvr(pMsgInfo);
-		break;
-	default:
-		XCAP_PrintErr(__FILE__,__LINE__,"uCmd %X",pMsgInfo->Body.msghead.uCmd);
-		uRet=VOS_ERR;
-		break;
-	}
-	return uRet;
 }
 /* ===  FUNCTION  ==============================================================
  *         Name:  dbsvr_proc_init
@@ -120,9 +76,9 @@ static VOS_UINT32 xcap_get_proc(VOS_VOID *pVoidMsg)
 {
 	VOS_UINT32 uRet = VOS_ERR;
 	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pVoidMsg;
-	switch(pMsgInfo->Body.msghead.uType)
+	switch (cps_get_reqcontent_from_msg(pMsgInfo->Body.msghead.uType))
 	{
-	case CPSS_TYPE_GET_SUBURL:
+	case XCAP_REQUEST_MONCLI:
 		uRet = xcap_responce_proc(pMsgInfo);
 		if (VOS_OK == uRet)
 		{
@@ -153,24 +109,19 @@ VOS_UINT32 pid_init_money_proc(VOS_VOID *arg)
 	VOS_UINT32		uRet = VOS_ERR;
 	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)arg;
 
-	switch(pMsgInfo->Body.msghead.uType)
+	switch (cps_get_reqtype_from_msg(pMsgInfo->Body.msghead.uType))
 	{
-	case CPSS_TYPE_SYSTEM_INIT:
-		uRet = money_proc_init(pMsgInfo);
-		if (VOS_OK != uRet)
-		{
-			XCAP_PrintErr(__FILE__,__LINE__,"Init Money Client Faild");
-		}
-		break;
-	case CPSS_RES_XCAP_GET:
+	case XCAP_REQUEST_MONCLI:
 		uRet = xcap_get_proc(pMsgInfo);
 		if (VOS_OK != uRet)
 		{
-			XCAP_PrintErr(__FILE__,__LINE__,"xcap recv faild");
+			XCAP_PrintErr(__FILE__, __LINE__, "xcap recv faild");
 		}
 		break;
 	default:
-		XCAP_PrintErr(__FILE__,__LINE__,"uType %X",pMsgInfo->Body.msghead.uType);
+		VOS_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
+			pMsgInfo->Body.msghead.uType,
+			pMsgInfo->Body.msghead.uCmd);
 		break;
 	}
 	return uRet;

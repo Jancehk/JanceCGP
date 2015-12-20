@@ -94,14 +94,6 @@ VOS_UINT32 dbsvr_send_data(VOS_VOID *pVoidMsg,
 						   VOS_UINT32 uBufLen,
 						   VOS_UINT32 uType);
 
-/* ===  FUNCTION  ==============================================================
- *         Name:  dbsvr_get_info_proc
- *  Description: 
- *  Input      :    
- *  OutPut     :    
- *  Return     :  
- * ==========================================================================*/
-VOS_UINT32 dbsvr_get_info_proc(pCPSS_MSG pMsgInfo);
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  dbsvr_get_info_proc
@@ -111,7 +103,11 @@ VOS_UINT32 dbsvr_get_info_proc(pCPSS_MSG pMsgInfo);
  *  Return     :  
  * ==========================================================================*/
 VOS_UINT32 dbsvr_init_proc(pCPSS_MSG pMsgInfo);
-
+/* ===  FUNCTION  ==============================================================
+*         Name:  DBSVR_deal_proc
+*  Description:  初始化共同服务器
+* ==========================================================================*/
+VOS_UINT32 DBSVR_deal_proc(pCPSS_MSG pMsgInfo);
 #ifdef _cplusplus
 }
 #endif

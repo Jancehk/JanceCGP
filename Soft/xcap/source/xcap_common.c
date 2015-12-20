@@ -400,7 +400,7 @@ static VOS_UINT32 xcap_set_body_size(pXCAP_RESPONSE pxCap_Response, pCPSS_MSG pM
 {
 	VOS_UINT32		ulRet = VOS_ERR;
 	VOS_CHAR		strSize[64]={0};
-	VOS_CHAR		* pstuDataBuffer = pMsgInfo->Body.stuDataBuf;
+	VOS_CHAR		* pstrDataBuffer = pMsgInfo->Body.strDataBuf;
 	VOS_UINT32		ulBodySize = 0;
 	if (NULL == pxCap_Response ||
 		NULL == pMsgInfo)
@@ -408,7 +408,7 @@ static VOS_UINT32 xcap_set_body_size(pXCAP_RESPONSE pxCap_Response, pCPSS_MSG pM
 		XCAP_PrintErr(__FILE__, __LINE__,"get body size input is NULL");
 		return ulRet;
 	}
-	//VOS_PrintBufferBin(pstuDataBuffer,"",0,&ulBodySize);
+	//VOS_PrintBufferBin(pstrDataBuffer,"",0,&ulBodySize);
 	if (0 == ulBodySize)
 	{
 		XCAP_PrintErr(__FILE__, __LINE__,"get body is empty");
@@ -426,11 +426,11 @@ static VOS_UINT32 xcap_set_body_size(pXCAP_RESPONSE pxCap_Response, pCPSS_MSG pM
  *  OutPut     :  
  *  Return     :  
  * ==========================================================================*/
-static VOS_UINT32 xcap_set_responce_head(VOS_CHAR* pstuDataBuffer, pXCAP_RESPONSE pxCap_Response)
+static VOS_UINT32 xcap_set_responce_head(VOS_CHAR* pstrDataBuffer, pXCAP_RESPONSE pxCap_Response)
 {
 	VOS_UINT32	uRet = VOS_ERR;
 	VOS_UINT32  uIndex = 0;
-	if (NULL == pstuDataBuffer ||
+	if (NULL == pstrDataBuffer ||
 		NULL == pxCap_Response)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"input is NULL");
@@ -444,7 +444,7 @@ static VOS_UINT32 xcap_set_responce_head(VOS_CHAR* pstuDataBuffer, pXCAP_RESPONS
 			uIndex++;
 			continue;
 		}
-		VOS_PrintBuffer(pstuDataBuffer,"%s%s\r\n",
+		VOS_PrintBuffer(pstrDataBuffer,"%s%s\r\n",
 			pxCap_Response->Res_head_fields[uIndex].Key,
 			pxCap_Response->Res_head_fields[uIndex].Value);
 		uIndex++;
@@ -461,7 +461,7 @@ static VOS_UINT32 xcap_set_responce_head(VOS_CHAR* pstuDataBuffer, pXCAP_RESPONS
 static VOS_UINT32 xcap_set_body(pXCAP_RESPONSE pxCap_Response, pCPSS_MSG pMsgInfo)
 {
 	VOS_UINT32	uRet = VOS_ERR;
-	VOS_CHAR	* pstuDataBuffer = NULL;
+	VOS_CHAR	* pstrDataBuffer = NULL;
 	VOS_CHAR	stTemp =0;
 	VOS_UINT32  uRecvBufferLen = 0;
 	VOS_UINT32  uOffsetSize = 0;
@@ -479,7 +479,7 @@ static VOS_UINT32 xcap_set_body(pXCAP_RESPONSE pxCap_Response, pCPSS_MSG pMsgInf
 		XCAP_PrintErr(__FILE__,__LINE__,"xcap client is null");
 		return uRet;
 	}
-	pstuDataBuffer = pMsgInfo->Body.stuDataBuf;
+	pstrDataBuffer = pMsgInfo->Body.strDataBuf;
 	if (VOS_OK != xcap_response_get_code(pxCap_Response->Res_head.StatueCode, &pCode))
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"get responce code is failed");
@@ -491,27 +491,27 @@ static VOS_UINT32 xcap_set_body(pXCAP_RESPONSE pxCap_Response, pCPSS_MSG pMsgInf
 		return uRet;
 	}
 
-	VOS_PrintBuffer(pstuDataBuffer,"%s %d %s\r\n",pxCap_Response->Res_head.Request_version,
+	VOS_PrintBuffer(pstrDataBuffer,"%s %d %s\r\n",pxCap_Response->Res_head.Request_version,
  		pCode->uCode,pCode->phrase);
 	
-	if (VOS_OK != xcap_set_responce_head(pstuDataBuffer, pxCap_Response))
+	if (VOS_OK != xcap_set_responce_head(pstrDataBuffer, pxCap_Response))
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"get responce code is failed");
 		return uRet;
 	}
 	
-	pstuDataBuffer = pMsgInfo->Body.stuDataBuf;
-	while(NULL != pstuDataBuffer)
+	pstrDataBuffer = pMsgInfo->Body.strDataBuf;
+	while(NULL != pstrDataBuffer)
 	{
-		//xcap_send_info_msgid(pxCap_Response->ulMsgID, pstuDataBuffer->strBuffer, pstuDataBuffer->nSize,VOS_SEND_SKT_TYPE_INSERT);
+		//xcap_send_info_msgid(pxCap_Response->ulMsgID, pstrDataBuffer->strBuffer, pstrDataBuffer->nSize,VOS_SEND_SKT_TYPE_INSERT);
 		/*
-		if (pstuDataBuffer != &pMsgInfo->Body.stuDataBuf)
+		if (pstrDataBuffer != &pMsgInfo->Body.strDataBuf)
 		{
-			pstuDataBuffer = (CPSS_MEM_BUFFER *)cpss_get_next_buffer(&pMsgInfo->Body.stuDataBuf);
+			pstrDataBuffer = (CPSS_MEM_BUFFER *)cpss_get_next_buffer(&pMsgInfo->Body.strDataBuf);
 		}
 		else
 		{
-			pstuDataBuffer = pMsgInfo->Body.stuDataBuf.next;
+			pstrDataBuffer = pMsgInfo->Body.strDataBuf.next;
 		}
 		*/
 	}	
@@ -526,28 +526,28 @@ static VOS_UINT32 xcap_set_body(pXCAP_RESPONSE pxCap_Response, pCPSS_MSG pMsgInf
 
 	
 	uRecvBufferLen = sizeof(XCAP_SER_MGR);
-	pstuDataBuffer = pMsgInfo->Body.stuDataBuf;
-	while(NULL != pstuDataBuffer)
+	pstrDataBuffer = pMsgInfo->Body.strDataBuf;
+	while(NULL != pstrDataBuffer)
 	{
-		/*if (pstuDataBuffer->nSize >= CPSS_MSG_BUFFER_USED || NULL == pstuDataBuffer->next)
+		/*if (pstrDataBuffer->nSize >= CPSS_MSG_BUFFER_USED || NULL == pstrDataBuffer->next)
 		{
-			xcap_send_info_msgid(pxCap_Response->ulMsgID, pstuDataBuffer->strBuffer+uRecvBufferLen, 
-				pstuDataBuffer->nSize-uRecvBufferLen,VOS_SEND_SKT_TYPE_FINISH);
+			xcap_send_info_msgid(pxCap_Response->ulMsgID, pstrDataBuffer->strBuffer+uRecvBufferLen, 
+				pstrDataBuffer->nSize-uRecvBufferLen,VOS_SEND_SKT_TYPE_FINISH);
 			uRet = VOS_OK;
 			break;
 		}
 		
-		xcap_send_info_msgid(pxCap_Response->ulMsgID, pstuDataBuffer->strBuffer+uRecvBufferLen, 
-			pstuDataBuffer->nSize-uRecvBufferLen,VOS_SEND_SKT_TYPE_INSERT);
+		xcap_send_info_msgid(pxCap_Response->ulMsgID, pstrDataBuffer->strBuffer+uRecvBufferLen, 
+			pstrDataBuffer->nSize-uRecvBufferLen,VOS_SEND_SKT_TYPE_INSERT);
 		uRecvBufferLen = 0;
 		
-		if (pstuDataBuffer != &pMsgInfo->Body.stuDataBuf)
+		if (pstrDataBuffer != &pMsgInfo->Body.strDataBuf)
 		{
-			pstuDataBuffer = (CPSS_MEM_BUFFER *)cpss_get_next_buffer(&pMsgInfo->Body.stuDataBuf);
+			pstrDataBuffer = (CPSS_MEM_BUFFER *)cpss_get_next_buffer(&pMsgInfo->Body.strDataBuf);
 		}
 		else
 		{
-			pstuDataBuffer = pMsgInfo->Body.stuDataBuf.next;
+			pstrDataBuffer = pMsgInfo->Body.strDataBuf.next;
 		}
 		*/
 	}
@@ -566,7 +566,7 @@ VOS_UINT32 xcap_responce_proc(pCPSS_MSG pMsgInfo)
 	VOS_UINT32 ulRet = VOS_ERR;
 	pXCAP_RESPONSE pxCap_Respone_Info = NULL;
 	pXCAP_MSG_MANAGE pXcap_Msg_Mgr = NULL;
-	pXCAP_SER_MGR  pXcap_Svr_Mgr=(pXCAP_SER_MGR)pMsgInfo->Body.stuDataBuf;
+	pXCAP_SER_MGR  pXcap_Svr_Mgr = (pXCAP_SER_MGR)pMsgInfo->Body.strDataBuf;
 	
 	if (NULL == pXcap_Svr_Mgr)
 	{
@@ -579,7 +579,7 @@ VOS_UINT32 xcap_responce_proc(pCPSS_MSG pMsgInfo)
 		XCAP_PrintErr(__FILE__,__LINE__,"xcap request is msg mgr is NULL");
 		return ulRet;
 	}
-	//if (0 == pMsgInfo->Body.stuDataBuf.strBuffer[sizeof(XCAP_SER_MGR)])
+	//if (0 == pMsgInfo->Body.strDataBuf.strBuffer[sizeof(XCAP_SER_MGR)])
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"xcap request is msg mgr is NULL");
 		return ulRet;
@@ -589,7 +589,7 @@ VOS_UINT32 xcap_responce_proc(pCPSS_MSG pMsgInfo)
 	xcap_set_head(pxCap_Respone_Info, XCAP_RES_CODE_200);
 	xcap_set_body_size(pxCap_Respone_Info, pMsgInfo, sizeof(XCAP_SER_MGR));
 	xcap_set_body(pxCap_Respone_Info,pMsgInfo);
-	VOS_Free(pXcap_Msg_Mgr, sizeof(pXCAP_MSG_MANAGE));
+	//VOS_Free(pXcap_Msg_Mgr, sizeof(pXCAP_MSG_MANAGE));
 	return VOS_OK;
 }
 
@@ -638,7 +638,7 @@ static VOS_UINT32 xcap_get_body_proc(pCPSS_MSG pMsgInfo, VOS_VOID * pstuBuffer, 
 		return uRet;
 	}
 
-	MsgInfo.Body.msghead.ulParentMsgID = pMsgInfo->Body.msghead.ulMsgID;
+	MsgInfo.Body.msghead.ulParentMsgID = pMsgInfo->ulMsgID;
 	MsgInfo.Body.msghead.uType = uType;
 
 	uRet = money_send_data(&MsgInfo,pstuBuffer,uBufLen,VOS_SEND_SKT_TYPE_FINISH);
@@ -717,7 +717,7 @@ VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo)
 	BZERO(pXcap_Msg_Mgr, sizeof(XCAP_MSG_MANAGE));
 
 	uRet = xcap_analyzing_buffer(&pXcap_Msg_Mgr->xCap_Request_Info, 
-		pMsgInfo->Body.stuDataBuf);
+		pMsgInfo->Body.strDataBuf);
 	if (VOS_OK != uRet)
 	{
 		XCAP_PrintErr(__FILE__, __LINE__, "analyzing xcap buffer error");
@@ -736,8 +736,8 @@ VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo)
 	}
 	pstuXcapSerMgr->Req_Mgr = pXcap_Msg_Mgr;
 	pstuXcapSerMgr->uStat = 0x0A;
-	pXcap_Msg_Mgr->xCap_Request_Info.ulMsgID = pMsgInfo->Body.msghead.ulMsgID;
-	pXcap_Msg_Mgr->xCap_Respone_Info.ulMsgID = pMsgInfo->Body.msghead.ulMsgID;
+	pXcap_Msg_Mgr->xCap_Request_Info.ulMsgID = pMsgInfo->ulMsgID;
+	pXcap_Msg_Mgr->xCap_Respone_Info.ulMsgID = pMsgInfo->ulMsgID;
 	
 	xcap_print_request(&pXcap_Msg_Mgr->xCap_Request_Info);
 	switch (pXcap_Msg_Mgr->xCap_Request_Info.Req_mothod)
@@ -745,7 +745,7 @@ VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo)
 	case XCAP_REQ_GET:
 		//VOS_Memcpy(strBuffer,(VOS_CHAR*)&stuXcapSerMgr,sizeof(XCAP_SER_MGR));
 		uBuffLen = sizeof(XCAP_SER_MGR)+VOS_Strlen(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI);
-		uRet = xcap_get_body_proc(pMsgInfo, strBuffer, uBuffLen, CPSS_REQ_XCAP_GET, CPSS_TYPE_GET_SUBURL);
+		//uRet = xcap_get_body_proc(pMsgInfo, strBuffer, uBuffLen, CPSS_REQ_XCAP_GET, CPSS_TYPE_GET_SUBURL);
 		if (VOS_OK != uRet)
 		{
 			XCAP_PrintErr(__FILE__, __LINE__, "send xcap data failed");
@@ -803,7 +803,7 @@ VOS_UINT32 xcap_send_info(VOS_VOID *pVoidMsg, VOS_VOID * pstuBuffer, VOS_UINT32 
 /* ===  FUNCTION  ==============================================================
  *         Name:  xcap_send_info_msgid
  *  Description:  发送telnet的数据
- *  Input      :  
+ *  IBnput      :  
  *  OutPut     :  
  *  Return     :  
  * ==========================================================================*/

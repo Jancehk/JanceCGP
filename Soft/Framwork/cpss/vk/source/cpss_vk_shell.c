@@ -197,10 +197,10 @@ static VOS_UINT32 cpss_check_use_info(pCPSS_USER_INFO pstuUserInfo)
 	MsgInfo.pClient = cpss_get_info_for_pid(MsgInfo.Body.msghead.stSrcProc.ulPID,
 		CPSS_GET_SKT_LINK_SOCKET);
 
-	MsgInfo.Body.msghead.uType	   = CPSS_REQ_DBSVR_USE;
+	//MsgInfo.Body.msghead.uType	   = CPSS_REQ_DBSVR_USE;
 	//MsgInfo.Body.msghead.uSubType  = CPSS_TYPE_CHECK_USE;
 
-	//VOS_PrintBuffer(&stuDataBuf,"%p<=>%s<=>%s",pstrVoidCli,pstrUse,pstrPass);
+	//VOS_PrintBuffer(&strDataBuf,"%p<=>%s<=>%s",pstrVoidCli,pstrUse,pstrPass);
 	ulSendSize = sizeof(CPSS_USER_INFO);
 	VOS_Memcpy(strBuffer,pstuUserInfo,ulSendSize);
 
@@ -210,8 +210,8 @@ static VOS_UINT32 cpss_check_use_info(pCPSS_USER_INFO pstuUserInfo)
 	if (VOS_OK != ulRet)
 	{
 		/*VOS_PrintErr(__FILE__,__LINE__,"send data is error %d:%s",
-			MsgInfo.Body.stuDataBuf.nSize,
-			MsgInfo.Body.stuDataBuf.strBuffer);
+			MsgInfo.Body.strDataBuf.nSize,
+			MsgInfo.Body.strDataBuf.strBuffer);
 		*/
 	}
 	return ulRet;
@@ -371,7 +371,7 @@ VOS_UINT32 shell_user_check (VOS_VOID * pVoidClient)
 	//	pClient->bIsWait = 1;
 		if (VOS_OK != shell_cmd_check(pClient, pstrBuff) && 0 != *pstrBuff)
 		{
-			cpss_system(pClient, pstrBuff);
+			cpss_exec_cmd_proc(pClient, pstrBuff);
 		}
 		else
 		{
@@ -524,13 +524,13 @@ END_PROC:
 }
 
 /*===  FUNCTION  ===============================================================
--         Name:  cpss_system
+-         Name:  cpss_exec_cmd_proc
 -  Description:	  ÷¥––√¸¡Ó  
 -  Input      :	
 -  OutPut     :	
 -  Return     :    
 - =============================================================================*/
-VOS_UINT32 cpss_system(VOS_VOID * pVoidClient, VOS_CHAR * command)
+VOS_UINT32 cpss_exec_cmd_proc(VOS_VOID * pVoidClient, VOS_CHAR * command)
 {
 	VOS_UINT32	ret    = 0;
 	VOS_UINT32	bufLen = 0;

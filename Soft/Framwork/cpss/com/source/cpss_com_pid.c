@@ -62,10 +62,11 @@ static VOS_UINT32 cpss_check_pid (VOS_UINT32 ulProcessPid)
 
 	uType = ulProcessPid & VOS_SOCKET_TYPE;
 	uPort = ulProcessPid & VOS_SOCKET_PORT;
-	if (VOS_SOCKET_UDP != uType>>16 && VOS_SOCKET_TCP != uType>>16)
+	uType >>= 16;
+	if (VOS_SOCKET_UDP != uType && VOS_SOCKET_TCP != uType )
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"PID is invalid ,TYPE:%d PID:%d",
-			uType>>16,
+			uType,
 			uPort);
 		return ulRet;
 	}
@@ -73,7 +74,7 @@ static VOS_UINT32 cpss_check_pid (VOS_UINT32 ulProcessPid)
 	if (0xffff < uPort)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"PID is invalid ,SOCK:%d PORT:%d",
-			uType>>16,
+			uType,
 			uPort);
 		return ulRet;
 	}

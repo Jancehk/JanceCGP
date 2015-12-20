@@ -316,7 +316,7 @@ VOS_UINT32 cpss_wait_thread_exit()
 {
 	VOS_UINT32 ulRet = VOS_OK;
 	g_thread_manage.uIsExitFlg = VOS_OK;
-	ulRet = cpss_subsystem_init(CPSS_TYPE_SYSTEM_INIT, CPSS_CMD_SYSTEM_UNIT);
+	ulRet = cpss_subsystem_init(cps_set_msg_type(CPSS_REQUEST_SYSTEM, CPSS_TYPE_SYS, CPSS_MSG_UNIT), CPSS_CMD_SYSTEM_UNIT);
 	if (VOS_OK != ulRet)
 	{
 		printf("wait exit time out\n");
@@ -341,7 +341,7 @@ VOS_UINT32	cpss_thread_success(
 {
 	if (NULL == pstrInfo)
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "%s proc Init Error", pstrInfo);
+		VOS_PrintErr(__FILE__, __LINE__, "%p proc Init Error", pstrInfo);
 		return VOS_ERR;
 	}
 	VOS_PrintInfo(__FILE__, __LINE__, "%s Begin", pstrInfo);

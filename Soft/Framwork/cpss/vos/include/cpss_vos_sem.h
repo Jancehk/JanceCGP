@@ -181,12 +181,7 @@ VOS_UINT32 cps_get_msg_mem_data(CPSS_MSG * msgTmp);
 *         Name:  cps_get_msg_mem_data
 *  Description:  从请求内容中得到消息类型
 * ==========================================================================*/
-VOS_UINT32 cps_set_msg_type(VOS_UINT8 uObjPid,VOS_UINT8 uReqType, VOS_UINT8 uReqContent,VOS_UINT8 uMsgType);
-/* ===  FUNCTION  ==============================================================
-*         Name:  cps_get_objpid_from_msg
-*  Description:  从消息中得到对象PID
-* ==========================================================================*/
-VOS_UINT8 cps_get_objpid_from_msg(VOS_UINT32 ulMsgType);
+VOS_UINT32 cps_set_msg_type(VOS_UINT8 uReqType, VOS_UINT8 uReqContent,VOS_UINT8 uMsgType);
 /* ===  FUNCTION  ==============================================================
 *         Name:  cps_get_reqtype_from_msg
 *  Description:  从消息中得到请求类型
@@ -292,4 +287,11 @@ CPSS_MSG * cpss_get_recv_msg_for_id(VOS_UINT32 ulMsgID);
  *  Description:  利用消息ID在tcp 消息接受队列中得到msg
  * ==========================================================================*/
 CPSS_MSG * cpss_get_used_msg(VOS_UINT32 ulPID, VOS_UINT32 uType);
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_delete_recv_msg_use_msgid
+*  Description:  利用消息ID在tcp 消息接受队列中移除到空闲队列
+* ==========================================================================*/
+VOS_UINT32 cpss_move_recv_used_to_free_use_msgid(VOS_UINT32 ulMsgID);
+
 #endif

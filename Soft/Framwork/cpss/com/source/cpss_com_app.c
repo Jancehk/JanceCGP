@@ -125,13 +125,13 @@ static VOS_UINT32 cpss_init ()
 
 
 /* ===  FUNCTION  ============================================================
- *         Name:  cpss_system_init
+ *         Name:  CPSS_REQUEST_SYSTEM_init
  *  Description:	初始化平台
  *  Input      :	
  *  OutPut     :	
  *  Return     :    
  * ===========================================================================*/
-static VOS_UINT32 cpss_system_init ()
+static VOS_UINT32 CPSS_REQUEST_SYSTEM_init ()
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 	// Frame侧初始化
@@ -142,7 +142,7 @@ static VOS_UINT32 cpss_system_init ()
 	}
 	VOS_PrintInfo(__FILE__,__LINE__,"Init Framwork Server OK");
 	// telnet 服务器初始化
-	if (VOS_OK != cpss_telnet_init())
+	if (VOS_OK != CPSS_REQUEST_TELNET_init())
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "Init Telnet Server is Error");
 		return ulRet;
@@ -179,9 +179,9 @@ VOS_UINT32 swp_init (int argc, char ** argv )
 	}
 	VOS_PrintInfo(__FILE__, __LINE__, "CGP SYSTEM LOAD OK");
 
-	if(VOS_OK != cpss_system_init())
+	if(VOS_OK != CPSS_REQUEST_SYSTEM_init())
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "CGP CPSS_SYSTEM_INIT Error!");
+		VOS_PrintErr(__FILE__, __LINE__, "CGP CPSS_REQUEST_SYSTEM_INIT Error!");
 		return  ulRet;
 	}
 	VOS_PrintInfo(__FILE__, __LINE__, "CGP SYSTEM INIT OK");
@@ -195,7 +195,7 @@ VOS_UINT32 swp_init (int argc, char ** argv )
 	}
 	VOS_PrintInfo(__FILE__, __LINE__, "CGP IOCP_INIT OK");
 	
-	ulRet = cpss_subsystem_init(cps_set_msg_type(CPSS_OBJ_PID_FW, CPSS_SYSTEM, CPSS_TYPE_SYS, CPSS_MSG_INIT), CPSS_CMD_SYSTEM_INIT);
+	ulRet = cpss_subsystem_init(cps_set_msg_type(CPSS_REQUEST_SYSTEM, CPSS_TYPE_SYS, CPSS_MSG_INIT), CPSS_CMD_SYSTEM_INIT);
 	if (VOS_OK != ulRet)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "CGP Sub System Init Error");

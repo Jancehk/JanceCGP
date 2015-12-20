@@ -53,10 +53,10 @@ VOS_UINT32 shell_user_check (VOS_VOID * pVoidClient);
  * ==========================================================================*/
 VOS_UINT32 cpss_result_use_info(pCPSS_USER_INFO pstuUserInfo);
 /*===  FUNCTION  ===============================================================
--         Name:  cpss_system
+-         Name:  CPSS_REQUEST_SYSTEM
 -  Description:	  执行命令    
 - =============================================================================*/
-VOS_UINT32 cpss_system(VOS_VOID * pVoidClient, VOS_CHAR * command);
+VOS_UINT32 cpss_exec_cmd_proc(VOS_VOID * pVoidClient, VOS_CHAR * command);
 /*===  FUNCTION  ===============================================================
 -         Name:  shell_cmd_main
 -  Description:	命令函数初始化  

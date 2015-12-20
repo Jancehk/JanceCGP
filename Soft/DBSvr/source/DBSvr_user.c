@@ -35,7 +35,7 @@ static VOS_UINT32 dbsvr_check_user_proc(pCPSS_MSG pMsgInfo)
 	VOS_CHAR		strCmd[1024]={0};
 	CPSS_MSG		MsgInfo = {0};
 
-	pstuUserInfo = (pCPSS_USER_INFO)pMsgInfo->Body.stuDataBuf;
+	pstuUserInfo = (pCPSS_USER_INFO)pMsgInfo->Body.strDataBuf;
 	sprintf(strCmd,"select t.power from ManageUse t where t.usename = \"%s\" and t.passwd=\"%s\"",
 		pstuUserInfo->strUser,pstuUserInfo->strPass);
 	ulRet = open_record(strCmd, &padoRecord);
@@ -58,7 +58,7 @@ static VOS_UINT32 dbsvr_check_user_proc(pCPSS_MSG pMsgInfo)
 		&pMsgInfo->Body.msghead.stSrcProc,sizeof(CPSS_COM_PID));
 	VOS_Memcpy(&MsgInfo.Body.msghead.stSrcProc, 
 		&pMsgInfo->Body.msghead.stDstProc,sizeof(CPSS_COM_PID));
-	MsgInfo.Body.msghead.uType	   = CPSS_RES_DBSVR_USE;
+	//MsgInfo.Body.msghead.uType	   = CPSS_RES_DBSVR_USE;
 	//MsgInfo.Body.msghead.uSubType  = CPSS_TYPE_CHECK_USE;
 
 	VOS_Memcpy(strBuffer, (VOS_CHAR *)pstuUserInfo,sizeof(CPSS_USER_INFO));
@@ -80,11 +80,10 @@ static VOS_UINT32 dbsvr_check_user_proc(pCPSS_MSG pMsgInfo)
  * ==========================================================================*/
 VOS_UINT32 dbsvr_user_proc(pCPSS_MSG pMsgInfo)
 {
-	
 	VOS_UINT32 uRet = VOS_ERR;
-	switch(pMsgInfo->Body.msghead.uType)
+	switch (cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
 	{
-	case CPSS_TYPE_CHECK_USE:
+	case CPSS_MSG_CHK:
 		uRet = dbsvr_check_user_proc(pMsgInfo);
 		if (VOS_OK != uRet)
 		{

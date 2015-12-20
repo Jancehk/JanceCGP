@@ -62,12 +62,13 @@ int main(int argc,char ** argv)
 #endif
 	if (VOS_OK != app_init(argc,argv))
 	{
-		return VOS_ERR;
+		goto EXIT_OK;
 	}
 	if (VOS_OK != shell_cmd_main())
 	{
-		return VOS_ERR;
+		goto EXIT_OK;
 	}
+EXIT_OK:
 	if (VOS_OK != cpss_wait_thread_exit())
 	{
 		return VOS_ERR;

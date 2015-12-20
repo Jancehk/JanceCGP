@@ -35,21 +35,20 @@
 #define  CPSS_MSG_RECV_TCP		0x04
 #define  CPSS_MSG_RECV_UDP		0x08
 
-typedef enum _CPSS_MSG_STAT_M{
-	CPSS_MSG_STAT_FREE=0x01,		/*空闲*/
-	CPSS_MSG_STAT_RESERVE,			/*预约*/
-	CPSS_MSG_STAT_USEING,			/*使用中*/
-	CPSS_MSG_STAT_USED,				/*使用完*/
+typedef enum _CPSS_MSG_SELF_STAT_M{
+	CPSS_MSG_SELF_STAT_FREE = 0x01,		/*空闲*/
+	CPSS_MSG_SELF_STAT_RESERVE,			/*预约*/
+	CPSS_MSG_SELF_STAT_USEING,			/*使用中*/
+	CPSS_MSG_SELF_STAT_USED,			/*使用完*/
 };
 
-typedef enum _CPSS_MSG_TYPE_M{
-	CPSS_MSG_TYPE_FREE=4,			/*空闲中*/
-	CPSS_MSG_TYPE_PRERECV,			/*接受准备中*/
-	CPSS_MSG_TYPE_RECVING,			/*接受中*/
-	CPSS_MSG_TYPE_RECVED,			/*接受完了*/
-	CPSS_MSG_TYPE_PRESEND,			/*发送准备中*/
-	CPSS_MSG_TYPE_SENDING,			/*发送中*/
-	CPSS_MSG_TYPE_SENDED,			/*发送完了*/
+typedef enum _CPSS_MSG_RS_STAT_M{
+	CPSS_MSG_RS_STAT_FREE,				/* 使用完     */
+	CPSS_MSG_RS_STAT_RECVING,			/* 接受中      */
+	CPSS_MSG_RS_STAT_RECVED,			/* 接受完了    */
+	CPSS_MSG_RS_STAT_DOING,				/* 处理中      */
+	CPSS_MSG_RS_STAT_SENDING,			/* 发送中       */
+	CPSS_MSG_RS_STAT_SENDED,			/* 发送完了     */
 };
 /****************/
 /*   请求方式方法    */
@@ -57,12 +56,15 @@ typedef enum _CPSS_MSG_TYPE_M{
 typedef enum CPSS_MSG_TYPE_M{
 	CPSS_MSG_INIT = 0x01,				/* 初始化 */
 	CPSS_MSG_UNIT,						/* 反初始化 */
+	CPSS_MSG_DEAL,						/* 处理 */
 	CPSS_MSG_REQ,						/* 请求 */
 	CPSS_MSG_RES,						/* 应答 */
 	CPSS_MSG_SET,						/* 设定 */
 	CPSS_MSG_DEL,						/* 删除 */
 	CPSS_MSG_REG,						/* 注册 */
+	CPSS_MSG_RESU,						/* 注册应答 */
 	CPSS_MSG_CHK,						/* 检查 */
+	CPSS_MSG_CHKRES,					/* 检查结果 */
 };
 
 /****************/
@@ -70,23 +72,20 @@ typedef enum CPSS_MSG_TYPE_M{
 /****************/
 typedef enum CPSS_REQUEST_CONTENT_M{
 	CPSS_TYPE_SYS = 0x01,
-	CPSS_TYPE_CPUIDPID,
-	CPSS_TYPE_USER,
+	DBSVR_TYPE_CPUIDPID,
+	DBSVR_TYPE_USER,
+	XCAP_TYPE_MONCLI_GETURL,
 };
 /****************/
 /*   请求类型   */
 /****************/
 typedef enum CPSS_REQUEST_TYPE_M{
-	CPSS_SYSTEM = 0x01,
-};
-/****************/
-/*   请求PID对象 */
-/****************/
-typedef enum CPSS_OBJ_PID_M{
-	CPSS_OBJ_PID_FW,
-	CPSS_OBJ_PID_DBSVR,
-	CPSS_OBJ_PID_XCAP,
-	CPSS_OBJ_PID_MONEY,
+	CPSS_REQUEST_SYSTEM = 0x01,
+	CPSS_REQUEST_TELNET,
+	DBSVR_REQUEST_MGR,
+	MONEY_REQUEST_MGR,
+	XCAP_REQUEST_MONCLI,
+	XCAP_REQUEST_URL,
 };
 
 /*
@@ -134,15 +133,14 @@ typedef struct _CPSS_COM_HEAD_T
 	CPSS_COM_PID 		stSrcProc;		//源地址
 	VOS_UINT8			uResevr[4];
 	/*-----------------------------------------*/
-	VOS_UINT32 			ulMsgID;		//消息ID;
 	VOS_UINT32 			ulParentMsgID;	//父消息消息ID;
-	VOS_UINT32 			ulRecvMsgID;	//源消息ID
-	VOS_UINT32 			ulNextMsgID;	//下一个源消息ID
+	VOS_UINT32 			ulRecvMsgID;	//接受消息ID
+	VOS_UINT8 			RFU0[16];	//下一个源消息ID
 	/*-----------------------------------------*/
 	VOS_UINT32			uType;
 	VOS_UINT32			uCmd;
 	VOS_UINT32 			ulMsgLength;	//消息长度
-	VOS_UINT8			RFU[4];
+	VOS_UINT8			RFU1[4];
 	/*-----------------------------------------*/
 }CPSS_COM_HEAD,*pCPSS_COM_HEAD;
 
@@ -154,15 +152,15 @@ typedef struct _CPSS_COM_HEAD_T
 typedef struct _CPSS_COM_DATA_T
 {
 	CPSS_COM_HEAD		msghead;
-	VOS_CHAR*			stuDataBuf;
-	//CPSS_MEM_BUFFER     stuSendBuf;
+	VOS_CHAR*			strDataBuf;
 }CPSS_COM_DATA,*pCPSS_COM_DATA;
 typedef struct _CPSS_MSG_T
 {
-	VOS_VOID 		   * pTimer;		/*定时器句柄*/
-	VOS_UINT8			 nType;			/*5:接受中 6:接受完了 7:发送中 8:发送完了*/
-	VOS_UINT8			 nStat;			/*1:空闲   2:预约     3:使用中 4:使用完*/
+	VOS_VOID 		   * pTimer;			/*定时器句柄*/
+	VOS_UINT8			 nSelfStat;			/*1:空闲   2:预约     3:使用中 4:使用完*/
+	VOS_UINT8			 nRState;			/*5:接受中 6:接受完了 7:发送中 8:发送完了*/
 	VOS_VOID		   * pClient;
+	VOS_UINT32 			 ulMsgID;			//消息ID;
 	struct _CPSS_MSG_T * next;
 	struct _CPSS_MSG_T * prev;
 	VOS_UINT32 			 ulMsgLength;    //消息长度

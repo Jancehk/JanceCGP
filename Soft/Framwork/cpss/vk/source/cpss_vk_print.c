@@ -566,6 +566,7 @@ static  VOS_UINT32 cpss_get_in_a_for_b_trace (pPRINT_INFO *ppPrintHead, pPRINT_I
 		BZERO(pPrintInfoTmp->szPrintPid,   PRINTT_PID_LEN);
 		BZERO(pPrintInfoTmp->szPrintTime,  PRINTT_TIME_LEN);
 		//BZERO(pPrintInfoTmp->szPrintType,  PRINTT_TYPE_LEN);
+		pPrintInfoTmp->pszPrintInfo = NULL;
 		pPrintInfoTmp->ulPrintType = 0;
 		pPrintInfoTmp->ulPrintLine = 0;
 		*ppPrintOut = pPrintInfoTmp;
@@ -585,6 +586,7 @@ static  VOS_UINT32 cpss_move_a_to_b_for_trace(pPRINT_INFO *ppPrintInfo, VOS_UINT
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 	pPRINT_INFO pPrintInfo = NULL;
+	VOS_CHAR* pstrFreeBuffer = NULL;
 	int nIndex = 0;
 
 	if (NULL == ppPrintInfo)
@@ -618,7 +620,7 @@ static  VOS_UINT32 cpss_move_a_to_b_for_trace(pPRINT_INFO *ppPrintInfo, VOS_UINT
 		}
 
 		nIndex = pPrintInfo->ulLogID;
-		VOS_Log_Free(pPrintInfo->pszPrintInfo);
+		pstrFreeBuffer = pPrintInfo->pszPrintInfo;
 		BZERO(pPrintInfo, sizeof(PRINT_INFO));
 		pPrintInfo->ulLogID = nIndex;
 		pPrintInfo->ulState = PRINT_INFO_FREE;
@@ -699,6 +701,10 @@ END_PROC:
 	{
 		printf("cpss print free to used unlock faild");
 	}
+	if (NULL != pstrFreeBuffer)
+	{
+		VOS_Log_Free(pstrFreeBuffer);
+	}
 	return ulRet;
 }
 
@@ -763,7 +769,7 @@ END_PROC:
 		 cpss_move_a_to_b_for_trace(&pPrintInfoTmp,PRITF_MOVE_GET_FREE);
 		 if (NULL != pPrintInfoTmp)
 		 {
-			 break;;
+			 break;
 		 }
 		 /* 如果空闲队列都用完了，那么就等带使用队列释放后在接着处理*/
 		 ulRet = VOS_Wait_Event(&g_manageprint.g_MsgEvent,80);//PRINT_SLEEP_TIME
@@ -1216,7 +1222,7 @@ VOS_UINT32 cpss_print_init ()
 	{		
 		g_manageprint.pFreePrintinfoHead = (pPRINT_INFO)VOS_Log_Malloc(sizeof(PRINT_INFO) * g_manageprint.ulPrintCount);
 		BZERO(g_manageprint.pFreePrintinfoHead, sizeof(PRINT_INFO) * g_manageprint.ulPrintCount);
-		for (uIndex = 0; uIndex < g_manageprint.ulFreePrintCount; uIndex++)
+		for (uIndex = 0; uIndex < g_manageprint.ulFreePrintCount-1; uIndex++)
 		{
 			g_manageprint.pFreePrintinfoHead[uIndex].ulLogID = uIndex + 1;
 			g_manageprint.pFreePrintinfoHead[uIndex].ulState = PRINT_INFO_FREE;
