@@ -125,13 +125,13 @@ static VOS_UINT32 cpss_init ()
 
 
 /* ===  FUNCTION  ============================================================
- *         Name:  CPSS_REQUEST_SYSTEM_init
+ *         Name:  cpss_system_init
  *  Description:	初始化平台
  *  Input      :	
  *  OutPut     :	
  *  Return     :    
  * ===========================================================================*/
-static VOS_UINT32 CPSS_REQUEST_SYSTEM_init ()
+static VOS_UINT32 cpss_system_init ()
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 	// Frame侧初始化
@@ -179,7 +179,7 @@ VOS_UINT32 swp_init (int argc, char ** argv )
 	}
 	VOS_PrintInfo(__FILE__, __LINE__, "CGP SYSTEM LOAD OK");
 
-	if(VOS_OK != CPSS_REQUEST_SYSTEM_init())
+	if (VOS_OK != cpss_system_init())
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "CGP CPSS_REQUEST_SYSTEM_INIT Error!");
 		return  ulRet;

@@ -61,7 +61,22 @@ VOS_UINT32 cpss_exec_cmd_proc(VOS_VOID * pVoidClient, VOS_CHAR * command);
 -         Name:  shell_cmd_main
 -  Description:	命令函数初始化  
 - =============================================================================*/
-VOS_UINT32 shell_cmd_main ();
+VOS_UINT32 cpss_shell_cmd_main();
+/*===  FUNCTION  ===============================================================
+-         Name:  shell_cmd_wait
+-  Description:	等待cmdshell处理结束
+- =============================================================================*/
+VOS_UINT32 cpss_shell_cmd_wait();
+/*===  FUNCTION  ===============================================================
+-         Name:  shell_cmd_set
+-  Description:	等待cmdshell处理结束
+- =============================================================================*/
+VOS_UINT32 cpss_shell_cmd_set();
+/*===  FUNCTION  ===============================================================
+-         Name:  shell_cmd_exit
+-  Description:	退出shell
+- =============================================================================*/
+VOS_UINT32 cpss_shell_cmd_exit();
 #ifdef _cplusplus
 }
 #endif

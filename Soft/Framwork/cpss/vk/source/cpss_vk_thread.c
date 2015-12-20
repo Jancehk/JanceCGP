@@ -16,7 +16,8 @@
 #include "cpss_vk_thread.h"
 #include "cpss_vk_print.h"
 #include "cpss_msg.h"
-VOS_THREAD_MANAGE g_thread_manage = {0};
+
+VOS_THREAD_MANAGE		g_thread_manage = {0};
 THREAD VOS_PARAMATER_MANAGER g_stuParamater = {0};
 /*===  FUNCTION  ===============================================================
  *         Name:  cpss_init_thread
@@ -267,18 +268,6 @@ VOS_UINT32	cpss_close_thread
 		VOS_PrintInfo(__FILE__, __LINE__, "close thrad paramater is null");
 		return ulRet;
 	}
-#if   (OS_TYPE == OS_TYPE_WINDOW)
-	if (0 != *dwThreadId)
-	{
-	//	CloseHandle(handle);
-	}
-#elif (OS_TYPE == OS_TYPE_LINUX)
-	if (0 != *dwThreadId)
-	{
-		_endthreadex(*dwThreadId);
-	}
-//	pthread_create(&handle, StackSize, FunProc, lpParameter);
-#endif
 	cpss_add_del_thread(THREAD_COUNT_DEL);
 	ulRet = VOS_Set_Event(&g_thread_manage.hExitEvent);
 	if (VOS_OK != ulRet)
@@ -286,6 +275,20 @@ VOS_UINT32	cpss_close_thread
 		printf("cpss init print log event error\n");
 		return ulRet;
 	}
+#if   (OS_TYPE == OS_TYPE_WINDOW)
+	if (0 != *dwThreadId)
+	{
+	//	CloseHandle(handle);
+	}
+	TerminateThread(handle, 0);
+
+#elif (OS_TYPE == OS_TYPE_LINUX)
+	if (0 != *dwThreadId)
+	{
+		_endthreadex(*dwThreadId);
+	}
+//	pthread_create(&handle, StackSize, FunProc, lpParameter);
+#endif
 	return ulRet;
 }			/* -----  end of function cpss_closethread  ----- */
 /*===  FUNCTION  ===============================================================
@@ -315,6 +318,7 @@ VOS_UINT32 cpss_check_thread_is_exit(VOS_UINT32 ulType)
 VOS_UINT32 cpss_wait_thread_exit()
 {
 	VOS_UINT32 ulRet = VOS_OK;
+	cpss_shell_cmd_wait();
 	g_thread_manage.uIsExitFlg = VOS_OK;
 	ulRet = cpss_subsystem_init(cps_set_msg_type(CPSS_REQUEST_SYSTEM, CPSS_TYPE_SYS, CPSS_MSG_UNIT), CPSS_CMD_SYSTEM_UNIT);
 	if (VOS_OK != ulRet)
@@ -329,9 +333,19 @@ VOS_UINT32 cpss_wait_thread_exit()
 			printf("wait exit time out\n");
 		}
 	}
+	cpss_iocp_close(); 
+	cpss_shell_cmd_set();
 	return ulRet;
 }
 
+/*===  FUNCTION  ===============================================================
+*         Name:  cpss_set_thread_exit
+*  Description:	检查线程是要要退出
+* =============================================================================*/
+VOS_UINT32 cpss_set_thread_exit()
+{
+	return cpss_shell_cmd_exit();
+}
 /*===  FUNCTION  ===============================================================
 *         Name:  cpss_thread_success
 *  Description:	线程启动成功

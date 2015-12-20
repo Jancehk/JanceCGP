@@ -27,6 +27,9 @@
 #define VOS_Shl_Free(pstrads)			VOS_Free((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SHELL))
 
 #define VOS_Shl_Strcat(pstrA,pstrB)		VOS_CpsStrcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_SHELL))
+
+static VOS_THREAD_INFO		g_cmd_thread_info;
+VOS_Event			g_cmd_Event;
 /*===  FUNCTION  ===============================================================
 -         Name:  shell_cmd_init
 -  Description:	命令函数初始化  
@@ -599,27 +602,32 @@ VOS_VOID shell_print_cmd (VOS_CHAR* pstuBuffer)
 {
 	VOS_PrintDebug(__FILE__, __LINE__, "Print buffer [%s]", pstuBuffer);
 }
+
 /*===  FUNCTION  ===============================================================
--         Name:  shell_cmd_main
--  Description:	命令函数初始化  
--  Input      :	
--  OutPut     :	
--  Return     :    
+-         Name:  shell_cmd_exec_proc
+-  Description:	命令函数初始化
+-  Input      :
+-  OutPut     :
+-  Return     :
 - =============================================================================*/
-VOS_UINT32 shell_cmd_main ()
+#if (OS_TYPE == OS_TYPE_WINDOW)
+VOS_UINT32 __stdcall  shell_cmd_exec_proc(VOS_VOID * lpParameter)
+#elif (OS_TYPE == OS_TYPE_LINUX)
+VOS_UINT32 shell_cmd_exec_proc(VOS_VOID * lpParameter)
+#endif
 {
 	CPSS_CLIENT_INFO	ClientInfo;
 	VOS_UINT32			uStat = 0;
 	VOS_UINT32			uIsFirst = 8;
-	VOS_CHAR			strMsgEvent[125] = {0};
-	
-	BZERO(&ClientInfo,sizeof(CPSS_CLIENT_INFO));
+	VOS_CHAR			strMsgEvent[125] = { 0 };
+
+	BZERO(&ClientInfo, sizeof(CPSS_CLIENT_INFO));
 	ClientInfo.nLineStat = CPSS_CLIENT_OFFLINE;
 	//ClientInfo.nCmdConut = 1;
-	
+
 	ClientInfo.nBufferLeng = 0;
 TRY_EVENT:
-	sprintf(strMsgEvent,"CLIENT_EMENT_%p",&ClientInfo);
+	sprintf(strMsgEvent, "CLIENT_EMENT_%p", &ClientInfo);
 
 	if (VOS_OK != VOS_Init_Event(&ClientInfo.hCmdEvent, strMsgEvent))
 	{
@@ -673,9 +681,100 @@ TRY_EVENT:
 		}
 		ClientInfo.pstuBuffer[0] = 0;
 		ClientInfo.nBufferLeng = 0;
-		BZERO(ClientInfo.stuCmdLink.strCmdBuff,1024);
+		BZERO(ClientInfo.stuCmdLink.strCmdBuff, 1024);
 		gets(ClientInfo.stuCmdLink.strCmdBuff);
 		ClientInfo.stuCmdLink.nCmdLength = VOS_Strlen(ClientInfo.stuCmdLink.strCmdBuff);
 	}
 	return VOS_OK;
 }		/* -----  end of function shell_cmd_init  ----- */
+
+/*===  FUNCTION  ===============================================================
+-         Name:  cpss_shell_cmd_main
+-  Description:	命令函数初始化  
+-  Input      :	
+-  OutPut     :	
+-  Return     :    
+- =============================================================================*/
+VOS_UINT32 cpss_shell_cmd_main()
+{
+	VOS_UINT32 ulRet = VOS_OK;
+
+	ulRet = VOS_Init_Event(&g_cmd_Event,"G_CMD_EVENT");
+	if (VOS_OK != ulRet)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "");
+		return ulRet;
+	}
+	ulRet = cpss_create_thread(&g_cmd_thread_info.hThread,
+		0,
+		shell_cmd_exec_proc,
+		&g_cmd_thread_info,
+		&g_cmd_thread_info.dwThreadId,
+		"");
+	if (VOS_OK != ulRet)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "Rejected!");
+		return ulRet;
+	}
+	return ulRet;
+}
+/*===  FUNCTION  ===============================================================
+-         Name:  cpss_shell_cmd_wait
+-  Description:	等待cmdshell处理结束
+-  Input      :
+-  OutPut     :
+-  Return     :
+- =============================================================================*/
+VOS_UINT32 cpss_shell_cmd_wait()
+{
+	VOS_UINT32 ulRet = VOS_ERR;
+	ulRet = VOS_Wait_Event(&g_cmd_Event, INFINITE);
+	if (VOS_OK != ulRet)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "wait cmd shell faild");
+		return ulRet;
+	}
+	return ulRet;
+}
+/*===  FUNCTION  ===============================================================
+-         Name:  cpss_shell_cmd_set
+-  Description:	等待cmdshell处理结束
+-  Input      :
+-  OutPut     :
+-  Return     :
+- =============================================================================*/
+VOS_UINT32 cpss_shell_cmd_set()
+{
+	VOS_UINT32 ulRet = VOS_ERR;
+	ulRet = VOS_Wait_Event(&g_cmd_Event, INFINITE);
+	if (VOS_OK != ulRet)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "wait cmd shell faild");
+		return ulRet;
+	}
+	return ulRet;
+}
+/*===  FUNCTION  ===============================================================
+-         Name:  shell_cmd_exit
+-  Description:	退出shell
+-  Input      :
+-  OutPut     :
+-  Return     :
+- =============================================================================*/
+VOS_UINT32 cpss_shell_cmd_exit()
+{
+	if (NULL == g_cmd_thread_info.hThread)
+	{
+		return VOS_OK;
+	}
+	cpss_close_thread(g_cmd_thread_info.hThread, &g_cmd_thread_info.dwThreadId);
+	g_cmd_thread_info.hThread = NULL;
+	cpss_shell_cmd_set();
+	cpss_shell_cmd_wait();
+	if (VOS_OK != VOS_Destory_Event(&g_cmd_Event, INFINITE))
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "wait cmd shell faild");
+		return VOS_ERR;
+	}
+	return VOS_OK;
+}

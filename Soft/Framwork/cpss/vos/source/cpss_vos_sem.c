@@ -54,19 +54,18 @@ static CPSS_MSG * cpss_msg_find_a_in_b(CPSS_MSG *pMsgList,CPSS_MSG *pMsgInfo)
  * ==========================================================================*/
 static VOS_VOID cpss_msg_memset(CPSS_MSG *pMsgInfo)
 {
-	BZERO(&pMsgInfo->Body,sizeof(CPSS_COM_DATA));
-//	pMsgInfo->ulBufLength = CPSS_MSG_BUFFER_SIZE;
 	pMsgInfo->nRState = CPSS_MSG_SELF_STAT_FREE;
 	pMsgInfo->pClient = NULL;
-/*	
-	VOS_PrintInfo(__FILE__, __LINE__, "memset kill timer is:%p:%p ",pMsgInfo,pMsgInfo->pTimer);
-*/
+
 	if (NULL != pMsgInfo->pTimer)
 	{
 /*		cpss_kill_timer(pMsgInfo->pTimer);*/
 		pMsgInfo->pTimer = NULL;
 	}
-	VOS_Sem_Free(pMsgInfo->Body.strDataBuf);
+	if (NULL != pMsgInfo->Body.strDataBuf)
+	{
+		VOS_Sem_Free(pMsgInfo->Body.strDataBuf);
+	}
 	BZERO(&pMsgInfo->Body,sizeof(CPSS_COM_DATA));
 }
 /* ===  FUNCTION  ==============================================================

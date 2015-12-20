@@ -40,7 +40,7 @@ BOOL MyHandler( DWORD dwCtrlType )
 	case CTRL_C_EVENT:  // Handle the CTRL+C signal. 
 	//	return TRUE;
 	case CTRL_CLOSE_EVENT:   // CTRL+CLOSE: confirm that the user wants to exit. 
-		if (VOS_OK != cpss_wait_thread_exit())
+		if (VOS_OK != cpss_set_thread_exit())
 		{
 			return VOS_ERR;
 		}
@@ -64,7 +64,7 @@ int main(int argc,char ** argv)
 	{
 		goto EXIT_OK;
 	}
-	if (VOS_OK != shell_cmd_main())
+	if (VOS_OK != cpss_shell_cmd_main())
 	{
 		goto EXIT_OK;
 	}

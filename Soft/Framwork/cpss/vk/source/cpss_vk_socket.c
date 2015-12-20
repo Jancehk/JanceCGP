@@ -1002,19 +1002,13 @@ static VOS_UINT32 cpss_udp_recv_msg(pCPSS_SOCKET_LINK hSocketLink,  VOS_UINT32 u
 			0,
 			&stusktaddr,
 			&stusktaddrsz);
-		
+		if (0 == ulMsgLength || 0xFFFFFFFF == ulMsgLength)
+		{
+			ulRet = VOS_OK;
+			goto END_PROC;
+		}
 		VOS_PrintDebug(__FILE__,__LINE__,"recvfrom head total size is %d:%d",
 		ulMsgLength,ulBodySize);
-		if (0xFFFFFFFF == ulMsgLength)
-		{
-			VOS_PrintWarn(__FILE__,__LINE__,"break link %d:ErrorCode:%d",ulMsgLength,WSAGetLastError());
-			goto END_PROC;
-		}
-		if (0 == ulMsgLength)
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "recvfrom head %d:ere%d", ulMsgLength, WSAGetLastError());
-			goto END_PROC;
-		}
 		ulMsgIndex +=ulMsgLength;
 	}
 	msgTmp->ulMsgLength = ulMsgIndex;
@@ -1179,6 +1173,7 @@ VOS_UINT32 cpss_tcp_recv_proc (VOS_VOID * lpParameter)
 				continue;
 			}
 		}
+		stuSktfd.nCurrent++;
 		pSocketInfo = cpss_get_socket_from_fdset(VOS_SOCKET_TCP, &stuSktfd);
 		if (NULL == pSocketInfo)
 		{
@@ -1587,6 +1582,7 @@ VOS_UINT32 cpss_udp_recv_proc (VOS_VOID * lpParameter)
 				continue;
 			}
 		}
+		stuSktfd.nCurrent++;
 		pSocketLink = cpss_get_socket_from_fdset(VOS_SOCKET_UDP, &stuSktfd);
 		if (NULL == pSocketLink)
 		{
@@ -1596,7 +1592,7 @@ VOS_UINT32 cpss_udp_recv_proc (VOS_VOID * lpParameter)
 		ulRet = cpss_udp_recv_msg(pSocketLink, CPSS_SOCKET_PACKAGE_OFF);
 		if (ulRet == VOS_ERR)
 		{
-			VOS_PrintErr(__FILE__,__LINE__,"recv socket msg error");
+			//VOS_PrintErr(__FILE__,__LINE__,"recv socket msg error");
 			continue;
 		}
 
@@ -1735,7 +1731,7 @@ VOS_UINT32 cpss_udp_send_proc (VOS_VOID * lpParameter)
 			VOS_PrintErr(__FILE__,__LINE__,"send date send:%d:Msg%d",
 				nSendLength, pstuMsg->Body.msghead.ulMsgLength);
 		}
-		VOS_PrintDebug(__FILE__, __LINE__, "udp send msg ID:%d recv msg ID:%d",
+		VOS_PrintDebug(__FILE__, __LINE__, "udp SendID:%d RecvID:%d",
 			pstuMsg->ulMsgID,
 			pstuMsg->Body.msghead.ulRecvMsgID);
 		
@@ -2034,6 +2030,7 @@ VOS_UINT32 cpss_tcp_accept_client_proc (VOS_VOID * lpParameter)
 				continue;
 			}
 		}
+		stuSktfd.nCurrent++;
 		pSocketLink = cpss_get_socket_from_fdset(VOS_SOCKET_ACC, &stuSktfd);
 		if (NULL == pSocketLink)
 		{
@@ -2271,6 +2268,7 @@ static VOS_UINT32 cpss_socket_udp_open (CPSS_SOCKET_LINK * pSocketLink)
 	}
 
 	/*设置返还选项为假，禁止将发送的数据返还给本地接口*/
+
 	optval = 0;
 	if (setsockopt(pSocketLink->nlSocketfd, IPPROTO_IP, IP_MULTICAST_LOOP,
 		(VOS_CHAR *)&optval, sizeof(optval)) == SOCKET_ERROR) //如果设置失败
@@ -2694,10 +2692,20 @@ VOS_UINT32 cpss_socket_init ()
  * ==========================================================================*/
 VOS_VOID cpss_iocp_close ()
 {
+	VOS_UINT32 ulRet = VOS_ERR;
 	CPSS_SOCKET_LINK * pSocketLinkTmp = NULL;
+
 	while(NULL != pSocketLinkTmp)
 	{
 		cpss_close_socket(pSocketLinkTmp);
+	}
+	for (int nIndex = 0; nIndex < CPSS_IOCP_THREAD_COUNT; nIndex++)
+	{
+		ulRet = VOS_Destory_Event(&g_handleiocpmanage.hIOThread[nIndex].pMsgEvent, 0);
+		if (VOS_OK != ulRet)
+		{
+			VOS_PrintErr(__FILE__, __LINE__, "init Tcp Send Event");
+		}
 	}
 	VOS_Mutex_Destroy(&g_handleiocpmanage.hClientMutex);
 	VOS_Mutex_Destroy(&g_handleiocpmanage. hSocketMutex);

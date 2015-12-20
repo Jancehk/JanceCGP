@@ -160,7 +160,7 @@ VOS_UINT32 money_system_proc(VOS_VOID *pVoidMsg)
 	case CPSS_TYPE_SYS:
 		if (CPSS_MSG_INIT == cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
 		{
-			Money_PrintErr(__FILE__, __LINE__, "MONEY System Init OK");
+			Money_PrintInfo(__FILE__, __LINE__, "MONEY System Init OK");
 			uRet = VOS_OK;
 		}
 		else if (CPSS_MSG_UNIT == cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))

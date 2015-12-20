@@ -54,7 +54,8 @@ static VOID cpss_mem_print_record_info(VOS_CHAR* pstrKey, VOS_VOID* pstuVoid)
 		nTimes = 0;
 		while (NULL != pstuMemRecord)
 		{
-			fprintf(hFile, "%04d S:%02d,S:%p P:%p N:%p%s[%d]\r\n", ++nTimes, pstuMemRecord->nState, pstuMemRecord, pstuMemRecord->prev, pstuMemRecord->next, pstuMemRecord->strFileName, pstuMemRecord->nFileLine);
+			fprintf(hFile, "%04d S:%02d,S:%p P:%p N:%p :%p:%s %s[%d]\r\n", ++nTimes, pstuMemRecord->nState, pstuMemRecord, pstuMemRecord->prev, pstuMemRecord->next, 
+				pstuMemRecord->pstrVoid, pstuMemRecord->pstrVoid, pstuMemRecord->strFileName, pstuMemRecord->nFileLine);
 			pstuMemRecord = pstuMemRecord->next;
 		}
 	}
@@ -339,6 +340,10 @@ static CPSS_MEM_RECORD *cpss_mem_find_record_info(VOS_UINT32 nMemRdKey, VOS_VOID
 					break;
 				}
 				pstuMemRecord = pstuMemRecord->next;
+			}
+			if (NULL != pstuMemRecord)
+			{
+				break;
 			}
 		}
 	}
@@ -645,7 +650,7 @@ VOS_UINT32 cpss_mem_free(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * strFil
 	pstuMemRecord = cpss_mem_find_record_info(nMemRdKey, vAdress);
 	if (NULL == pstuMemRecord)
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "free memory find is error key:%d %x\n",
+		VOS_PrintErr(__FILE__, __LINE__, "free memory find is error key:%d %p\n",
 			nMemRdKey, vAdress);
 		return uRet;
 	}
