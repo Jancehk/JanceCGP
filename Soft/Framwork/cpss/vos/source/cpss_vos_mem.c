@@ -424,15 +424,6 @@ VOS_UINT32 cpss_init_mem()
 		printf("cpss init mem mutex error\n");
 		return uRet;
 	}
-	/*
-	uRet = VOS_Mutex_Init(&g_cpssMem_Manage.hMutexBuffer, "CPSS_MEM_BUFFE");
-	if (VOS_OK != uRet)
-	{
-		//VOS_PrintErr(__FILE__,__LINE__,"cpss init mem mutex error");
-		printf("cpss init mem mutex error\n");
-		return uRet;
-	}
-	*/
 	g_cpssMem_Manage.uMemSize = 0;
 	g_cpssMem_Manage.nTotalCount = 0;
 	BZERO(&g_cpssMem_Manage.stuMemFHeadList, sizeof(CPSS_MEM_RECORD_HEAD)*CPSS_MEM_HEAD_KEY_CPSS_TOTAL);
@@ -744,7 +735,6 @@ VOS_CHAR* cpss_str_cat(VOS_UINT32 nMemRdKey, void * vAdressA, void * vAdressB, V
 VOS_VOID cpss_uninit_mem()
 {
 	VOS_Mutex_Destroy(&g_cpssMem_Manage.hMutex);
-	//VOS_Mutex_Destroy(&g_cpssMem_Manage.hMutexBuffer);
 }
 
 /*===  FUNCTION  ==============================================================

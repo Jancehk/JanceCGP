@@ -30,6 +30,7 @@
 
 static VOS_THREAD_INFO		g_cmd_thread_info;
 VOS_Event			g_cmd_Event;
+CPSS_CLIENT_INFO	ClientInfo;
 /*===  FUNCTION  ===============================================================
 -         Name:  shell_cmd_init
 -  Description:	命令函数初始化  
@@ -584,7 +585,7 @@ VOS_UINT32 cpss_exec_cmd_proc(VOS_VOID * pVoidClient, VOS_CHAR * command)
 FREE_END:
 	if (g_pShellCmd != NULL)
 	{
-		VOS_Destory_Event(&g_pShellCmd->hCmdEvent,0);
+		VOS_Destroy_Event(&g_pShellCmd->hCmdEvent,0);
 		VOS_Free(g_pShellCmd,sizeof(SHELL_CMD_MGR));
 		g_pShellCmd = NULL;
 	}
@@ -616,7 +617,6 @@ VOS_UINT32 __stdcall  shell_cmd_exec_proc(VOS_VOID * lpParameter)
 VOS_UINT32 shell_cmd_exec_proc(VOS_VOID * lpParameter)
 #endif
 {
-	CPSS_CLIENT_INFO	ClientInfo;
 	VOS_UINT32			uStat = 0;
 	VOS_UINT32			uIsFirst = 8;
 	VOS_CHAR			strMsgEvent[125] = { 0 };
@@ -627,7 +627,7 @@ VOS_UINT32 shell_cmd_exec_proc(VOS_VOID * lpParameter)
 
 	ClientInfo.nBufferLeng = 0;
 TRY_EVENT:
-	sprintf(strMsgEvent, "CLIENT_EMENT_%p", &ClientInfo);
+	sprintf(strMsgEvent, "CLIENT_EMENT_SHELL_%p", &ClientInfo);
 
 	if (VOS_OK != VOS_Init_Event(&ClientInfo.hCmdEvent, strMsgEvent))
 	{
@@ -746,11 +746,28 @@ VOS_UINT32 cpss_shell_cmd_wait()
 VOS_UINT32 cpss_shell_cmd_set()
 {
 	VOS_UINT32 ulRet = VOS_ERR;
-	ulRet = VOS_Wait_Event(&g_cmd_Event, INFINITE);
+	ulRet = VOS_Set_Event(&g_cmd_Event);
 	if (VOS_OK != ulRet)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "wait cmd shell faild");
 		return ulRet;
+	}
+	return ulRet;
+}
+/*===  FUNCTION  ===============================================================
+-         Name:  cpss_shell_cmd_destory
+-  Description:	释放cmdshell处理结束
+-  Input      :
+-  OutPut     :
+-  Return     :
+- =============================================================================*/
+VOS_UINT32 cpss_shell_cmd_destory()
+{
+	VOS_UINT32 ulRet = VOS_ERR;
+	if (VOS_OK != VOS_Destroy_Event(&g_cmd_Event, 0))
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "wait cmd shell faild");
+		return VOS_ERR;
 	}
 	return ulRet;
 }
@@ -768,13 +785,9 @@ VOS_UINT32 cpss_shell_cmd_exit()
 		return VOS_OK;
 	}
 	cpss_close_thread(g_cmd_thread_info.hThread, &g_cmd_thread_info.dwThreadId);
+
+	VOS_Destroy_Event(&ClientInfo.hCmdEvent, 0);
 	g_cmd_thread_info.hThread = NULL;
 	cpss_shell_cmd_set();
-	cpss_shell_cmd_wait();
-	if (VOS_OK != VOS_Destory_Event(&g_cmd_Event, INFINITE))
-	{
-		VOS_PrintErr(__FILE__, __LINE__, "wait cmd shell faild");
-		return VOS_ERR;
-	}
 	return VOS_OK;
 }

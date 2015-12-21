@@ -151,6 +151,8 @@ static VOS_VOID cpss_close_socket(CPSS_SOCKET_LINK * pSocketLinkTInfo)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "socket insert error");
 	}
+	VOS_Destroy_Event(&pSocketLinkTInfo->pstuPid->pMsgEvent, 0);
+	
 
 }		/* -----  end of function cpss_iocp_close  ----- */
 
@@ -218,7 +220,7 @@ static pCPSS_CLIENT_INFO cpss_get_free_client_info(CPSS_IOCP_MANAGE *piocpmanage
 		return pClientInfoTmp;
 	}
 	*/
-	pClientInfoTmp = (pCPSS_CLIENT_INFO)VOS_Malloc(sizeof(CPSS_CLIENT_INFO), "get client info");
+	pClientInfoTmp = (pCPSS_CLIENT_INFO)VOS_Skt_Malloc(sizeof(CPSS_CLIENT_INFO));
 	if (NULL == pClientInfoTmp)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"socket calloc client info NULL");
@@ -2694,6 +2696,7 @@ VOS_VOID cpss_iocp_close ()
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 	CPSS_SOCKET_LINK * pSocketLinkTmp = NULL;
+	PCPSS_PID_TABLE		pstuPidList = NULL;
 
 	while(NULL != pSocketLinkTmp)
 	{
@@ -2701,7 +2704,7 @@ VOS_VOID cpss_iocp_close ()
 	}
 	for (int nIndex = 0; nIndex < CPSS_IOCP_THREAD_COUNT; nIndex++)
 	{
-		ulRet = VOS_Destory_Event(&g_handleiocpmanage.hIOThread[nIndex].pMsgEvent, 0);
+		ulRet = VOS_Destroy_Event(&g_handleiocpmanage.hIOThread[nIndex].pMsgEvent, 0);
 		if (VOS_OK != ulRet)
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "init Tcp Send Event");

@@ -229,11 +229,12 @@ VOS_UINT32 VOS_Mutex_Init(VOS_MUTEX * pMutex, VOS_CHAR * pstr)
 	VOS_UINT32 nRet = VOS_ERR;
 	
 	VOS_CHAR   szTime[CPSS_MAX_TIME] = {0};
-	VOS_UINT32 nTimes = 0;
+	static VOS_UINT32 nTimes = 0;
 	//strcpy(pEvent->strmutex,pStrEnevt);
 	
 	cpss_get_current_time_to_str(szTime);		//得到当前系统时间	
 	_snprintf(pMutex->strmutex, VOS_MUTEX_LEN, "%s:%p:%s:%08x",pstr,pMutex,szTime,nTimes++);
+	//printf("MUTEX INIT:%s\r\n",pMutex->strmutex);
 #if (OS_TYPE == OS_TYPE_WINDOW)
 #if VOS_LOCK_TYPE == VOS_LOCK_CRITE
 	InitializeCriticalSection(&pMutex->mcs);
@@ -352,6 +353,7 @@ VOS_UINT32 VOS_Mutex_Unlock(VOS_MUTEX * pMutex)
 VOS_UINT32 VOS_Mutex_Destroy(VOS_MUTEX * pMutex)
 {
 	VOS_UINT32 nRet = VOS_ERR;
+	//printf("MUTEX UNIT:%s\r\n",pMutex->strmutex);
 #if (OS_TYPE == OS_TYPE_WINDOW)
 #if VOS_LOCK_TYPE == VOS_LOCK_CRITE
 	DeleteCriticalSection(&pMutex->mcs);
@@ -383,11 +385,13 @@ VOS_UINT32 VOS_Init_Event(VOS_Event * pEvent,VOS_STRING pStrEnevt)
 	VOS_UINT32 nRet = VOS_ERR;
 	VOS_CHAR   szTime[CPSS_MAX_TIME] = {0};
 	static VOS_UINT32 nEventTime = 0;
+
 #if (OS_TYPE == OS_TYPE_WINDOW)
 	//strcpy(pEvent->strmutex,pStrEnevt);
 
 	cpss_get_current_time_to_str(szTime);		//得到当前系统时间	
 	_snprintf(pEvent->strmutex, VOS_MUTEX_LEN, "%s:%p:%s:%08x", pStrEnevt, pEvent, szTime, nEventTime++);
+	//printf("EVENT INIT:%s\r\n",pEvent->strmutex);
 	pEvent->hEvent = CreateEvent(NULL,FALSE, FALSE, pEvent->strmutex);
 	if (NULL != pEvent->hEvent)
 	{
@@ -463,15 +467,16 @@ VOS_UINT32 VOS_Wait_Event(VOS_Event * pEvent, VOS_UINT32 uTime)
 }
 
 /* ===  FUNCTION  ==============================================================
- *         Name:  VOS_Destory_Event
+ *         Name:  VOS_Destroy_Event
  *  Description:	销毁Event
  *  Input      :   VOS_MUTEX * pMutex    
  *  OutPut     :    
  *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 VOS_Destory_Event(VOS_Event * pEvent, VOS_UINT32 uTime)
+VOS_UINT32 VOS_Destroy_Event(VOS_Event * pEvent, VOS_UINT32 uTime)
 {
 	VOS_UINT32 nRet = VOS_ERR;
+	//printf("EVENT UNIT:%s\r\n", pEvent->strmutex);
 #if (OS_TYPE == OS_TYPE_WINDOW)
 	if (NULL != pEvent->hEvent)
 	{

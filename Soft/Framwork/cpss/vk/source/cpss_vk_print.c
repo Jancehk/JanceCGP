@@ -972,6 +972,25 @@ static  VOS_VOID cpss_print_key_str (HANDLE hHandle, VOS_INT32 nBeforeClr, VOS_I
 }
 
 /* ===  FUNCTION  ==============================================================
+*         Name:  cpss_print_close
+*  Description:	关闭打印平台
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static VOS_VOID cpss_print_close()
+{
+	VOS_UINT32 ulRet = VOS_ERR;
+	if (NULL != g_manageprint.g_hConsole)
+	{
+		//CloseHandle(g_manageprint.g_hConsole);
+	}
+	VOS_Mutex_Destroy(&g_manageprint.hMutex);
+	VOS_Destroy_Event(&g_manageprint.g_LogEvent, 0);
+	VOS_Destroy_Event(&g_manageprint.g_MsgEvent, 0);
+}		/* -----  end of function cpss_print_init  ----- */
+
+/* ===  FUNCTION  ==============================================================
  *         Name:  cpss_print_trace_proc
  *  Description:	打印trace 回调函数 
  *  Input      :    
@@ -1168,6 +1187,7 @@ VOS_UINT32 cpss_print_trace_proc (VOS_VOID * lpParameter)
 			printf("Clear Space Error\n");
 		}
 	}
+	cpss_print_close();
 	ulRet = VOS_OK;
 END_PROC:
 	if (VOS_OK != ulRet)
@@ -1249,29 +1269,6 @@ VOS_UINT32 cpss_print_init ()
 	}
 	return ulRet;
 }		/* -----  end of function cpss_print_init  ----- */
-
-/* ===  FUNCTION  ==============================================================
- *         Name:  cpss_print_close
- *  Description:	关闭打印平台 
- *  Input      :    
- *  OutPut     :    
- *  Return     :  
- * ==========================================================================*/
-VOS_VOID cpss_print_close ()
-{
-	VOS_UINT32 ulRet = VOS_ERR;
-	if (NULL != g_manageprint.g_hConsole)
-	{
-		CloseHandle(g_manageprint.g_hConsole);
-	}
-	if (NULL != g_manageprint.hPrintHandle)
-	{
-		CloseHandle(g_manageprint.hPrintHandle);
-	}
-	VOS_Mutex_Destroy(&g_manageprint.hMutex);
-	VOS_Destory_Event(&g_manageprint.g_LogEvent, 0);
-	VOS_Destory_Event(&g_manageprint.g_MsgEvent, 0);
-}		/* -----  end of function cpss_print_init  ----- */
 /*===  FUNCTION  ==============================================================
  *         Name:  cpss_print
  *  Description:	平台打印函数
@@ -1302,7 +1299,10 @@ VOS_UINT32 cpss_print(
 	{
 		return VOS_OK;
 	}
-
+	if (0 == g_manageprint.hMutex.strmutex[0])
+	{
+		return VOS_OK;
+	}	
 	nFileLength = VOS_Strlen(szFilename);
 	pPrintInfoTmp = cpss_get_free_print_trace();
 	if (NULL == pPrintInfoTmp)

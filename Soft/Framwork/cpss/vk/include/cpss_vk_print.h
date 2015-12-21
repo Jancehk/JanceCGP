@@ -153,11 +153,6 @@ VOS_UINT32 cpss_print_init ();
  *  Description:	初始化线程log 
  * ==========================================================================*/
 VOS_VOID cpss_init_print (VOS_UINT32 ulThreadID);
-/* ===  FUNCTION  ==============================================================
- *         Name:  cpss_print_close
- *  Description:	关闭打印平台 
- * ==========================================================================*/
-VOS_VOID cpss_print_close ();
 /*===  FUNCTION  ==============================================================
  *         Name:  cpss_print
  *  Description:	平台打印函数

@@ -333,8 +333,19 @@ VOS_UINT32 cpss_wait_thread_exit()
 			printf("wait exit time out\n");
 		}
 	}
-	cpss_iocp_close(); 
-	cpss_shell_cmd_set();
+	ulRet = VOS_Mutex_Destroy(&g_thread_manage.hMutex);
+	ulRet = VOS_Destroy_Event(&g_thread_manage.hExitEvent, 0);
+	if (VOS_OK != ulRet)
+	{
+		printf("cpss init print log event error\n");
+		return ulRet;
+	}
+	cpss_uninit_mul_timer();
+	cpss_iocp_close();
+	cps_uninit_msg_sem();
+	cpss_uninit_mem();
+	cpss_shell_cmd_destory();
+
 	return ulRet;
 }
 

@@ -182,14 +182,14 @@ VOS_UINT32 VOS_Set_Event(VOS_Event * pEvent);
 VOS_UINT32 VOS_Wait_Event(VOS_Event * pEvent, VOS_UINT32 uTime);
 
 /* ===  FUNCTION  ==============================================================
- *         Name:  VOS_Destory_Event
+ *         Name:  VOS_Destroy_Event
  *  Description:	Ïú»ÙEvent
  *  Input      :   VOS_MUTEX * pMutex    
  *  OutPut     :    
  *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 VOS_Destory_Event(VOS_Event * pEvent, VOS_UINT32 uTime);
-/* -----  end of function VOS_Destory_Event  ----- */
+VOS_UINT32 VOS_Destroy_Event(VOS_Event * pEvent, VOS_UINT32 uTime);
+/* -----  end of function VOS_Destroy_Event  ----- */
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_trim

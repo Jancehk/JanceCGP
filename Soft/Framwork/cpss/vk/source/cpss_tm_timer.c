@@ -295,7 +295,7 @@ ptimer_handle cpss_set_timer(VOS_UINT32 time_out,
 		return NULL;
 	}
 
-	pnew = (mul_timer_entry *)VOS_Malloc(sizeof(mul_timer_entry),"get timer entry");
+	pnew = (mul_timer_entry *)VOS_Tme_Malloc(sizeof(mul_timer_entry));
 	if( pnew == NULL)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"Set Timer get Malloc Error");
@@ -529,7 +529,7 @@ VOS_UINT32 cpss_uninit_mul_timer()
 		VOS_PrintErr(__FILE__, __LINE__, "timer uninit destory mutex erroe");
 	}
 	/* delete timer_manage */
-	VOS_Free(ptimer,sizeof(mul_timer_entry));
+	VOS_Tme_Free(ptimer, sizeof(mul_timer_entry));
 	ptimer = NULL;	
 	return VOS_OK;
 }
