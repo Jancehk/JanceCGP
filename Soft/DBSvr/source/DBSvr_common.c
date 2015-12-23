@@ -568,13 +568,13 @@ static VOS_UINT32 dbsvr_responce_cpuid_pid(pCPSS_MSG pMsgInfo)
 
 	BZERO(&MsgInfo, sizeof(CPSS_MSG));
 	
+	uCount = (VOS_UINT32)*pMsgInfo->Body.strDataBuf;
 	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_STUCPUID,&uIndex,
-		pMsgInfo->Body.strDataBuf + sizeof(VOS_UINT32),
-		(VOS_UINT32 *)&pMsgInfo->Body.strDataBuf);
+		pMsgInfo->Body.strDataBuf + sizeof(VOS_UINT32), &uCount);
 	if (VOS_OK != uRet)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"set cpuid to stu is error :%d",
-			(VOS_UINT32 *)&pMsgInfo->Body.strDataBuf);
+			(VOS_UINT32 *)pMsgInfo->Body.strDataBuf);
 	}
 
 	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_BUFFER,&uIndex,

@@ -140,7 +140,7 @@ static VOS_UINT32 framwork_init(pCPSS_MSG pMsgInfo)
 			VOS_PrintInfo(__FILE__, __LINE__, "Get CpuID from DBsvr is Error ");
 		}
 		break;
-	case CPSS_MSG_RES:
+	case CPSS_MSG_RESU:
 		uRet = set_cpuid_from_dbsvr(pMsgInfo);
 		if (VOS_OK != uRet)
 		{

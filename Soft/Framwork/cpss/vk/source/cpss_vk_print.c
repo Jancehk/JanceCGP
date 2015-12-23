@@ -1341,7 +1341,7 @@ VOS_UINT32 cpss_print(
  * =============================================================================*/
 VOS_UINT32 cpss_print_dump(
 		VOS_UINT32 	ucProcessPid,		//子模块ID
-		VOS_UINT32  ulPrintType,			//日志类型(INFO  ERR  WARM)
+		VOS_UINT32  ulPrintType,		//日志类型(INFO  ERR  WARM)
 		VOS_STRING  szFilename,			//打印日志文件名称
 		VOS_UINT32  ulLine,				//打印的行数
 		VOS_VOID * pstrVoid,

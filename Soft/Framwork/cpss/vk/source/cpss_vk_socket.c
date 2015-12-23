@@ -2192,7 +2192,7 @@ VOS_UINT32 cpss_udp_distribute_proc (VOS_VOID * lpParameter)
 
 		if (VOS_OK != pstuPidInfo->ppid_init_proc((VOS_VOID *)pMsgInfo))
 		{
-			VOS_PrintInfo(__FILE__,__LINE__,"Msg:%p Socket:%p Stat:%x exec is faild",
+			VOS_PrintErr(__FILE__,__LINE__,"Msg:%p Socket:%p Stat:%x exec is faild",
 				pMsgInfo, pSocket, pMsgInfo->nRState);
 		}
 		VOS_PrintMsg("udp distribute output msg", pMsgInfo);
