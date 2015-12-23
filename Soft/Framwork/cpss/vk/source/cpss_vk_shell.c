@@ -601,7 +601,7 @@ FREE_END:
 - =============================================================================*/
 VOS_VOID shell_print_cmd (VOS_CHAR* pstuBuffer)
 {
-	VOS_PrintDebug(__FILE__, __LINE__, "Print buffer [%s]", pstuBuffer);
+	//VOS_PrintDebug(__FILE__, __LINE__, "Print buffer [%s]", pstuBuffer);
 }
 
 /*===  FUNCTION  ===============================================================

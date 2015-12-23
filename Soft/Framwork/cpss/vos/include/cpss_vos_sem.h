@@ -174,11 +174,6 @@ VOS_UINT32 cps_set_msg_data(CPSS_MSG * msgTmp, VOS_VOID* m_Value, VOS_UINT8 uTyp
 
 /* ===  FUNCTION  ==============================================================
 *         Name:  cps_get_msg_mem_data
-*  Description:  申请消息的空间
-* ==========================================================================*/
-VOS_UINT32 cps_get_msg_mem_data(CPSS_MSG * msgTmp);
-/* ===  FUNCTION  ==============================================================
-*         Name:  cps_get_msg_mem_data
 *  Description:  从请求内容中得到消息类型
 * ==========================================================================*/
 VOS_UINT32 cps_set_msg_type(VOS_UINT8 uReqType, VOS_UINT8 uReqContent,VOS_UINT8 uMsgType);

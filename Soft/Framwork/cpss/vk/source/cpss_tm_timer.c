@@ -520,7 +520,7 @@ VOS_UINT32 cpss_uninit_mul_timer()
 	{
 		ptmp = p;
 		p = p->next;
-		VOS_Free(ptmp,sizeof(mul_timer_entry));
+		VOS_Tme_Free(ptmp);
 	}
 	
 	uRet = VOS_Mutex_Destroy(&ptimer->hMutex);
@@ -529,7 +529,7 @@ VOS_UINT32 cpss_uninit_mul_timer()
 		VOS_PrintErr(__FILE__, __LINE__, "timer uninit destory mutex erroe");
 	}
 	/* delete timer_manage */
-	VOS_Tme_Free(ptimer, sizeof(mul_timer_entry));
+	VOS_Tme_Free(ptimer);
 	ptimer = NULL;	
 	return VOS_OK;
 }

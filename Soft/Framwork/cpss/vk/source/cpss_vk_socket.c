@@ -26,7 +26,7 @@
 #define VOS_Skt_MemSize(pstrads)		VOS_MemSize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
 #define VOS_Skt_Memcls(pstrads)			VOS_Memcls((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
 #define VOS_Skt_Memcat(pstrA,pstrB)		VOS_Memcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
-#define VOS_Skt_Free(pstrads)			VOS_Free((pstrads), CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_Free(pstrads)			VOS_Free((pstrads), CPSS_MEM_HEAD_KEY_CPSS_SKT)
 /* ===  FUNCTION  ==============================================================
 *         Name:  cpss_socket_delete
 *  Description:  将socket从指定的链表上移出
@@ -883,6 +883,55 @@ EXITPROC:
 	}
 	return pMsg;
 }
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  cps_get_msg_mem_data
+*  Description:  申请消息的空间
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static VOS_UINT32 cps_get_msg_mem_data(CPSS_MSG * msgTmp)
+{
+	VOS_UINT32 ulRtn = VOS_ERR;
+	VOS_CHAR * pstrTmp = NULL;
+
+	if (NULL == msgTmp)
+	{
+		return ulRtn;
+	}
+	if (0 != VOS_Memcmp(msgTmp->Body.msghead.strSegName, CPSS_COMM_SEG_NAME,
+		VOS_Strlen(CPSS_COMM_SEG_NAME)))
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "Recv Head Seg Name Error");
+		return ulRtn;
+	}
+	if (2 * 1024 * 1024 < msgTmp->Body.msghead.ulMsgLength)
+	{
+		VOS_PrintWarn(__FILE__, __LINE__, "recv data size is large %d:ere", msgTmp->Body.msghead.ulMsgLength);
+		return ulRtn;
+	}
+	if (NULL == msgTmp->Body.strDataBuf)
+	{
+		msgTmp->Body.strDataBuf = (VOS_CHAR*)VOS_Skt_Malloc(msgTmp->Body.msghead.ulMsgLength);
+	}
+	else
+	{
+		pstrTmp = (VOS_CHAR*)VOS_Skt_Realloc(msgTmp->Body.strDataBuf, msgTmp->Body.msghead.ulMsgLength);
+		if (NULL == pstrTmp)
+		{
+			VOS_Skt_Free(msgTmp->Body.strDataBuf);
+		}
+		msgTmp->Body.strDataBuf = pstrTmp;
+	}
+	if (NULL == msgTmp->Body.strDataBuf)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "get msg data size is error");
+		return ulRtn;
+	}
+	return VOS_OK;
+}
+
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_get_send_msg
  *  Description: 
@@ -948,7 +997,7 @@ static CPSS_MSG * cpss_get_send_msg(CPSS_MSG * pMsg)
 	pSendMsg->Body.strDataBuf = (VOS_CHAR*)VOS_Skt_Remset(pMsg->Body.strDataBuf);
 	pMsg->Body.strDataBuf = NULL;
 	pSendMsg->Body.msghead.ulMsgLength = pMsg->Body.msghead.ulMsgLength;
-	
+	pSendMsg->ulMsgLength = pMsg->ulMsgLength;
 	return pSendMsg;
 }
 /* ===  FUNCTION  ==============================================================
@@ -1047,8 +1096,8 @@ static VOS_UINT32 cpss_udp_recv_msg(pCPSS_SOCKET_LINK hSocketLink,  VOS_UINT32 u
 		ulMsgIndex += ulMsgLength;
 	}
 
-	msgTmp->ulMsgLength = ulMsgIndex;
-	msgTmp->pClient = hSocketLink;
+	msgTmp->ulMsgLength += ulMsgIndex;
+	//msgTmp->pClient = hSocketLink;
 	msgTmp->nRState = CPSS_MSG_RS_STAT_RECVED;
 	ulSocRet = VOS_OK;
 
@@ -1175,12 +1224,12 @@ VOS_UINT32 cpss_tcp_recv_proc (VOS_VOID * lpParameter)
 				continue;
 			}
 		}
-		stuSktfd.nCurrent++;
 		pSocketInfo = cpss_get_socket_from_fdset(VOS_SOCKET_TCP, &stuSktfd);
 		if (NULL == pSocketInfo)
 		{
 			continue;
 		}
+		stuSktfd.nCurrent++;
 		pClientInfo = pSocketInfo->pstuClientInfo;
 		if (NULL == pClientInfo)
 		{
@@ -1457,7 +1506,7 @@ VOS_UINT32 cpss_copy_msg(VOS_VOID *pVoidMsgRecv, VOS_VOID * pVoidMsgSend)
 VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 uBufLen, VOS_UINT32 uType)
 {
 	VOS_UINT32 ulRet = VOS_ERR;
-	VOS_UINT32 ulMsgLength =0;
+//	VOS_UINT32 ulMsgLength =0;
 	VOS_CHAR * strSendBuff = NULL;
 	CPSS_MSG		 *  pMsgInfo = NULL;
 
@@ -1491,9 +1540,10 @@ VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 
 			}
 			pMsgInfo->Body.strDataBuf = strSendBuff;
 		}
-		VOS_PrintDebug(__FILE__, __LINE__, "send len:%d != buff len:%d",
-			pMsgInfo->Body.msghead.ulMsgLength, ulMsgLength);
-		pMsgInfo->Body.msghead.ulMsgLength += ulMsgLength;
+		pMsgInfo->Body.msghead.ulMsgLength = uBufLen;
+		pMsgInfo->ulMsgLength = CPSS_MSG_HEAD_SIZE + uBufLen;
+		VOS_PrintDebug(__FILE__, __LINE__, "send len:%d buff len:%d",
+			pMsgInfo->Body.msghead.ulMsgLength + CPSS_MSG_HEAD_SIZE, uBufLen);
 	}
 	if (VOS_SEND_SKT_TYPE_INSERT == (uType & VOS_SEND_SKT_TYPE_INSERT))
 	{
@@ -1584,13 +1634,13 @@ VOS_UINT32 cpss_udp_recv_proc (VOS_VOID * lpParameter)
 				continue;
 			}
 		}
-		stuSktfd.nCurrent++;
 		pSocketLink = cpss_get_socket_from_fdset(VOS_SOCKET_UDP, &stuSktfd);
 		if (NULL == pSocketLink)
 		{
 			continue;
 		}
 
+		stuSktfd.nCurrent++;
 		ulRet = cpss_udp_recv_msg(pSocketLink, CPSS_SOCKET_PACKAGE_OFF);
 		if (ulRet == VOS_ERR)
 		{
@@ -1684,7 +1734,7 @@ VOS_UINT32 cpss_udp_send_proc (VOS_VOID * lpParameter)
 
 
 		nSendSize = sendto(pSocketInfo->nlSocketfd,
-			(VOS_CHAR*)&pstuMsg->Body.msghead, sizeof(CPSS_COM_HEAD),0,
+			(VOS_CHAR*)&pstuMsg->Body.msghead, CPSS_MSG_HEAD_SIZE, 0,
 				(struct sockaddr *)&stusktaddr,sizeof(stusktaddr));
 		if (0xFFFFFFFF == nSendSize)
 		{
@@ -1701,12 +1751,14 @@ VOS_UINT32 cpss_udp_send_proc (VOS_VOID * lpParameter)
 		}
 		
 		VOS_PrintDebug(__FILE__,__LINE__,"send head data %d:%d:%d",
-			nSendSize,sizeof(CPSS_COM_HEAD),
+			nSendSize,pstuMsg->ulMsgLength,
 			pstuMsg->Body.msghead.ulMsgLength);
 
-		while (NULL != pstuMsg->Body.strDataBuf)
+		nSendBuffLen = 0;
+		nSendLength = pstuMsg->ulMsgLength - CPSS_MSG_HEAD_SIZE;// + pstuBuf->nSize;
+		while (NULL != pstuMsg->Body.strDataBuf && nSendBuffLen<nSendLength)
 		{
-			//nSendLength = CPSS_MSG_BUF_HEAD_SIZE + pstuBuf->nSize;
+			nSendLength -= nSendBuffLen;
 			nSendSize = sendto(pSocketInfo->nlSocketfd,
 				(VOS_CHAR*)pstuMsg->Body.strDataBuf, nSendLength, 0,
 				(struct sockaddr *)&stusktaddr, sizeof(stusktaddr));
@@ -1725,7 +1777,7 @@ VOS_UINT32 cpss_udp_send_proc (VOS_VOID * lpParameter)
 					pstuMsg->Body.msghead.stDstProc.ulCpuID,
 					pstuMsg->Body.msghead.stDstProc.ulPID);
 			}
-			nSendBuffLen += nSendLength;
+			nSendBuffLen += nSendSize;
 
 		}
 		if (nSendLength != pstuMsg->Body.msghead.ulMsgLength)
@@ -2032,12 +2084,12 @@ VOS_UINT32 cpss_tcp_accept_client_proc (VOS_VOID * lpParameter)
 				continue;
 			}
 		}
-		stuSktfd.nCurrent++;
 		pSocketLink = cpss_get_socket_from_fdset(VOS_SOCKET_ACC, &stuSktfd);
 		if (NULL == pSocketLink)
 		{
 			continue;
 		}
+		stuSktfd.nCurrent++;
 
 		if (VOS_OK != cpss_tcp_accept_client(pSocketLink))
 		{

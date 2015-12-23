@@ -138,6 +138,7 @@ static VOS_UINT32 cpss_mem_record_manager(VOS_UINT32 nMemRdKey, CPSS_MEM_RECORD 
 		}else
 		if (nType == MEM_RECORD_MGR_INSERTU)
 		{
+			pstuMemRecord->nTagID = nMemRdKey;
 			g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].nTotalCount++;
 			g_cpssMem_Manage.stuMemUHeadList[nMemRdKey].uMemSize += pstuMemRecord->nSize;
 			g_cpssMem_Manage.uMemSize += pstuMemRecord->nSize;
@@ -391,11 +392,16 @@ static VOS_INT32 cpss_mem_move_to_used(VOS_UINT32 nMemRdKey, CPSS_MEM_RECORD * p
 static VOS_INT32 cpss_mem_move_to_free(VOS_UINT32 nMemRdKey, CPSS_MEM_RECORD * pstuMemRecord)
 {
 	VOS_INT32 uRet = VOS_OK;
-
-	uRet = cpss_mem_record_manager(nMemRdKey, &pstuMemRecord, MEM_RECORD_MGR_REMOVEU);
+	VOS_UINT32 nMemRdKeyTmp = nMemRdKey;
+	if (nMemRdKey != pstuMemRecord->nTagID)
+	{
+		VOS_PrintInfo(__FILE__, __LINE__, "mem[%p] tag id[%d] was change to [%d]", pstuMemRecord, pstuMemRecord->nTagID,nMemRdKey);
+		nMemRdKeyTmp = pstuMemRecord->nTagID;
+	}
+	uRet = cpss_mem_record_manager(nMemRdKeyTmp, &pstuMemRecord, MEM_RECORD_MGR_REMOVEU);
 	if (VOS_OK != uRet)
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "get free recode is error");
+		VOS_PrintErr(__FILE__, __LINE__, "get use mem[%d:%p:%p] remove faild", nMemRdKey, pstuMemRecord, pstuMemRecord->pstrVoid);
 		return uRet;
 	}
 	uRet = cpss_mem_record_manager(nMemRdKey, &pstuMemRecord, MEM_RECORD_MGR_INSERTF);
@@ -634,20 +640,20 @@ VOS_UINT32 cpss_mem_free(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * strFil
 	{
 		free(vAdress);
 		vAdress = NULL;
-		VOS_PrintInfo(__FILE__, __LINE__, "free memory key is error key:%d %x\n",
+		VOS_PrintErr(__FILE__, __LINE__, "free memory key is error key:%d %x\n",
 			nMemRdKey, vAdress);
 		return uRet;
 	}
 	pstuMemRecord = cpss_mem_find_record_info(nMemRdKey, vAdress);
 	if (NULL == pstuMemRecord)
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "free memory find is error key:%d %p\n",
+		VOS_PrintErr(__FILE__, __LINE__, "mem not found in system key:%d %p\n",
 			nMemRdKey, vAdress);
 		return uRet;
 	}
 	if (VOS_OK != cpss_mem_move_to_free(nMemRdKey, pstuMemRecord))
 	{
-		VOS_PrintInfo(__FILE__, __LINE__, "free memory find is error key:%d %x\n",
+		VOS_PrintErr(__FILE__, __LINE__, "mem used to free faild:%d %x\n",
 			nMemRdKey, vAdress);
 		return uRet;
 	}

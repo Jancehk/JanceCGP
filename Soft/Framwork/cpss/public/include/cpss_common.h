@@ -69,6 +69,7 @@ typedef struct _CPSS_USER_INFO_T{
 
 #define VOS_Memset(pstaddres, nVal, ulSize)	memset((pstaddres), (nVal) ,(ulSize))
 #define VOS_Memcpy(pstSou,pstDes,ulSize)	memcpy((pstSou), (pstDes), (ulSize))
+#define VOS_Memcmp(pstSou,pstDes,ulSize)	memcmp((pstSou), (pstDes), (ulSize))
 #define VOS_Strcpy(pstSou,pstDes)			strcpy((pstSou), (pstDes))
 #define VOS_Strncpy(pstSou,pstDes,nLen)		strncpy((pstSou), (pstDes),(nLen))
 #define VOS_Strlen(pstSou)					strlen((pstSou))

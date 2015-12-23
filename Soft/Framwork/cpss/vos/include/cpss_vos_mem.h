@@ -41,6 +41,7 @@ typedef enum CPSS_MEM_RECORD_STAT_M{
 
 typedef struct _CPSS_MEM_RECORD_T
 {
+	VOS_UINT32	nTagID;					/* mem manager tag ID */
 	VOS_UINT32	nSize;					/* buferr ³¤¶È */
 	VOS_UINT8   nState;					/* malloc state */
 	VOS_VOID	*pstrVoid;				/* buffer ÄÚÈÝ */
