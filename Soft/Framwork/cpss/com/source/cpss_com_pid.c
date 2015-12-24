@@ -436,7 +436,7 @@ VOS_VOID * cpss_get_info_for_pid(VOS_UINT32 ulProcessPid, VOS_UINT32 ulType)
 	CPSS_SOCKET_LINK * hSocketLink = g_handleiocpmanage.pUsedSocketHead;
 	while(NULL != hSocketLink)
 	{
-		if (NULL != hSocketLink->pstuPid ||
+		if (NULL != hSocketLink->pstuPid &&
 			*hSocketLink->pstuPid->pPid == ulProcessPid)
 		{
 			break;

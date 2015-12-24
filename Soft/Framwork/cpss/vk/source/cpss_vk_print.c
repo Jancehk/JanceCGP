@@ -772,7 +772,7 @@ END_PROC:
 			 break;
 		 }
 		 /* 如果空闲队列都用完了，那么就等带使用队列释放后在接着处理*/
-		 ulRet = VOS_Wait_Event(&g_manageprint.g_MsgEvent,80);//PRINT_SLEEP_TIME
+		 ulRet = VOS_Wait_Event(&g_manageprint.g_MsgEvent, PRINT_SLEEP_TIME);//
 		 if (VOS_OK != ulRet)
 		 {
 			 printf("cpss print free to used wait timeout[%s:(%d)]",__FILE__,__LINE__);
@@ -1020,7 +1020,7 @@ VOS_UINT32 cpss_print_trace_proc (VOS_VOID * lpParameter)
 	}
 	g_manageprint->g_traceo_on_off = TRUE;
 	
-	ulRet = VOS_Wait_Event(&g_manageprint->g_LogEvent,30);//PRINT_SLEEP_TIME
+	ulRet = VOS_Wait_Event(&g_manageprint->g_LogEvent, PRINT_SLEEP_TIME);//PRINT_SLEEP_TIME
 	if (VOS_OK != ulRet)
 	{
 		VOS_PrintWarn(__FILE__, __LINE__, "wait log event is timeout");

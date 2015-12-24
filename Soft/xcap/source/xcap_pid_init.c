@@ -36,7 +36,7 @@ VOS_UINT32 VOS_ProcessInit()
 	if (VOS_OK != VOS_RegistPidInit(CPSS_CONNECT_SUB_XCAP, CPSS_PID_MONEY, CPSS_STRING_MOCLI,1,
 		pid_init_money_proc,money_pid_timeout_proc))
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "Regist Telnet Server is Error");
+		XCAP_PrintErr(__FILE__, __LINE__, "Regist Telnet Server is Error");
 		return VOS_ERR;
 	}
 

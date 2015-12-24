@@ -111,6 +111,22 @@ VOS_UINT32 pid_init_money_proc(VOS_VOID *arg)
 
 	switch (cps_get_reqtype_from_msg(pMsgInfo->Body.msghead.uType))
 	{
+	case CPSS_REQUEST_SYSTEM:
+		if (CPSS_TYPE_SYS != cps_get_reqcontent_from_msg(pMsgInfo->Body.msghead.uType))
+		{
+			XCAP_PrintErr(__FILE__, __LINE__, "MONEY System request Faild");
+			return uRet;
+		}
+		if (CPSS_MSG_INIT == cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
+		{
+			XCAP_PrintInfo(__FILE__, __LINE__, "MONEY System Init OK");
+			uRet = VOS_OK;
+		}
+		else if (CPSS_MSG_UNIT == cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
+		{
+			uRet = VOS_OK;
+		}
+		break;
 	case XCAP_REQUEST_MONCLI:
 		uRet = xcap_get_proc(pMsgInfo);
 		if (VOS_OK != uRet)
@@ -119,7 +135,7 @@ VOS_UINT32 pid_init_money_proc(VOS_VOID *arg)
 		}
 		break;
 	default:
-		VOS_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
+		XCAP_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
 			pMsgInfo->Body.msghead.uType,
 			pMsgInfo->Body.msghead.uCmd);
 		break;

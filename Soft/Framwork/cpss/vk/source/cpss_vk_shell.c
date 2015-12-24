@@ -260,7 +260,7 @@ static VOS_UINT32 telnet_check_user(pCPSS_CLIENT_INFO pClient)
 			pClient->stuUserInfo.strUser,
 		pClient->stuUserInfo.strUser);
 	}
-	VOS_Wait_Event(&pClient->hCmdEvent, 600);
+	VOS_Wait_Event(&pClient->hCmdEvent, INFINITE);
 	ulRet = VOS_ERR;
 	if (VOS_OK == pClient->stuUserInfo.ulResult)
 	{
@@ -644,7 +644,7 @@ TRY_EVENT:
 		if (CPSS_CLIENT_ONLINE == uStat	&&
 			CPSS_CLIENT_CMD_DOING == ClientInfo.bIsEvent)
 		{
-			VOS_Wait_Event(&ClientInfo.hCmdEvent, 300);
+			VOS_Wait_Event(&ClientInfo.hCmdEvent, INFINITE);
 			if (NULL != ClientInfo.pstuBuffer)
 			{
 				VOS_PrintDebug(__FILE__, __LINE__, "Print Wait clint buffer address [%p]",
@@ -657,7 +657,7 @@ TRY_EVENT:
 		{
 			if (0 >= VOS_Strlen(ClientInfo.pstuBuffer))
 			{
-				VOS_Wait_Event(&ClientInfo.hCmdEvent, 300);
+				VOS_Wait_Event(&ClientInfo.hCmdEvent, INFINITE);
 				VOS_PrintDebug(__FILE__, __LINE__, "Print Wait [%p] size[%d]",
 					ClientInfo.pstuBuffer, VOS_Strlen(ClientInfo.pstuBuffer));
 				continue;
