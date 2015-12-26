@@ -516,6 +516,7 @@ VOS_VOID * cpss_mem_realloc(VOS_UINT32 nMemRdKey, void * vAdress, VOS_INT32 ulSi
 		return NULL;
 	}
 	pstuMemRecord->pstrVoid = pstrBuffer;
+	pstuMemRecord->nSize = ulSize;
 	pstuMemRecord->nFileLine = nLine;
 	ulFileNameLen = strlen(strFile) - 30;
 	if (ulFileNameLen <= 0)
@@ -722,7 +723,7 @@ VOS_CHAR* cpss_str_cat(VOS_UINT32 nMemRdKey, void * vAdressA, void * vAdressB, V
 	pstrTmp = vAdressA;
 	if (nMemsize < ulSizeA + ulSizeB)
 	{
-		pstrTmp = cpss_mem_realloc(nMemRdKey, vAdressA, pstuMemRecordB->nSize, __FILE__, __LINE__);
+		pstrTmp = cpss_mem_realloc(nMemRdKey, vAdressA, pstuMemRecordA->nSize + pstuMemRecordB->nSize, strFile, nLine);
 		if (NULL == pstrTmp)
 		{
 			return NULL;

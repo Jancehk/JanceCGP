@@ -81,6 +81,38 @@ static VOS_UINT32 xcap_system_proc(pCPSS_MSG pMsgInfo)
 }
 
 /* ===  FUNCTION  ==============================================================
+*         Name:  xcap_system_url_proc
+*  Description:  URL 解析处理入口
+* ==========================================================================*/
+static VOS_UINT32 xcap_system_url_proc(pCPSS_MSG pMsgInfo)
+{
+	VOS_UINT32 uRet = VOS_ERR;
+	VOS_UINT8 nCheck = 0;
+	if (NULL == pMsgInfo)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "msg head is null");
+		return uRet;
+	}
+
+	switch (cps_get_reqcontent_from_msg(pMsgInfo->Body.msghead.uType))
+	{
+	case XCAP_TYPE_URL:
+		uRet = xcap_request_URL(pMsgInfo);
+		if (VOS_OK != uRet)
+		{
+			XCAP_PrintErr(__FILE__, __LINE__, "send url to XCAP Error ");
+		}
+		break;
+	default:
+		VOS_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
+			pMsgInfo->Body.msghead.uType,
+			pMsgInfo->Body.msghead.uCmd);
+		break;
+	}
+	return uRet;
+}
+
+/* ===  FUNCTION  ==============================================================
  *         Name:  pid_init_proc
  *  Description: 
  *  Input      :    
@@ -101,7 +133,7 @@ VOS_UINT32 pid_init_xcap_proc(VOS_VOID *arg)
 		}
 		break;
 	case XCAP_REQUEST_URL:
-		uRet = xcap_request_URL(pMsgInfo);
+		uRet = xcap_system_url_proc(pMsgInfo);
 		if (VOS_OK != uRet)
 		{
 			XCAP_PrintErr(__FILE__, __LINE__, "send url to XCAP Error ");

@@ -18,6 +18,13 @@
 //#include <sys\stat.h>
 #include "xcap_common.h"
 
+#define VOS_XCAP_Malloc(ulSize)				VOS_Malloc((ulSize), (XCAP_MEM_HEAD_KEY_URL_COMM))
+#define VOS_XCAP_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (XCAP_MEM_HEAD_KEY_URL_COMM))
+#define VOS_XCAP_Remset(pstrads)			VOS_Remset((pstrads), (XCAP_MEM_HEAD_KEY_URL_COMM))
+#define VOS_XCAP_MemSize(pstrads)			VOS_Memsize((pstrads), (XCAP_MEM_HEAD_KEY_URL_COMM))
+#define VOS_XCAP_Memcls(pstrads)			VOS_Memcls((pstrads), (XCAP_MEM_HEAD_KEY_URL_COMM))
+#define VOS_XCAP_Memcat(pstrA,pstrB)		VOS_Memcat((pstrA), (pstrB), (XCAP_MEM_HEAD_KEY_URL_COMM))
+#define VOS_XCAP_Free(pstrads)				VOS_Free((pstrads), XCAP_MEM_HEAD_KEY_URL_COMM)
 /* ===  FUNCTION  =========================================================
  *         Name:  XCAP_PrintInfo
  *  Description:  
@@ -708,7 +715,13 @@ VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo)
 	pXCAP_SER_MGR    pstuXcapSerMgr = NULL;
 	pXCAP_MSG_MANAGE  pXcap_Msg_Mgr=NULL;
 	
-	pXcap_Msg_Mgr = (pXCAP_MSG_MANAGE)VOS_Malloc(sizeof(XCAP_MSG_MANAGE), "xcap msg manager");
+	if (CPSS_MSG_REQ != cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "get address is error");
+		return uRet;
+	}
+
+	pXcap_Msg_Mgr = (pXCAP_MSG_MANAGE)VOS_XCAP_Malloc(sizeof(XCAP_MSG_MANAGE));
 	if (NULL == pXcap_Msg_Mgr)
 	{
 		XCAP_PrintErr(__FILE__, __LINE__,"get address is error");

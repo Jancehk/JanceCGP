@@ -23,7 +23,7 @@
 #define VOS_Skt_Malloc(ulSize)			VOS_Malloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
 #define VOS_Skt_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
 #define VOS_Skt_Remset(pstrads)			VOS_Remset((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
-#define VOS_Skt_MemSize(pstrads)		VOS_MemSize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_MemSize(pstrads)		VOS_Memsize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
 #define VOS_Skt_Memcls(pstrads)			VOS_Memcls((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
 #define VOS_Skt_Memcat(pstrA,pstrB)		VOS_Memcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
 #define VOS_Skt_Free(pstrads)			VOS_Free((pstrads), CPSS_MEM_HEAD_KEY_CPSS_SKT)
@@ -395,7 +395,7 @@ static CPSS_SOCKET_LINK * cpss_get_socket_from_fdset(
 			hSocketLink = hSocketLink->next;
 			continue;
 		}
-		pstuSktfd->nCurrent;
+		pstuSktfd->nCurrent++;
 		if (hSocketLink->nlSocketType == uType &&
 			hSocketLink->nlSocketfd != 0 &&
 			CPSS_SKT_STAT_OPENED == hSocketLink->uIStat)
@@ -728,7 +728,7 @@ static CPSS_SOCKET_LINK * cpss_get_socket_from_pid(VOS_CHAR * szPidName, VOS_UIN
  *  OutPut     : 
  *  Return     : 
  * ==========================================================================*/
-static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
+static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketIN)
 {
 	VOS_UINT32			ulRet = VOS_ERR;
 	VOS_UINT32			ulMsgLength = 0;
@@ -739,12 +739,13 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 	CPSS_MSG		  * msgTmp = NULL;
 	//pCPSS_MEM_BUFFER	pstuBuf = NULL;
 
-	if (NULL == pSocketInfo)
+	if (NULL == pSocketIN)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "cpg socket info is NULL");
 		return ulRet;
 	}
-	pClientInfo = pSocketInfo->pstuClientInfo;
+	pSocketLink = pSocketIN;
+	pClientInfo = pSocketLink->pstuClientInfo;
 	if (NULL == pClientInfo)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "cpg client info is NULL");
@@ -766,19 +767,23 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 
 	if (CPSS_SOCKET_PACKAGE_OFF == (pClientInfo->uClientStat & CPSS_SOCKET_PACKAGE_OFF))
 	{
-		VOS_Strncpy(msgTmp->Body.msghead.strSegName, CPSS_COMM_SEG_NAME, VOS_Strlen(msgTmp->Body.msghead.strSegName));
+		VOS_Memcpy(msgTmp->Body.msghead.strSegName, CPSS_COMM_SEG_NAME, sizeof(CPSS_COMM_SEG_NAME));
 		msgTmp->Body.msghead.stDstProc.ulCpuID = CPSSCPUID;
 		msgTmp->Body.msghead.stDstProc.ulPID = *pSocketLink->pstuPid->pPid;
 		msgTmp->Body.msghead.stSrcProc.ulCpuID = get_cpuid_from_str(pClientInfo->strIPaddress);
-		msgTmp->Body.msghead.stSrcProc.ulPID = VOS_SOCKET_IN | VOS_TCP_PID | pSocketInfo->uPort;
+		msgTmp->Body.msghead.stSrcProc.ulPID = VOS_SOCKET_IN | VOS_TCP_PID | pSocketLink->uPort;
 		msgTmp->Body.msghead.ulMsgLength = CPSS_MSG_BUFFER_SIZE;
+		if (CPSS_SOCKET_XCAP == pClientInfo->uClientStat)
+		{
+			msgTmp->Body.msghead.uType = cps_set_msg_type(XCAP_REQUEST_URL, XCAP_TYPE_URL, CPSS_MSG_REQ);;
+		}
 
 		if (VOS_OK != cps_get_msg_mem_data(msgTmp))
 		{
 			cpss_move_reserve_to_free(msgTmp);
 			return VOS_CLIENT_DISCONNECT;
 		}
-		ulMsgLength = recv(pSocketInfo->nlSocketfd,
+		ulMsgLength = recv(pSocketLink->nlSocketfd,
 			msgTmp->Body.strDataBuf,
 			CPSS_MSG_BUFFER_SIZE,0);
 
@@ -793,7 +798,7 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 			cpss_move_reserve_to_free(msgTmp);
 			return VOS_CLIENT_DISCONNECT;
 		}
-		msgTmp->ulMsgLength = ulMsgLength;
+		msgTmp->ulMsgLength = CPSS_MSG_HEAD_SIZE + ulMsgLength;
 		ulRet = VOS_OK;
 	}
 	else if (CPSS_SOCKET_PACKAGE_ON == (pClientInfo->uClientStat & CPSS_SOCKET_PACKAGE_ON))
@@ -802,7 +807,7 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 		ulMsgIndex = 0;
 		while (ulMsgIndex != ulBodySize)
 		{
-			ulMsgLength = recv(pSocketInfo->nlSocketfd,
+			ulMsgLength = recv(pSocketLink->nlSocketfd,
 				(VOS_CHAR*)&msgTmp->Body.msghead + ulMsgIndex,
 				ulBodySize - ulMsgIndex, 0);
 
@@ -828,7 +833,7 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 		if (VOS_OK != cps_get_msg_mem_data(msgTmp))
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "get msg mem data is err");
-			goto END_ERR_PROC;
+			goto END_DIS_PROC;
 		}
 
 		ulMsgIndex = 0;
@@ -839,7 +844,7 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 
 		while (ulMsgIndex != ulBodySize && ulBodySize >0)
 		{
-			ulMsgLength = recv(pSocketInfo->nlSocketfd,
+			ulMsgLength = recv(pSocketLink->nlSocketfd,
 				msgTmp->Body.strDataBuf + ulMsgIndex,
 				ulBodySize - ulMsgIndex, 0);
 			
@@ -856,10 +861,15 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketInfo)
 		msgTmp->ulMsgLength = ulMsgIndex;
 	}
 	msgTmp->nRState = CPSS_MSG_RS_STAT_RECVED;
-	//pSocketInfo->pstuRecvMsg = msgTmp;
+	ulRet = cpss_move_tcp_recv_free_to_used(msgTmp);
+	if (VOS_OK != ulRet)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "move tcp to used error ");
+		goto END_DIS_PROC;
+	}
 END_OK_PROC:
 	return ulRet;
-END_ERR_PROC:
+//END_ERR_PROC:
 	cpss_move_reserve_to_free(msgTmp);
 	ulRet = VOS_ERR;
 	goto END_OK_PROC;
@@ -1123,47 +1133,6 @@ END_PROC:
 	}
 	return ulSocRet;
 }
-/* ===  FUNCTION  ==============================================================
- *         Name:  cpss_socket_tcp_open
- *  Description: 
- *  Input      :    
- *  OutPut     :    
- *  Return     :  
- * ==========================================================================*/
-static VOS_UINT32 cpss_check_msg_complete(pCPSS_CLIENT_INFO pClientInfo, pCPSS_SOCKET_LINK pSocketInfo)
-{
-	VOS_UINT32 ulRet = VOS_ERR;
-	pCPSS_MSG pstuMsg = NULL;
-	if (NULL == pClientInfo || NULL == pSocketInfo)
-	{
-		VOS_PrintErr(__FILE__, __LINE__, "check msg param is NULL");
-		return ulRet;
-	}
-	
-	//pstuMsg = pSocketInfo->pstuRecvMsg;
-	if (CPSS_SOCKET_TELNET == pClientInfo->uClientStat)
-	{
-		//pstuMsg->Body.msghead.uType = CPSS_TYPE_SYSTEM_TELNET;
-		ulRet = cpss_move_tcp_recv_free_to_used(pstuMsg);
-		if (VOS_OK != ulRet)
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "move tcp to used error ");
-			return ulRet;
-		}
-		ulRet = VOS_OK;
-	}
-	else
-	{
-		ulRet = cpss_move_tcp_recv_free_to_used(pstuMsg);
-		if (VOS_OK != ulRet)
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "move tcp to used error ");
-			return ulRet;
-		}
-	}
-	//pSocketInfo->pstuRecvMsg = NULL;
-	return ulRet;
-}
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_tcp_timer_used_to_free_proc
@@ -1229,7 +1198,6 @@ VOS_UINT32 cpss_tcp_recv_proc (VOS_VOID * lpParameter)
 		{
 			continue;
 		}
-		stuSktfd.nCurrent++;
 		pClientInfo = pSocketInfo->pstuClientInfo;
 		if (NULL == pClientInfo)
 		{
@@ -1249,13 +1217,7 @@ VOS_UINT32 cpss_tcp_recv_proc (VOS_VOID * lpParameter)
 				pClientInfo->strIPaddress,
 				pSocketInfo->uPort);
 			cpss_move_used_to_free(piocpmanage, pClientInfo);
-			continue;
-		}
-
-		ulRet = cpss_check_msg_complete(pClientInfo, pSocketInfo);
-		if (VOS_OK != ulRet)
-		{
-			//cpss_move_reserve_to_free(pSocketInfo->pstuRecvMsg);
+			cpss_close_socket(pSocketInfo);
 			continue;
 		}
 
@@ -1289,7 +1251,7 @@ VOS_UINT32 cpss_tcp_send_proc (VOS_VOID * lpPareter)
 	VOS_UINT32			nSendLength = 0;
 	CPSS_CLIENT_INFO  * pClient = NULL;
 	CPSS_SOCKET_LINK  * pSocketInfo = NULL;
-	//CPSS_SOCKET_LINK  * pSocket = NULL;
+	CPSS_SOCKET_LINK  * pSocket = NULL;
 	CPSS_MSG		  * pstuMsg = NULL;
 	CPSS_MSG		  * pstuMsgParent = NULL;
 	
@@ -1322,16 +1284,19 @@ VOS_UINT32 cpss_tcp_send_proc (VOS_VOID * lpPareter)
 			goto ERR_CONTINUE;
 		}
 		pClient = (pCPSS_CLIENT_INFO)pstuMsg->pClient;
-		if (NULL == pClient)
+		if (NULL != pClient)
 		{
-			VOS_PrintErr(__FILE__, __LINE__, "send socket is disonnect ");
-			goto ERR_CONTINUE;
-		}
-		pSocket = cpss_get_socket_from_client(pClient);
-		if (NULL == pSocket)
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "send socket is disonnect ");
-			goto ERR_CONTINUE;
+			pSocket = cpss_get_socket_from_client(pClient);
+			if (NULL == pSocket)
+			{
+				VOS_PrintErr(__FILE__, __LINE__, "get socket info in client head");
+				goto ERR_CONTINUE;
+			}
+			if (pSocketInfo != pSocket)
+			{
+				VOS_PrintErr(__FILE__, __LINE__, "send head pid socket faild");
+				goto ERR_CONTINUE;
+			}
 		}
 		if (CPSS_MSG_SELF_STAT_USEING != pstuMsg->nSelfStat)/*VOS_CLIENT_DISCONNECT*/
 		{
@@ -1649,8 +1614,6 @@ VOS_UINT32 cpss_udp_recv_proc (VOS_VOID * lpParameter)
 		{
 			continue;
 		}
-
-		stuSktfd.nCurrent++;
 		ulRet = cpss_udp_recv_msg(pSocketLink, CPSS_SOCKET_PACKAGE_OFF);
 		if (ulRet == VOS_ERR)
 		{
@@ -1903,17 +1866,13 @@ VOS_UINT32 cpss_tcp_distribute_proc (VOS_VOID * lpParameter)
 			continue;
 		}
 		pSocket = cpss_get_socket_from_client(pClient);
-		if (NULL == pSocket)
+		if (NULL == pSocket || pSocket->pstuPid != pstuPidInfo)
 		{
 			VOS_PrintErr(__FILE__,__LINE__,"PID Msg Client %p pSocket %p",
 				pClient,pSocket);
 			continue;
 		}
 		
-		if (CPSS_SOCKET_XCAP == pClient->uClientStat)
-		{
-			//pMsgInfo->Body.msghead.uType = CPSS_TYPE_SYSTEM_HTTP;
-		}
 /*
 		pMsgInfo->pTimer = (VOS_VOID *)cpss_set_timer(300, cpss_tcp_timer_used_to_free_proc, 
 			pMsgInfo, sizeof(CPSS_MSG));
@@ -1981,6 +1940,7 @@ static VOS_UINT32 cpss_tcp_accept_client (CPSS_SOCKET_LINK * pstuSocket)
 	pRecvSocket->nlSocketType = VOS_SOCKET_TCP;
 	pRecvSocket->pstuPid = pAccptSocket->pstuPid;
 	pRecvSocket->uPort = htons(pClientInfo->clientaddr.sin_port);
+	pRecvSocket->nlSocketfd = nlClientSocketfd;
 	pRecvSocket->pstuClientInfo = pClientInfo;
 	VOS_Strcpy(pClientInfo->strIPaddress,inet_ntoa(pClientInfo->clientaddr.sin_addr));
 	pClientInfo->pAccptSocket = pAccptSocket;
@@ -2015,25 +1975,29 @@ static VOS_UINT32 cpss_tcp_accept_client (CPSS_SOCKET_LINK * pstuSocket)
 			VOS_PrintErr(__FILE__, __LINE__, "get new msg info is NULL");
 			goto ERR_PROC;
 		}
+		VOS_Memcpy(pstuMsgInfo->Body.msghead.strSegName, CPSS_COMM_SEG_NAME, sizeof(CPSS_COMM_SEG_NAME));
 		pstuMsgInfo->Body.msghead.stDstProc.ulCpuID = CPSSCPUID;
 		pstuMsgInfo->Body.msghead.stDstProc.ulPID   = *pAccptSocket->pstuPid->pPid;
 		pstuMsgInfo->Body.msghead.stSrcProc.ulCpuID = get_cpuid_from_str(pClientInfo->strIPaddress);
 		pstuMsgInfo->Body.msghead.stSrcProc.ulPID   = VOS_SOCKET_IN | VOS_TCP_PID |pRecvSocket->uPort;
 		pstuMsgInfo->pClient = pClientInfo;
-		//pstuMsgInfo->Body.msghead.uType = CPSS_TYPE_SYSTEM_INIT;
+		pstuMsgInfo->Body.msghead.uType = cps_set_msg_type(CPSS_REQUEST_SYSTEM, XCAP_TYPE_NEW_CLIENT, CPSS_MSG_INIT);
 		if (CPSS_SOCKET_TELNET == pClientInfo->uClientStat)
 		{
 			pstuMsgInfo->Body.msghead.uCmd = CPSS_CMD_SYSTEM_TELNET;//CPSS_TYPE_SYSTEM_TELNET;
 		}
+		pstuMsgInfo->nRState = CPSS_MSG_RS_STAT_RECVED;
 		ulRet = cpss_move_tcp_recv_free_to_used(pstuMsgInfo);
 		if (VOS_OK != ulRet)
 		{
 			VOS_PrintErr(__FILE__,__LINE__,"move tcp recv to used failed :%p",pstuMsgInfo);
+			goto ERR_PROC;
 		}
 		VOS_Set_Event(&pAccptSocket->pstuPid->pMsgEvent);
 	}
 	VOS_PrintDebug(__FILE__,__LINE__,"client:%d info:%s:%d",
 		pClientInfo->ulID, pClientInfo->strIPaddress, pRecvSocket->uPort);
+	pRecvSocket->uIStat = CPSS_SKT_STAT_OPENED;
 END_PROC:
 	if (VOS_ERR == ulRet)
 	{
@@ -2104,8 +2068,6 @@ VOS_UINT32 cpss_tcp_accept_client_proc (VOS_VOID * lpParameter)
 		{
 			continue;
 		}
-		stuSktfd.nCurrent++;
-
 		if (VOS_OK != cpss_tcp_accept_client(pSocketLink))
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "accept failed %p:%s:%d", pSocketLink,
