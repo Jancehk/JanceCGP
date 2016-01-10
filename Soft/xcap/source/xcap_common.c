@@ -15,16 +15,16 @@
  *
  * =====================================================================================
 */
-//#include <sys\stat.h>
+
 #include "xcap_common.h"
 
-#define VOS_XCAP_Malloc(ulSize)				VOS_Malloc((ulSize), (XCAP_MEM_HEAD_KEY_URL_COMM))
-#define VOS_XCAP_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (XCAP_MEM_HEAD_KEY_URL_COMM))
-#define VOS_XCAP_Remset(pstrads)			VOS_Remset((pstrads), (XCAP_MEM_HEAD_KEY_URL_COMM))
-#define VOS_XCAP_MemSize(pstrads)			VOS_Memsize((pstrads), (XCAP_MEM_HEAD_KEY_URL_COMM))
-#define VOS_XCAP_Memcls(pstrads)			VOS_Memcls((pstrads), (XCAP_MEM_HEAD_KEY_URL_COMM))
-#define VOS_XCAP_Memcat(pstrA,pstrB)		VOS_Memcat((pstrA), (pstrB), (XCAP_MEM_HEAD_KEY_URL_COMM))
-#define VOS_XCAP_Free(pstrads)				VOS_Free((pstrads), XCAP_MEM_HEAD_KEY_URL_COMM)
+#define VOS_XCAP_Malloc(ulSize)				VOS_Malloc((ulSize), (XCAP_MEM_HEAD_KEY_URL_XCAP))
+#define VOS_XCAP_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (XCAP_MEM_HEAD_KEY_URL_XCAP))
+#define VOS_XCAP_Remset(pstrads)			VOS_Remset((pstrads), (XCAP_MEM_HEAD_KEY_URL_XCAP))
+#define VOS_XCAP_MemSize(pstrads)			VOS_Memsize((pstrads), (XCAP_MEM_HEAD_KEY_URL_XCAP))
+#define VOS_XCAP_Memcls(pstrads)			VOS_Memcls((pstrads), (XCAP_MEM_HEAD_KEY_URL_XCAP))
+#define VOS_XCAP_Memcat(pstrA,pstrB)		VOS_Memcat((pstrA), (pstrB), (XCAP_MEM_HEAD_KEY_URL_XCAP))
+#define VOS_XCAP_Free(pstrads)				VOS_Free((pstrads), XCAP_MEM_HEAD_KEY_URL_XCAP)
 /* ===  FUNCTION  =========================================================
  *         Name:  XCAP_PrintInfo
  *  Description:  
@@ -80,15 +80,14 @@ void XCAP_PrintWarn (
 	va_end(ap);
 }		/* -----  end of function VOS_Print_Info  ----- */
 
-
 /* ===  FUNCTION  ==============================================================
- *         Name:  cpss_get_Fields
+ *         Name:  xcap_get_response_status_code
  *  Description: 
  *  Input      :    
  *  OutPut     :    
  *  Return     :  
  * ==========================================================================*/
-static VOS_UINT32 xcap_response_get_code(VOS_UINT16 Code, STATUS_CODE ** pCode)
+static VOS_UINT32 xcap_get_response_status_code(VOS_UINT16 Code, STATUS_CODE ** pCode)
 {
 	VOS_UINT32 uIndex = 0;
 	VOS_UINT32 uCount = sizeof(g_StatusCode)/sizeof(STATUS_CODE);
@@ -487,7 +486,7 @@ static VOS_UINT32 xcap_set_body(pXCAP_RESPONSE pxCap_Response, pCPSS_MSG pMsgInf
 		return uRet;
 	}
 	pstrDataBuffer = pMsgInfo->Body.strDataBuf;
-	if (VOS_OK != xcap_response_get_code(pxCap_Response->Res_head.StatueCode, &pCode))
+	if (VOS_OK != xcap_get_response_status_code(pxCap_Response->Res_head.StatueCode, &pCode))
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"get responce code is failed");
 		return uRet;
@@ -532,7 +531,7 @@ static VOS_UINT32 xcap_set_body(pXCAP_RESPONSE pxCap_Response, pCPSS_MSG pMsgInf
 		XCAP_HEAD_BODY,VOS_Strlen(XCAP_HEAD_BODY),VOS_SEND_SKT_TYPE_INSERT);
 
 	
-	uRecvBufferLen = sizeof(XCAP_SER_MGR);
+	//uRecvBufferLen = sizeof(XCAP_SER_MGR);
 	pstrDataBuffer = pMsgInfo->Body.strDataBuf;
 	while(NULL != pstrDataBuffer)
 	{
@@ -573,14 +572,15 @@ VOS_UINT32 xcap_responce_proc(pCPSS_MSG pMsgInfo)
 	VOS_UINT32 ulRet = VOS_ERR;
 	pXCAP_RESPONSE pxCap_Respone_Info = NULL;
 	pXCAP_MSG_MANAGE pXcap_Msg_Mgr = NULL;
-	pXCAP_SER_MGR  pXcap_Svr_Mgr = (pXCAP_SER_MGR)pMsgInfo->Body.strDataBuf;
-	
+	//pXCAP_SER_MGR  pXcap_Svr_Mgr = (pXCAP_SER_MGR)pMsgInfo->Body.strDataBuf;
+	/*
 	if (NULL == pXcap_Svr_Mgr)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"xcap request is msg mgr is NULL");
 		return ulRet;
 	}
 	pXcap_Msg_Mgr = pXcap_Svr_Mgr->Req_Mgr;
+	*/
 	if (NULL == pXcap_Msg_Mgr)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"xcap request is msg mgr is NULL");
@@ -594,7 +594,7 @@ VOS_UINT32 xcap_responce_proc(pCPSS_MSG pMsgInfo)
 	
 	pxCap_Respone_Info = &pXcap_Msg_Mgr->xCap_Respone_Info;
 	xcap_set_head(pxCap_Respone_Info, XCAP_RES_CODE_200);
-	xcap_set_body_size(pxCap_Respone_Info, pMsgInfo, sizeof(XCAP_SER_MGR));
+	//xcap_set_body_size(pxCap_Respone_Info, pMsgInfo, sizeof(XCAP_SER_MGR));
 	xcap_set_body(pxCap_Respone_Info,pMsgInfo);
 	//VOS_Free(pXcap_Msg_Mgr, sizeof(pXCAP_MSG_MANAGE));
 	return VOS_OK;
@@ -668,6 +668,7 @@ static VOS_UINT32 get_xcap_user_body(pXCAP_RESPONSE pxCap_Response)
 //	set_xcap_head();
 	return uRet;
 }
+#if 0 
 /* ===  FUNCTION  ==============================================================
  *         Name:  xcap_analyzing_info
  *  Description:  解析xcap 字符串
@@ -699,7 +700,29 @@ VOS_UINT32 xcap_analyzing_root(pXCAP_SER_MGR pSerMgr, pXCAP_REQUEST pMsgInfo)
 	ulRet = VOS_OK;
 	return ulRet;
 }
+#endif
 
+/* ===  FUNCTION  ==============================================================
+*         Name:  send_xcap_URL
+*  Description:  给xcap 服务器发送url信息
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static VOS_UINT32 xcap_document_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr)
+{
+	VOS_UINT32 uRet = VOS_ERR;
+	if (NULL == pXcap_Msg_Mgr)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "document select parameter error");
+		return uRet;
+	}
+	if (0 == pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI[0])
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "document select path is error");
+		return uRet;
+	}
+}
 /* ===  FUNCTION  ==============================================================
  *         Name:  send_xcap_URL
  *  Description:  给xcap 服务器发送url信息
@@ -711,8 +734,8 @@ VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo)
 {
 	VOS_UINT32 uRet = VOS_ERR;
 	VOS_UINT32		uBuffLen = 0;
-	VOS_CHAR		strBuffer[CPSS_MSG_BUFFER_SIZE]={0};
-	pXCAP_SER_MGR    pstuXcapSerMgr = NULL;
+	//VOS_CHAR		strBuffer[CPSS_MSG_BUFFER_SIZE]={0};
+	//pXCAP_SER_MGR    pstuXcapSerMgr = NULL;
 	pXCAP_MSG_MANAGE  pXcap_Msg_Mgr=NULL;
 	
 	if (CPSS_MSG_REQ != cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
@@ -741,7 +764,8 @@ VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo)
 		XCAP_PrintErr(__FILE__, __LINE__, "check xcap buffer error");
 		goto ERR_PROC;
 	}
-	pstuXcapSerMgr = (pXCAP_SER_MGR)strBuffer;
+#if 0
+	//pstuXcapSerMgr = (pXCAP_SER_MGR)strBuffer;
 	if (VOS_OK != xcap_analyzing_root(pstuXcapSerMgr,&pXcap_Msg_Mgr->xCap_Request_Info))
 	{
 		XCAP_PrintErr(__FILE__, __LINE__, "analyzing xcap root error ");
@@ -749,6 +773,7 @@ VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo)
 	}
 	pstuXcapSerMgr->Req_Mgr = pXcap_Msg_Mgr;
 	pstuXcapSerMgr->uStat = 0x0A;
+#endif
 	pXcap_Msg_Mgr->xCap_Request_Info.ulMsgID = pMsgInfo->ulMsgID;
 	pXcap_Msg_Mgr->xCap_Respone_Info.ulMsgID = pMsgInfo->ulMsgID;
 	
@@ -757,7 +782,7 @@ VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo)
 	{
 	case XCAP_REQ_GET:
 		//VOS_Memcpy(strBuffer,(VOS_CHAR*)&stuXcapSerMgr,sizeof(XCAP_SER_MGR));
-		uBuffLen = sizeof(XCAP_SER_MGR)+VOS_Strlen(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI);
+		//uBuffLen = sizeof(XCAP_SER_MGR)+VOS_Strlen(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI);
 		//uRet = xcap_get_body_proc(pMsgInfo, strBuffer, uBuffLen, CPSS_REQ_XCAP_GET, CPSS_TYPE_GET_SUBURL);
 		if (VOS_OK != uRet)
 		{
@@ -943,10 +968,7 @@ static VOS_UINT32 get_xcap_file_no_find(pXCAP_RESPONSE pxCap_Response)
 void parser(char *s,char res[][255],char host[][255]);
 static char *strtoupper( char *s );
 static long filesize(const char *filename);
-static int file_exists(const char *filename);
 static void mime_content_type( const char *name, char *ret );
-static int WriteLog( const char *message );
-static int is_dir(const char *filename);
 
 static unsigned short g_is_log        = 1;
 static int g_log_fd                    = 0;
@@ -1341,52 +1363,4 @@ static void mime_content_type( const char *name, char *ret ){
     strcpy(ret, buf);
 }
 
-/**
- * Log message
- *
- */
-static int WriteLog( const char *message )
-{
-    if ( !g_is_log )
-    {
-        fprintf(stderr, "%s", message);
-        return 0;
-    }
-    if ( g_log_fd == 0 )
-    {
-        char g_log_path[2000];
-        getcwd(g_log_path, sizeof(g_log_path));
-        strcat(g_log_path,"/");
-        strcat(g_log_path,LOG_PATH);
-        
-        if ( (g_log_fd = open(g_log_path, O_RDWR|O_CREAT|O_APPEND, S_IRUSR|S_IWUSR|S_IRGRP|S_IROTH)) == -1 )
-        {
-            perror("open log file error");
-            return -1;
-        }
-    }
-    
-    if (write(g_log_fd, message, strlen(message)) == -1)
-    {
-        perror("write log error");
-        return -1;
-    }
-
-    return 0;
-}
-
-/**
- * is_dir - check file is directory
- *
- */
-static int is_dir(const char *filename){
-    struct stat buf;
-    if ( stat(filename, &buf) < 0 ){
-        return -1;
-    }
-    if (S_ISDIR(buf.st_mode)){
-        return 1;
-    }
-    return 0;
-}
 #endif

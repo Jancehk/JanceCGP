@@ -58,24 +58,10 @@ typedef enum CPSS_MEM_BUFFER_TYPE_M{
 	CPSS_MEM_HEAD_KEY_CPSS_PID,
 	CPSS_MEM_HEAD_KEY_CPSS_SHELL,
 	CPSS_MEM_HEAD_KEY_CPSS_TMER,
-	XCAP_MEM_HEAD_KEY_URL_COMM,
+	XCAP_MEM_HEAD_KEY_URL_XCAP,
 	CPSS_MEM_HEAD_KEY_CPSS_TOTAL,
 };
 
-#if 0
-typedef struct _CPSS_MEM_BUFFER_T
-{
-	VOS_UINT8	nIndex;	/*buferr ID 号*/
-	VOS_UINT8	nStat;	/*buferr 状态 free 空闲 reserve 预约状态 useing 准备使用状态 used 正在使用*/
-	VOS_UINT8	nType;	/*buferr 类型，消息接受的类型*/
-	VOS_UINT8	nRevc;	/*buferr 预留位*/
-	VOS_UINT8	nRevcl[8];	/*buferr 预留位*/
-	VOS_UINT32	nSize;	/*buferr 长度*/
-	VOS_CHAR	strBuffer[CPSS_MSG_BUFFER_SIZE]; /*buffer 内容*/
-	struct _CPSS_MEM_BUFFER_T * prev;
-	struct _CPSS_MEM_BUFFER_T * next;
-}CPSS_MEM_BUFFER,*pCPSS_MEM_BUFFER;
-#endif
 /*===  FUNCTION  ==============================================================
  *         Name:  get_cpuid_from_ip
  *  Description:	32位ip转换为cpuid
@@ -111,6 +97,18 @@ VOS_UINT32 get_ip_from_cpuid(VOS_UINT32 ulCpuid);
  * ==========================================================================*/
 VOS_STRING cpss_get_str_before (VOS_STRING pszInputStr, VOS_STRING szFind);
 /* -----  end of function cpss_get_str_before  ----- */
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_is_dir
+*  Description:  检查是否为目录
+* ==========================================================================*/
+VOS_INT32 cpss_is_dir(const VOS_CHAR *filename);
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_file_exists
+*  Description:  检查文件是否存在
+* ==========================================================================*/
+VOS_INT32 cpss_file_exists(const VOS_CHAR *filename);
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  VOS_Mutex_Init

@@ -353,7 +353,7 @@ VOS_UINT32 xcap_responce_proc(pCPSS_MSG pMsgInfo);
  *         Name:  xcap_analyzing_info
  *  Description:  ½âÎöxcap ×Ö·û´®
  * ==========================================================================*/
-VOS_UINT32 xcap_analyzing_root(pXCAP_SER_MGR pSerMgr, pXCAP_REQUEST pMsgInfo);
+//VOS_UINT32 xcap_analyzing_root(pXCAP_SER_MGR pSerMgr, pXCAP_REQUEST pMsgInfo);
 
 
 #ifdef _cplusplus

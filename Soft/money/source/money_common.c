@@ -184,7 +184,7 @@ VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 {
 	VOS_UINT32		uRet = VOS_ERR;
 	VOS_CHAR		strUrlName[XCAP_HOST_LENGTH] = {0};
-	pXCAP_SER_MGR    stuXcapSerMgr = {0};
+	//pXCAP_SER_MGR    stuXcapSerMgr = {0};
 	VOS_UINT8		uNum = -1;
 	CPSS_MSG		MsgInfo = {0};
 	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pVoidMsg;
@@ -194,6 +194,7 @@ VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 		Money_PrintErr(__FILE__,__LINE__,"input msg info is NULL");
 		goto END_PROC;
 	}
+#if 0
 	stuXcapSerMgr =(pXCAP_SER_MGR)pMsgInfo->Body.strDataBuf;
 	if (0x0A != stuXcapSerMgr->uStat)
 	{
@@ -204,8 +205,9 @@ VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 		stuXcapSerMgr->Req_Mgr, 
 		&stuXcapSerMgr->URL);
 	VOS_Memcpy(&MsgInfo.Body.strDataBuf, stuXcapSerMgr, sizeof(XCAP_SER_MGR));
-	
+
 	uNum = get_xcap_root(&stuXcapSerMgr->URL);
+#endif
 	if (uNum >=  0 && uNum < sizeof(g_rootInfo)/sizeof(XCAP_ROOT_INFO))
 	{
 		if (NULL == g_rootInfo[uNum].dealFun)
@@ -214,7 +216,7 @@ VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 			uRet = VOS_OK;
 			goto END_PROC;
 		}
-		uRet = g_rootInfo[uNum].dealFun(&stuXcapSerMgr->URL, &MsgInfo);
+	//	uRet = g_rootInfo[uNum].dealFun(&stuXcapSerMgr->URL, &MsgInfo);
 		if (uRet != VOS_OK)
 		{
 			Money_PrintErr(__FILE__,__LINE__,"dealFun error,input num:%d, ret:%d",uNum, uRet);
@@ -226,7 +228,7 @@ VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 	}
 	//if (0 != MsgInfo.Body.strDataBuf.nSize)
 	{
-		Money_PrintInfo(__FILE__,__LINE__,"RES :\n%s", MsgInfo.Body.strDataBuf+sizeof(XCAP_SER_MGR));
+		//Money_PrintInfo(__FILE__,__LINE__,"RES :\n%s", MsgInfo.Body.strDataBuf+sizeof(XCAP_SER_MGR));
 		
 		VOS_Memcpy(&MsgInfo.Body.msghead.stSrcProc,
 			&pMsgInfo->Body.msghead.stDstProc,	sizeof(CPSS_COM_PID));

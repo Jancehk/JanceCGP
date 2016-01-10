@@ -15,6 +15,8 @@
  *
  * =====================================================================================
  */
+#include <sys\stat.h>
+#include <errno.h>
 #include "cpss_public.h"
 #include "cpss_tm_timer.h"
 #define CPSS_CGP_LARGE  	1
@@ -214,6 +216,47 @@ VOS_STRING cpss_get_str_before (VOS_STRING pszInputStr, VOS_STRING szFind)
 	szStrTmp++;
 	return szStrTmp;
 }		/* -----  end of function cpss_get_str_before  ----- */
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_is_dir
+*  Description:  检查是否为目录
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_INT32 cpss_is_dir(const VOS_CHAR *filename)
+{
+	struct stat buff;
+	if (stat(filename, &buff) < 0){
+		return -1;
+	}
+	//if (S_ISDIR(buff.st_mode))
+	{
+		return 1;
+	}
+	return 0;
+}
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_file_exists
+*  Description:  检查文件是否存在
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_INT32 cpss_file_exists(const VOS_CHAR *filename)
+{
+	struct stat buff;
+
+	if (stat(filename, &buff) < 0)
+	{
+		if (errno == ENOENT)
+		{
+			return 0;
+		}
+	}
+	return 1;
+}
 
 
 /* ===  FUNCTION  ==============================================================

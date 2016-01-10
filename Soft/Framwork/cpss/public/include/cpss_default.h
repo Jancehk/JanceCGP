@@ -204,6 +204,8 @@ typedef enum CPSS_PRINT_LEVEL{
 
 #define CPSS_CLIENT_NAME_LENGTH		128
 #define CPSS_CLIENT_PASS_LENGTH		128
+
+#if 0
 /***********************************************************************/
 /*								About Xcap						   */
 /***********************************************************************/
@@ -213,6 +215,7 @@ typedef struct _XCAP_SER_MGR_T{
 	VOS_CHAR   RootName[28];
 	VOS_CHAR   URL;
 }XCAP_SER_MGR,*pXCAP_SER_MGR;
+#endif
 
 #endif   /* ----- #ifndef cpss_msg_INC  ----- */
  

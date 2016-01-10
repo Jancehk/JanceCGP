@@ -1221,7 +1221,7 @@ VOS_UINT32 cpss_tcp_recv_proc (VOS_VOID * lpParameter)
 			continue;
 		}
 
-		VOS_PrintDebug(__FILE__, __LINE__, "TC recv set event %s", pSocketInfo->pstuPid->pMsgEvent.strmutex);
+		//VOS_PrintDebug(__FILE__, __LINE__, "TC recv set event %s", pSocketInfo->pstuPid->pMsgEvent.strmutex);
 		ulRet = VOS_Set_Event(&pSocketInfo->pstuPid->pMsgEvent);
 		if (VOS_OK != ulRet)
 		{
