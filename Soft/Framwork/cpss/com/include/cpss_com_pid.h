@@ -41,14 +41,15 @@ typedef struct CPSS_PID_TABLE_T
 		VOS_UINT16		ulSockPort;
 	};
 	VOS_UINT32	ulPidCount;				// PID Count
-	VOS_UINT32  *pCPuID;				// CPUID
-	VOS_UINT32  *pPid;					// PID
-	VOS_CHAR	*pszPidName;			// [CPSSPIDMAXNAME];
+	pCPSS_CPUID_INFO pCPuID;			// CPUID/PID
+	//VOS_CHAR	*pszPidName;			// [CPSSPIDMAXNAME];
 	VOS_Event	pMsgEvent;				// 消息信号
+	/* ---------------------------------------------- */
 	VOS_UINT32(*ppid_init_proc) (VOS_VOID *arg);
 	VOS_UINT32(*ppid_timeout_proc) (VOS_VOID *pargc, VOS_UINT32 pargv);
 	VOS_VOID * pSocketInfo;
 	CPSS_PID_THREAD_INFO * pPidListInfo;
+	/* ---------------------------------------------- */
 	VOS_CHAR szPidName[CPSSPIDMAXNAME];
 	struct CPSS_PID_TABLE_T * prev;
 	struct CPSS_PID_TABLE_T * next;
@@ -75,15 +76,13 @@ typedef struct _CPSS_CPUID_PID_MAP_T
 	VOS_CHAR	szPidName[CPSSPIDMAXNAME];
 }CPSS_CPUID_PID_MAP,*pCPSS_CPUID_PID_MAP;
 
-CPSS_MANAGE_PID g_handleManagePid ;   //管理PID的全局变量
-VOS_UINT32 g_ulSubSystem;
-#define CPSSCPUID	cpss_get_cpuid_pid(CPSS_CONNECT_SUB_SELF,CPSS_CONNECT_SELF, CPSS_GET_TYPE_CPUID)
+#define CPSSCPUID	cpss_get_cpuid_pid(CPSS_SYSTEM_TYPE_SELF,CPSS_SUBSYS_TYPE_SELF, CPSS_GET_TYPE_CPUID)
 //g_handleManagePid.pstuCPuIDList[].ulProcessCPuID
-#define DBSVRCPUID	cpss_get_cpuid_pid(CPSS_CONNECT_SUB_SELF, CPSS_CONNECT_DBSVR, CPSS_GET_TYPE_CPUID)
-#define DBSVRPID	cpss_get_cpuid_pid(CPSS_CONNECT_SUB_SELF, CPSS_CONNECT_DBSVR, CPSS_GET_TYPE_PID)
+#define DBSVRCPUID	cpss_get_cpuid_pid(CPSS_SYSTEM_TYPE_SELF, CPSS_SUBSYS_TYPE_DBSVR, CPSS_GET_TYPE_CPUID)
+#define DBSVRPID	cpss_get_cpuid_pid(CPSS_SYSTEM_TYPE_SELF, CPSS_SUBSYS_TYPE_DBSVR, CPSS_GET_TYPE_PID)
 
-#define CPSSFWCPUID		cpss_get_cpuid_pid(g_ulSubSystem, CPSS_CONNECT_FW, CPSS_GET_TYPE_CPUID)
-#define CPSSFWPID		cpss_get_cpuid_pid(g_ulSubSystem, CPSS_CONNECT_FW, CPSS_GET_TYPE_PID)
+#define CPSSFWCPUID		cpss_get_cpuid_pid(cpss_get_systemid(), CPSS_SUBSYS_TYPE_FW, CPSS_GET_TYPE_CPUID)
+#define CPSSFWPID		cpss_get_cpuid_pid(cpss_get_systemid(), CPSS_SUBSYS_TYPE_FW, CPSS_GET_TYPE_PID)
 
 #define SKTYPE(hSocketLink)		(((hSocketLink->nlSocketType) & VOS_SOCKET_TYPE)>>16)
 
@@ -94,8 +93,29 @@ VOS_UINT32 g_ulSubSystem;
  *  OutPut     :    
  *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 cpss_pid_init ();
+VOS_UINT32 cpss_pid_init();
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_pid_check
+*  Description:  检查pid初始化有没有问题
+* ==========================================================================*/
+VOS_UINT32 cpss_pid_check();
 
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_get_systemid
+*  Description:  取得当前系统的ID
+* ==========================================================================*/
+VOS_UINT32 cpss_get_systemid();
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_get_cpuid_header
+*  Description:  取得cpuid的头地址信息
+* ==========================================================================*/
+pCPSS_CPUID_TABLE cpss_get_cpuid_header();
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_get_cpuid_header
+*  Description:  取得cpuid的头地址信息
+* ==========================================================================*/
+PCPSS_PID_TABLE cpss_get_pid_header();
 /* ===  FUNCTION  ============================================================
  *         Name:  cpss_get_info_for_pid(VOS_UINT32 ulProcessPid)
  *  Description:  通过PID得到PID对应的名称
@@ -108,7 +128,7 @@ VOS_VOID * cpss_get_info_for_pid(VOS_UINT32 ulProcessPid, VOS_UINT32 ulType);
  *  OutPut     :    
  *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 cpss_set_cpuid_pid (VOS_UINT32 ulSubSys, VOS_UINT32 ulNo, VOS_UINT32 IsShowflg, VOS_UINT32 ulValue, VOS_UINT32 ulType);
+VOS_UINT32 cpss_set_cpuid_pid(VOS_UINT32 ulSubSys, VOS_UINT32 ulSubSysID, VOS_UINT32 IsShowflg, VOS_UINT32 ulValue, VOS_UINT32 ulType);
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_update_cpuid_pid
@@ -126,7 +146,7 @@ VOS_UINT32 cpss_update_cpuid_pid (VOS_UINT32 ulSubSys, VOS_UINT32 ulNo, VOS_UINT
  *  OutPut     :    
  *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 cpss_get_cpuid_pid_to_buffer (VOS_UINT32 ulType,VOS_UINT32 *ulCurIndex,VOS_STRING strBuffer,VOS_UINT32 * puCount);
+VOS_UINT32 cpss_get_cpuid_pid_to_buffer (VOS_UINT32 ulType,VOS_STRING strBuffer);
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_get_free_cpuid

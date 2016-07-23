@@ -26,14 +26,14 @@
 VOS_UINT32 VOS_ProcessInit()
 {
 	xcap_fileds_init();
-	if (VOS_OK != VOS_RegistPidInit(CPSS_CONNECT_SUB_XCAP, CPSS_PID_XCAP, CPSS_STRING_XCAP,1,
+	if (VOS_OK != VOS_RegistPidInit(CPSS_SYSTEM_TYPE_XCAP, CPSS_PID_XCAP, CPSS_STRING_XCAP,1,
 			pid_init_xcap_proc,xcap_pid_timeout_proc))
 	{
 		XCAP_PrintErr(__FILE__, __LINE__, "Regist Telnet Server is Error");
 		return VOS_ERR;
 	}
 
-	if (VOS_OK != VOS_RegistPidInit(CPSS_CONNECT_SUB_XCAP, CPSS_PID_MONEY, CPSS_STRING_MOCLI,1,
+	if (VOS_OK != VOS_RegistPidInit(CPSS_SYSTEM_TYPE_XCAP, CPSS_PID_MONEY, CPSS_STRING_MOCLI,1,
 		pid_init_money_proc,money_pid_timeout_proc))
 	{
 		XCAP_PrintErr(__FILE__, __LINE__, "Regist Telnet Server is Error");

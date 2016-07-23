@@ -342,7 +342,8 @@ VOS_UINT32 VOS_Mutex_Lock(VOS_MUTEX * pMutex)
 	pMutex->mutexRet = WaitForSingleObject(pMutex->hEvent, INFINITE);
 	if (WAIT_FAILED == pMutex->mutexRet)
 	{
-		return -1;
+		printf("Wait Object is Faild:%d\n",GetLastError());
+		return -2;
 	}
 	else if (WAIT_TIMEOUT == pMutex->mutexRet)
 	{

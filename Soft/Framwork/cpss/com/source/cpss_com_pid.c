@@ -32,23 +32,25 @@
 #define VOS_Pid_Strcat(pstrA,pstrB)		VOS_CpsStrcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_PID))
 
 static CPSS_CPUID_PID_MAP g_CPuID_CPuID_Manage[] = {
-	{CPSS_CONNECT_SUB_SELF,		CPSS_STRING_CGP},
-	{CPSS_CONNECT_SUB_DBSVR,	CPSS_STRING_DBSVR},
-	{CPSS_CONNECT_SUB_XCAP,		CPSS_STRING_XCAP},
-	{CPSS_CONNECT_SUB_MONEY,	CPSS_STRING_MONEY},
+	{CPSS_SYSTEM_TYPE_SELF,		CPSS_STRING_CGP},
+	{CPSS_SYSTEM_TYPE_DBSVR,	CPSS_STRING_DBSVR},
+	{CPSS_SYSTEM_TYPE_XCAP,		CPSS_STRING_XCAP},
+	{CPSS_SYSTEM_TYPE_MONEY,	CPSS_STRING_MONEY},
 };
 	
 static CPSS_CPUID_PID_MAP g_CPuID_PID_Manage[] = {
-	{CPSS_CONNECT_SELF,		CPSS_STRING_CGP},
-	{CPSS_CONNECT_FW,		CPSS_STRING_FW},
-	{CPSS_CONNECT_TELNET,	CPSS_STRING_TELNET},
-	{CPSS_CONNECT_FTP,		CPSS_STRING_FTP},
-	{CPSS_CONNECT_DBSVR,	CPSS_STRING_DBSVR},
-	{CPSS_CONNECT_XCAP,		CPSS_STRING_XCAP},
-	{CPSS_CONNECT_MOCLI,	CPSS_STRING_MOCLI},
-	{CPSS_CONNECT_MONEY,	CPSS_STRING_MONEY},
+	{CPSS_SUBSYS_TYPE_SELF,		CPSS_STRING_CGP},
+	{CPSS_SUBSYS_TYPE_FW,		CPSS_STRING_FW},
+	{CPSS_SUBSYS_TYPE_TLN,		CPSS_STRING_TELNET},
+	{CPSS_SUBSYS_TYPE_FTP,		CPSS_STRING_FTP},
+	{CPSS_SUBSYS_TYPE_DBSVR,	CPSS_STRING_DBSVR},
+	{CPSS_SUBSYS_TYPE_XCAP,		CPSS_STRING_XCAP},
+	{CPSS_SUBSYS_TYPE_MOCLI,	CPSS_STRING_MOCLI},
+	{CPSS_SUBSYS_TYPE_MONEY,	CPSS_STRING_MONEY},
 };
 
+static VOS_UINT32 g_ulSystemID;
+static CPSS_MANAGE_PID g_handleManagePid;   //管理PID的全局变量
 /* ===  FUNCTION  ======================================================================
  *         Name:  cpss_check_pid
  *  Description: 检查PID的合法性 
@@ -162,7 +164,7 @@ static VOS_UINT32 cpss_del_cpuid(pCPSS_CPUID_TABLE pstCpuID)
 	pstCpuIDTmp = g_handleManagePid.pstuCPuIDList;
 	while (pstCpuIDTmp != NULL)
 	{
-		if (pstCpuID->stuCPuID_Info.ulIndex == pstCpuIDTmp->stuCPuID_Info.ulIndex)
+		if (pstCpuID->stuCPuID_Info.ulSubsysID == pstCpuIDTmp->stuCPuID_Info.ulSubsysID)
 		{
 			break;
 		}
@@ -170,7 +172,7 @@ static VOS_UINT32 cpss_del_cpuid(pCPSS_CPUID_TABLE pstCpuID)
 	}
 	if (NULL == pstCpuIDTmp)
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "del cpuid %d",pstCpuID->stuCPuID_Info.ulIndex);
+		VOS_PrintErr(__FILE__, __LINE__, "del cpuid %d", pstCpuID->stuCPuID_Info.ulSubsysID);
 		VOS_Free(pstCpuID,sizeof(CPSS_CPUID_TABLE));
 	}
 	else
@@ -236,21 +238,21 @@ VOS_UINT32 cpss_pid_init ()
 	VOS_UINT32 ulRet = VOS_ERR;//strcat(buffer,"\\");printf("Please Input Local Ip:");
 	VOS_UINT32 ulProcessCPuID = 0;
 	pCPSS_CPUID_TABLE pstCpuID = NULL;
-	g_ulSubSystem = 0;
+	g_ulSystemID = 0;
 	ulProcessCPuID = cpss_get_ip_address("\\local.cfg", "Please Input Local Ip:");
 	if (0 == ulProcessCPuID)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "Init local CPuID is Error");
 		return ulRet;
 	}
-	ulRet = cpss_set_cpuid_pid(CPSS_CONNECT_SUB_SELF, CPSS_CONNECT_SELF, 
+	ulRet = cpss_set_cpuid_pid(CPSS_SYSTEM_TYPE_SELF, CPSS_SUBSYS_TYPE_SELF, 
 		CPSS_STAT_ENABLE, ulProcessCPuID, CPSS_SET_TYPE_CPUID);
 	if (VOS_OK != ulRet)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "set local cpuid is error");
 		return ulRet;
 	}
-/*	ulRet = cpss_set_cpuid_pid(CPSS_CONNECT_SUB_SELF, CPSS_CONNECT_SELF,
+/*	ulRet = cpss_set_cpuid_pid(CPSS_SYSTEM_TYPE_SELF, CPSS_SUBSYS_TYPE_SELF,
 		CPSS_STAT_ENABLE,0, CPSS_GET_TYPE_PID);
 	if (VOS_OK != ulRet)
 	{
@@ -263,7 +265,7 @@ VOS_UINT32 cpss_pid_init ()
 		VOS_PrintErr(__FILE__, __LINE__, "Init DBSvr CPuID is Error");
 		return ulRet;
 	}
-	ulRet = cpss_set_cpuid_pid(CPSS_CONNECT_SUB_SELF, CPSS_CONNECT_DBSVR, 
+	ulRet = cpss_set_cpuid_pid(CPSS_SYSTEM_TYPE_SELF, CPSS_SUBSYS_TYPE_DBSVR, 
 		CPSS_STAT_ENABLE, ulProcessCPuID, CPSS_SET_TYPE_CPUID);
 	if (VOS_OK != ulRet)
 	{
@@ -271,7 +273,7 @@ VOS_UINT32 cpss_pid_init ()
 		return ulRet;
 	}
 	
-	ulRet = cpss_set_cpuid_pid(CPSS_CONNECT_SUB_SELF, CPSS_CONNECT_DBSVR, 
+	ulRet = cpss_set_cpuid_pid(CPSS_SYSTEM_TYPE_SELF, CPSS_SUBSYS_TYPE_DBSVR, 
 		CPSS_STAT_ENABLE, VOS_SOCKET_IN | VOS_UDP_PID |5001, CPSS_SET_TYPE_PID);
 	if (VOS_OK != ulRet)
 	{
@@ -280,6 +282,43 @@ VOS_UINT32 cpss_pid_init ()
 	}
 	return ulRet;
 }		/* -----  end of function cpss_pid_init  ----- */
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_pid_check
+*  Description:  检查pid初始化有没有问题
+* ==========================================================================*/
+VOS_UINT32 cpss_pid_check()
+{
+	if (NULL == g_handleManagePid.pstuCPuIDList || NULL == g_handleManagePid.pstuPidList)
+	{
+		return VOS_ERR;
+	}
+	return VOS_OK;
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_get_systemid
+*  Description:  取得当前系统的ID
+* ==========================================================================*/
+VOS_UINT32 cpss_get_systemid()
+{
+	return g_ulSystemID;
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_get_cpuid_header
+*  Description:  取得cpuid的头地址信息
+* ==========================================================================*/
+pCPSS_CPUID_TABLE cpss_get_cpuid_header()
+{
+	return g_handleManagePid.pstuCPuIDList;
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_get_cpuid_header
+*  Description:  取得cpuid的头地址信息
+* ==========================================================================*/
+PCPSS_PID_TABLE cpss_get_pid_header()
+{
+	return g_handleManagePid.pstuPidList;
+}
 /* ===  FUNCTION  =================================================================
 *         Name:  VOS_RegistPidInit
 *  Description:  pid加载初始化
@@ -303,7 +342,7 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 		return ulRet;
 	}
 
-	if (g_ulSubSystem == 0 &&
+	if (g_ulSystemID == 0 &&
 		ulSubSystem == 0)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "set subsystem is error");
@@ -318,7 +357,7 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 		return ulRet;
 	}
 	ulPidIndex = cpss_get_id_for_pid_str((VOS_CHAR*)ulProcessPidName);
-	if (ulPidIndex <= CPSS_CONNECT_SELF)
+	if (ulPidIndex <= CPSS_SUBSYS_TYPE_SELF)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "get pid index is error");
 		return ulRet;
@@ -362,13 +401,13 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 		pstcpsspid->prev = pstcpsspidtmp;
 	}
 
-	if (g_ulSubSystem == 0 &&
+	if (g_ulSystemID == 0 &&
 		ulSubSystem != 0)
 	{
-		g_ulSubSystem = ulSubSystem;
+		g_ulSystemID = ulSubSystem;
 	}
 
-	ulRet = cpss_set_cpuid_pid(g_ulSubSystem, ulPidIndex,
+	ulRet = cpss_set_cpuid_pid(g_ulSystemID, ulPidIndex,
 		CPSS_STAT_ENABLE, CPSSCPUID, CPSS_SET_TYPE_CPUID);
 	if (VOS_OK != ulRet)
 	{
@@ -376,7 +415,7 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 			pstcpsspid->szPidName);
 		return ulRet;
 	}
-	ulRet = cpss_set_cpuid_pid(g_ulSubSystem, ulPidIndex,
+	ulRet = cpss_set_cpuid_pid(g_ulSystemID, ulPidIndex,
 		CPSS_STAT_ENABLE, ulProcessPid, CPSS_SET_TYPE_PID);
 	if (VOS_OK != ulRet)
 	{
@@ -389,19 +428,21 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 	pstuCPuIDInfo = g_handleManagePid.pstuCPuIDList;
 	while (NULL != pstuCPuIDInfo)
 	{
-		if (pstuCPuIDInfo->stuCPuID_Info.ulIndex ==  ulPidIndex &&
-			pstuCPuIDInfo->stuCPuID_Info.ulSubSys == g_ulSubSystem)
+		if (pstuCPuIDInfo->stuCPuID_Info.ulSubsysID == ulPidIndex &&
+			pstuCPuIDInfo->stuCPuID_Info.ulSystemID == g_ulSystemID)
 		{
 			break;
 		}
 		pstuCPuIDInfo = pstuCPuIDInfo->next;
 	}
-
-	if (NULL != pstuCPuIDInfo)
+	if (NULL == pstuCPuIDInfo)
 	{
-		pstcpsspid->pPid = &pstuCPuIDInfo->stuCPuID_Info.ulPid;
-		pstcpsspid->pCPuID = &pstuCPuIDInfo->stuCPuID_Info.ulProcessCPuID;
+		VOS_PrintErr(__FILE__, __LINE__, "not found %s cpuid for Regist Pid Init",
+			pstcpsspid->szPidName);
+		return ulRet;
 	}
+	//pstcpsspid->pPid = &pstuCPuIDInfo->stuCPuID_Info.ulPid;
+	pstcpsspid->pCPuID = &pstuCPuIDInfo->stuCPuID_Info;
 	return ulRet;
 }		/* -----  end of function VOS_RegistPidProcess  ----- */
 
@@ -437,7 +478,7 @@ VOS_VOID * cpss_get_info_for_pid(VOS_UINT32 ulProcessPid, VOS_UINT32 ulType)
 	while(NULL != hSocketLink)
 	{
 		if (NULL != hSocketLink->pstuPid &&
-			*hSocketLink->pstuPid->pPid == ulProcessPid)
+			hSocketLink->pstuPid->pCPuID->ulPid == ulProcessPid)
 		{
 			break;
 		}
@@ -464,7 +505,7 @@ VOS_VOID * cpss_get_info_for_pid(VOS_UINT32 ulProcessPid, VOS_UINT32 ulType)
  *  OutPut     :    
  *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 cpss_set_cpuid_pid (VOS_UINT32 ulSubSys, VOS_UINT32 ulNo, VOS_UINT32 IsShowflg, VOS_UINT32 ulValue, VOS_UINT32 ulType)
+VOS_UINT32 cpss_set_cpuid_pid(VOS_UINT32 ulSystemID, VOS_UINT32 ulSubSysID, VOS_UINT32 IsShowflg, VOS_UINT32 ulValue, VOS_UINT32 ulType)
 {
 	VOS_UINT32			ulRet = VOS_ERR;
 	VOS_UINT32			uIsGet = 1;
@@ -473,8 +514,8 @@ VOS_UINT32 cpss_set_cpuid_pid (VOS_UINT32 ulSubSys, VOS_UINT32 ulNo, VOS_UINT32 
 	pstuCPuIDTemp = g_handleManagePid.pstuCPuIDList;
 	while(NULL != pstuCPuIDTemp)
 	{
-		if (pstuCPuIDTemp->stuCPuID_Info.ulIndex == ulNo &&
-			pstuCPuIDTemp->stuCPuID_Info.ulSubSys == ulSubSys)
+		if (pstuCPuIDTemp->stuCPuID_Info.ulSystemID == ulSystemID &&
+			pstuCPuIDTemp->stuCPuID_Info.ulSubsysID == ulSubSysID)
 		{
 			uIsGet =1;
 			break;
@@ -493,12 +534,12 @@ VOS_UINT32 cpss_set_cpuid_pid (VOS_UINT32 ulSubSys, VOS_UINT32 ulNo, VOS_UINT32 
 		return ulRet;
 	}
 	pstuCPuIDTemp->ulStat = IsShowflg;
-	pstuCPuIDTemp->stuCPuID_Info.ulIndex = ulNo;
-	pstuCPuIDTemp->stuCPuID_Info.ulSubSys = ulSubSys;
+	pstuCPuIDTemp->stuCPuID_Info.ulSystemID = ulSystemID;
+	pstuCPuIDTemp->stuCPuID_Info.ulSubsysID = ulSubSysID;
 
 	if (CPSS_SET_TYPE_CPUID == ulType)
 	{
-		pstuCPuIDTemp->stuCPuID_Info.ulProcessCPuID = ulValue;
+		pstuCPuIDTemp->stuCPuID_Info.ulCPuID = ulValue;
 		ulRet = VOS_OK;
 	}else 
 	if (CPSS_SET_TYPE_PID == ulType)
@@ -531,15 +572,15 @@ VOS_UINT32 cpss_get_cpuid_pid (VOS_UINT32 ulSubSys, VOS_UINT32 ulNo, VOS_UINT32 
 
 	while(NULL != pstuCPuIDTemp)
 	{
-		if (pstuCPuIDTemp->stuCPuID_Info.ulIndex ==  0 ||
-			pstuCPuIDTemp->stuCPuID_Info.ulSubSys == 0)
+		if (pstuCPuIDTemp->stuCPuID_Info.ulSubsysID == 0 ||
+			pstuCPuIDTemp->stuCPuID_Info.ulSystemID == 0)
 		{
 			pstuCPuIDTemp = pstuCPuIDTemp->next;
 			continue;
 		}
 
-		if (pstuCPuIDTemp->stuCPuID_Info.ulIndex == ulNo && 
-			pstuCPuIDTemp->stuCPuID_Info.ulSubSys == ulSubSys)
+		if (pstuCPuIDTemp->stuCPuID_Info.ulSubsysID == ulNo &&
+			pstuCPuIDTemp->stuCPuID_Info.ulSystemID == ulSubSys)
 		{
 			break;
 		}
@@ -555,7 +596,7 @@ VOS_UINT32 cpss_get_cpuid_pid (VOS_UINT32 ulSubSys, VOS_UINT32 ulNo, VOS_UINT32 
 	}
 	if (CPSS_GET_TYPE_CPUID == ulType)
 	{
-		return pstuCPuIDTemp->stuCPuID_Info.ulProcessCPuID;
+		return pstuCPuIDTemp->stuCPuID_Info.ulCPuID;
 	}else 
 	if (CPSS_GET_TYPE_PID == ulType)
 	{
@@ -582,8 +623,8 @@ VOS_UINT32 cpss_update_cpuid_pid (VOS_UINT32 ulSubSys, VOS_UINT32 ulNo, VOS_UINT
 	pstuCPuIDTemp = g_handleManagePid.pstuCPuIDList;
 	while(NULL != pstuCPuIDTemp)
 	{
-		if (pstuCPuIDTemp->stuCPuID_Info.ulIndex == ulNo &&
-			pstuCPuIDTemp->stuCPuID_Info.ulSubSys == ulSubSys)
+		if (pstuCPuIDTemp->stuCPuID_Info.ulSubsysID == ulNo &&
+			pstuCPuIDTemp->stuCPuID_Info.ulSystemID == ulSubSys)
 		{
 			break;
 		}
@@ -598,7 +639,7 @@ VOS_UINT32 cpss_update_cpuid_pid (VOS_UINT32 ulSubSys, VOS_UINT32 ulNo, VOS_UINT
 	
 	if (CPSS_GET_TYPE_CPUID == ulType)
 	{
-		pstuCPuIDTemp->stuCPuID_Info.ulProcessCPuID = ulValue;
+		pstuCPuIDTemp->stuCPuID_Info.ulCPuID = ulValue;
 		ulRet = VOS_OK;
 	}else 
 	if (CPSS_GET_TYPE_PID == ulType)
@@ -629,9 +670,9 @@ static VOS_VOID cpss_print_cpuid_pid (VOS_CHAR * strType, pCPSS_CPUID_INFO pstuC
 	}
 	VOS_PrintInfo(__FILE__, __LINE__, "%s [%s:%s] CPuID[%u] PID[%d]",
 		strType,
-		g_CPuID_CPuID_Manage[pstuCPuID->ulSubSys - CPSS_CONNECT_SUB_SELF].szPidName,
-		g_CPuID_PID_Manage[pstuCPuID->ulIndex -CPSS_CONNECT_SELF].szPidName,
-		pstuCPuID->ulProcessCPuID,
+		g_CPuID_CPuID_Manage[pstuCPuID->ulSystemID - CPSS_SYSTEM_TYPE_SELF].szPidName,
+		g_CPuID_PID_Manage[pstuCPuID->ulSubsysID - CPSS_SUBSYS_TYPE_SELF].szPidName,
+		pstuCPuID->ulCPuID,
 		pstuCPuID->ulPid);
 }
 
@@ -642,10 +683,12 @@ static VOS_VOID cpss_print_cpuid_pid (VOS_CHAR * strType, pCPSS_CPUID_INFO pstuC
  *  OutPut     :    
  *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 cpss_get_cpuid_pid_to_buffer (VOS_UINT32 ulType,VOS_UINT32 *ulCurIndex,VOS_STRING strBuffer,VOS_UINT32 * puCount)
+VOS_UINT32 cpss_get_cpuid_pid_to_buffer (VOS_UINT32 ulType,VOS_STRING strBuffer)
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 	VOS_UINT32 ulOffset = 0;
+	pCPSS_CPUID_HEADER pstrCpuidCount = NULL;
+	VOS_CHAR *		   pstrCPuIDBuffer = NULL;
 	pCPSS_CPUID_TABLE pstuCPuIDTemp = g_handleManagePid.pstuCPuIDList;
 	CPSS_CPUID_INFO stuCPuID;
 	if (NULL == pstuCPuIDTemp)
@@ -653,59 +696,59 @@ VOS_UINT32 cpss_get_cpuid_pid_to_buffer (VOS_UINT32 ulType,VOS_UINT32 *ulCurInde
 		VOS_PrintErr(__FILE__, __LINE__, "link head is null");
 		goto END_PROC;
 	}
-	if (NULL == strBuffer ||
-		NULL == puCount)
+	if (NULL == strBuffer )
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "set to buffer param is null:%p:%p",
-			strBuffer, puCount);
+		VOS_PrintErr(__FILE__, __LINE__, "set to buffer param is null:%p",
+			strBuffer);
 		goto END_PROC;
 	}
+	pstrCpuidCount = (pCPSS_CPUID_HEADER)strBuffer;
+	pstrCPuIDBuffer = strBuffer + sizeof(CPSS_CPUID_HEADER);
 	if (CPSS_SET_TO_BUFFER == ulType)
 	{
 		ulOffset = 0;
 		while(NULL != pstuCPuIDTemp)
 		{
 			if (pstuCPuIDTemp->ulStat == CPSS_STAT_DISABLE ||
-				pstuCPuIDTemp->stuCPuID_Info.ulSubSys == 0 ||
-				pstuCPuIDTemp->stuCPuID_Info.ulIndex == 0  ||
-				pstuCPuIDTemp->stuCPuID_Info.ulProcessCPuID == 0 ||
+				pstuCPuIDTemp->stuCPuID_Info.ulSystemID == 0 ||
+				pstuCPuIDTemp->stuCPuID_Info.ulSubsysID == 0 ||
+				pstuCPuIDTemp->stuCPuID_Info.ulCPuID == 0 ||
 				pstuCPuIDTemp->stuCPuID_Info.ulPid ==0)
 			{
 				pstuCPuIDTemp = pstuCPuIDTemp->next;
 				continue;
 			}
-			if (*ulCurIndex == pstuCPuIDTemp->stuCPuID_Info.ulSubSys ||
-				CPSS_CONNECT_SUB_SELF == pstuCPuIDTemp->stuCPuID_Info.ulSubSys)
+			if (CPSS_SYSTEM_TYPE_SELF == pstuCPuIDTemp->stuCPuID_Info.ulSystemID)
 			{
 				pstuCPuIDTemp = pstuCPuIDTemp->next;
 				continue;
 			}
-			VOS_Memcpy(strBuffer + ulOffset, &pstuCPuIDTemp->stuCPuID_Info,sizeof(CPSS_CPUID_INFO));
+			VOS_Memcpy(pstrCPuIDBuffer + ulOffset, &pstuCPuIDTemp->stuCPuID_Info, sizeof(CPSS_CPUID_INFO));
 			ulOffset += sizeof(CPSS_CPUID_INFO);
 
 			cpss_print_cpuid_pid("Get",&pstuCPuIDTemp->stuCPuID_Info);
 
 			pstuCPuIDTemp = pstuCPuIDTemp->next;
 		}
-		*puCount = ulOffset/sizeof(CPSS_CPUID_INFO);
+		pstrCpuidCount->ulCount = ulOffset / sizeof(CPSS_CPUID_INFO);
 	}else
 	if (CPSS_SET_TO_STUCPUID == ulType)
 	{
 		ulOffset = 0;
-		while (ulOffset < *puCount*sizeof(CPSS_CPUID_INFO))
+		while (ulOffset < pstrCpuidCount->ulCount*sizeof(CPSS_CPUID_INFO))
 		{
-			VOS_Memcpy(&stuCPuID, strBuffer + ulOffset,sizeof(CPSS_CPUID_INFO));
-			if (stuCPuID.ulSubSys == g_ulSubSystem)
+			VOS_Memcpy(&stuCPuID, pstrCPuIDBuffer + ulOffset, sizeof(CPSS_CPUID_INFO));
+			if (stuCPuID.ulSystemID == g_ulSystemID)
 			{
 				ulOffset += sizeof(CPSS_CPUID_INFO);
 				continue;
 			}
-			*ulCurIndex = stuCPuID.ulSubSys;
+			//*ulCurIndex = stuCPuID.ulSystemID;
 			ulRet = cpss_set_cpuid_pid(
-				stuCPuID.ulSubSys,
-				stuCPuID.ulIndex,
+				stuCPuID.ulSystemID,
+				stuCPuID.ulSubsysID,
 				CPSS_STAT_ENABLE,
-				stuCPuID.ulProcessCPuID,
+				stuCPuID.ulCPuID,
 				CPSS_SET_TYPE_CPUID);
 			if (VOS_OK != ulRet)
 			{
@@ -714,8 +757,8 @@ VOS_UINT32 cpss_get_cpuid_pid_to_buffer (VOS_UINT32 ulType,VOS_UINT32 *ulCurInde
 			}
 			
 			ulRet = cpss_set_cpuid_pid(
-				stuCPuID.ulSubSys,
-				stuCPuID.ulIndex,
+				stuCPuID.ulSystemID,
+				stuCPuID.ulSubsysID,
 				CPSS_STAT_ENABLE,
 				stuCPuID.ulPid,
 				CPSS_SET_TYPE_PID);

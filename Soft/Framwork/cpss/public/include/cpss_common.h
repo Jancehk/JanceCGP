@@ -42,11 +42,17 @@ extern "C" {
 
 	
 typedef struct _CPSS_CPUID_INFO_T{
-	VOS_UINT32 ulSubSys;
-	VOS_UINT32 ulIndex;
-	VOS_UINT32 ulProcessCPuID;
+	VOS_UINT32 ulSystemID;
+	VOS_UINT32 ulSubsysID;
+	VOS_UINT32 ulCPuID;
 	VOS_UINT32 ulPid;
 }CPSS_CPUID_INFO,*pCPSS_CPUID_INFO;
+
+typedef struct _CPSS_CPUID_HEADER_T{
+	VOS_UINT32 ulCount;
+	VOS_UINT32 rfu[3];
+}CPSS_CPUID_HEADER, *pCPSS_CPUID_HEADER;
+
 typedef struct _CONFIG_TAB_T
 {
 	VOS_UINT8 uSocketConfig;
@@ -79,6 +85,7 @@ typedef struct _CPSS_USER_INFO_T{
 #define BZERO(pszStr,nSize)							memset((pszStr),(0),(nSize))
 
 #define VOS_Malloc(ulSize,strInfo)					cpss_mem_malloc((ulSize), (strInfo), (__FILE__),(__LINE__))
+#define VOS_Calloc(ulSize,strInfo)					cpss_mem_calloc((ulSize), (strInfo), (__FILE__),(__LINE__))
 #define VOS_Realloc(pstrads,ulSize,strInfo)			cpss_mem_realloc((strInfo), (pstrads), (ulSize), (__FILE__),(__LINE__))
 #define VOS_Remset(pstrads,strInfo)					cpss_mem_reset((strInfo), (pstrads),(__FILE__),(__LINE__))
 #define VOS_Memcls(pstrads, ulSize, strInfo)		cpss_mem_cls((strInfo), (pstrads), (ulSize),(__FILE__),(__LINE__))
@@ -230,7 +237,7 @@ extern VOS_UINT32 cpss_get_cpuid_pid (VOS_UINT32 ulSubSys, VOS_UINT32 ulNo, VOS_
  *  Return     :  
  * ==========================================================================*/
 extern VOS_UINT32 cpss_set_cpuid_pid (VOS_UINT32 ulSubSys,
-	   VOS_UINT32 ulNo, 
+		VOS_UINT32 ulSubSysID,
 	   VOS_UINT32 IsShowflg, 
 	   VOS_UINT32 ulValue, 
 	   VOS_UINT32 ulType);
@@ -244,9 +251,7 @@ extern VOS_UINT32 cpss_set_cpuid_pid (VOS_UINT32 ulSubSys,
  * ==========================================================================*/
 extern VOS_UINT32 cpss_get_cpuid_pid_to_buffer (
 	   VOS_UINT32 ulType,
-	   VOS_UINT32 *ulCurIndex,
-	   VOS_STRING strBuffer,
-	   VOS_UINT32 * puCount);
+	   VOS_STRING strBuffer);
 
 #ifdef _cplusplus
 }

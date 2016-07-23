@@ -96,7 +96,7 @@ typedef struct CPSS_SKT_FD_SET_T
 	fd_set		fdread;
 	fd_set		fdwrite;
 	fd_set		fderror;
-	VOS_INT32   nCurrent;
+	//VOS_INT32   nCurrent;
 	VOS_INT32	nMaxfd;
 }CPSS_SKT_FD_SET,*pCPSS_SKT_FD_SET;
 

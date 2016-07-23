@@ -395,8 +395,8 @@ VOS_UINT32 shell_user_check (VOS_VOID * pVoidClient)
 		}
 	}
 
-	VOS_PrintDebug(__FILE__, __LINE__, "[%p] CMD len [%d] stat is [%d]",pClient,
-		pClient->nBufferLeng,pClient->nStat);
+	/*VOS_PrintDebug(__FILE__, __LINE__, "[%p] CMD len [%d] stat is [%d]",pClient,
+		pClient->nBufferLeng,pClient->nStat);*/
 	return ulRet;
 }
 

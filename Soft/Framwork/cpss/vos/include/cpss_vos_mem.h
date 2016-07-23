@@ -90,6 +90,15 @@ VOS_VOID * cpss_mem_malloc(VOS_INT32 ulSize,
 						   VOS_UINT32 nMemRdKey,
 						   VOS_CHAR * strFile, 
 						   VOS_INT32 nLine);
+
+/*===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_calloc
+*  Description:  ÉêÇëÄÚ´æ¿Õ¼ä
+* =============================================================================*/
+VOS_VOID * cpss_mem_calloc(VOS_INT32 ulSize,
+	VOS_UINT32 nMemRdKey,
+	VOS_CHAR * strFile,
+	VOS_INT32 nLine);
 /*===  FUNCTION  ==============================================================
 *         Name:  cpss_mem_realloc
 *  Description:

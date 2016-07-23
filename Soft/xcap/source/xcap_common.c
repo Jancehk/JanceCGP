@@ -617,28 +617,28 @@ static VOS_UINT32 xcap_get_body_proc(pCPSS_MSG pMsgInfo, VOS_VOID * pstuBuffer, 
 	BZERO(&MsgInfo, sizeof(CPSS_MSG));
 	
 	MsgInfo.Body.msghead.stSrcProc.ulCpuID = cpss_get_cpuid_pid(
-		CPSS_CONNECT_SUB_XCAP, CPSS_CONNECT_MOCLI, CPSS_GET_TYPE_CPUID);
+		CPSS_SYSTEM_TYPE_XCAP, CPSS_SUBSYS_TYPE_MOCLI, CPSS_GET_TYPE_CPUID);
 	if (0 == MsgInfo.Body.msghead.stSrcProc.ulCpuID)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"src cpuid is error");
 		return uRet;
 	}
 	MsgInfo.Body.msghead.stSrcProc.ulPID   = cpss_get_cpuid_pid(
-		CPSS_CONNECT_SUB_XCAP, CPSS_CONNECT_MOCLI, CPSS_GET_TYPE_PID);
+		CPSS_SYSTEM_TYPE_XCAP, CPSS_SUBSYS_TYPE_MOCLI, CPSS_GET_TYPE_PID);
 	if (0 == MsgInfo.Body.msghead.stSrcProc.ulPID)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"src pid is error");
 		return uRet;
 	}
 	MsgInfo.Body.msghead.stDstProc.ulCpuID = cpss_get_cpuid_pid(
-		CPSS_CONNECT_SUB_MONEY, CPSS_CONNECT_MONEY, CPSS_GET_TYPE_CPUID);
+		CPSS_SYSTEM_TYPE_MONEY, CPSS_SUBSYS_TYPE_MONEY, CPSS_GET_TYPE_CPUID);
 	if (0 == MsgInfo.Body.msghead.stDstProc.ulCpuID)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"dst cpuid is error");
 		return uRet;
 	}
 	MsgInfo.Body.msghead.stDstProc.ulPID   = cpss_get_cpuid_pid(
-		CPSS_CONNECT_SUB_MONEY, CPSS_CONNECT_MONEY, CPSS_GET_TYPE_PID);
+		CPSS_SYSTEM_TYPE_MONEY, CPSS_SUBSYS_TYPE_MONEY, CPSS_GET_TYPE_PID);
 	if (0 == MsgInfo.Body.msghead.stDstProc.ulPID)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"dst pid is error");

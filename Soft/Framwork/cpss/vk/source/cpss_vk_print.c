@@ -1103,7 +1103,7 @@ VOS_UINT32 cpss_print_trace_proc (VOS_VOID * lpParameter)
 		}
 		else
 		{
-			if(CPSS_PRINT_LEVEL_1 == g_manageprint->g_printShowlevel)//所有信息
+			if (CPSS_PRINT_ALL_INFO == g_manageprint->g_printShowlevel)//所有信息
 			{
 				sprintf (buffer, "[%s][%s][%04X:%04X][%s_%04d] %s", 	
 					pPrint_info->szPrintPid,
@@ -1114,7 +1114,7 @@ VOS_UINT32 cpss_print_trace_proc (VOS_VOID * lpParameter)
 					pPrint_info->ulPrintLine,
 					pPrint_info->pszPrintInfo);
 			}
-			else if(CPSS_PRINT_LEVEL_2 == g_manageprint->g_printShowlevel)//没有文件和行号
+			else if (CPSS_PRINT_NO_FILELINE == g_manageprint->g_printShowlevel)//没有文件和行号
 			{
 				sprintf (buffer, "[%s][%s][%04X:%04X] %s",
 					pPrint_info->szPrintPid,
@@ -1123,7 +1123,7 @@ VOS_UINT32 cpss_print_trace_proc (VOS_VOID * lpParameter)
 					pPrint_info->ulThreadID,
 					pPrint_info->pszPrintInfo);
 			}
-			else if(CPSS_PRINT_LEVEL_3 == g_manageprint->g_printShowlevel)//日期不显示
+			else if (CPSS_PRINT_NO_DATETIME == g_manageprint->g_printShowlevel)//日期不显示
 			{
 				sprintf (buffer, "[%s][%04X:%04X][%s_%04d] %s",
 					pPrint_info->szPrintPid,
@@ -1133,14 +1133,14 @@ VOS_UINT32 cpss_print_trace_proc (VOS_VOID * lpParameter)
 					pPrint_info->ulPrintLine,
 					pPrint_info->pszPrintInfo);
 			}
-			else if(CPSS_PRINT_LEVEL_4 == g_manageprint->g_printShowlevel)//
+			else if (CPSS_PRINT_ONLY_PIDDATA == g_manageprint->g_printShowlevel)//显示进程信息和内容
 			{
 				sprintf (buffer, "[%s][%04X] %s",
 					pPrint_info->szPrintPid,
 					pPrint_info->ulThreadID,
 					pPrint_info->pszPrintInfo);
 			}
-			else if(CPSS_PRINT_LEVEL_5 == g_manageprint->g_printShowlevel)
+			else if (CPSS_PRINT_ONLY_DATA == g_manageprint->g_printShowlevel)//只显示内容
 			{
 				sprintf (buffer, "%s", pPrint_info->pszPrintInfo);
 			}
@@ -1209,7 +1209,7 @@ VOS_UINT32 cpss_print_init ()
 	VOS_UINT32 ulRet = VOS_ERR;
 	VOS_UINT32 uIndex = 0;
 	BZERO(&g_manageprint, sizeof(MANAGE_PRINT));
-	g_manageprint.g_printShowlevel = CPSS_PRINT_LEVEL_1;
+	g_manageprint.g_printShowlevel = CPSS_PRINT_ALL_INFO;
 	g_manageprint.g_printlevel = CPSS_PRINT_DUMP;
 	g_manageprint.ulSaveCount  = 0;
 	g_manageprint.g_traceo_on_off = TRUE;
@@ -1290,7 +1290,7 @@ VOS_UINT32 cpss_print(
 	VOS_CHAR   pszFilename[MAX_PATH] = { 0 };
 	VOS_INT32  nFileLength = 0;//strlen(szFilename);
 
-	if (CPSS_PRINT_LEVEL_CLOSE == g_manageprint.g_traceo_on_off)
+	if (CPSS_PRINT_FUN_CLOSE == g_manageprint.g_traceo_on_off)
 	{
 		return VOS_OK;
 	}
@@ -1354,7 +1354,7 @@ VOS_UINT32 cpss_print_dump(
 	VOS_CHAR   szTime[CPSS_MAX_TIME] = {0};
 	VOS_INT32  nFileLength = 0;//strlen(szFilename);
 
-	if (CPSS_PRINT_LEVEL_CLOSE == g_manageprint.g_traceo_on_off)
+	if (CPSS_PRINT_FUN_CLOSE == g_manageprint.g_traceo_on_off)
 	{
 		return VOS_OK;
 	}

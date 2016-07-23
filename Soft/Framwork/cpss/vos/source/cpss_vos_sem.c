@@ -1283,7 +1283,7 @@ END_PROC:
 }
 
 /* ===  FUNCTION  ==============================================================
-*         Name:  cps_set_msg_data
+*         Name:  cps_set_msg_src_cpuid
 *  Description:  设定消息信息
 *  Input      :
 *  OutPut     :
@@ -1297,8 +1297,7 @@ VOS_UINT32 cps_set_msg_src_cpuid(CPSS_MSG * msgTmp, VOS_UINT32 ulCpuID, VOS_UINT
 		VOS_PrintErr(__FILE__,__LINE__,"msg is NULL");
 		return ulRtn;
 	}
-	if (ulCpuID == 0 ||
-		ulPID == 0)
+	if (ulPID == 0)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "CPuID[%d] PID[%d] is NULL",ulCpuID,ulPID);
 		return ulRtn;
@@ -1307,10 +1306,32 @@ VOS_UINT32 cps_set_msg_src_cpuid(CPSS_MSG * msgTmp, VOS_UINT32 ulCpuID, VOS_UINT
 	msgTmp->Body.msghead.stSrcProc.ulPID = ulPID;
 	return VOS_OK;
 }
+/* ===  FUNCTION  ==============================================================
+*         Name:  cps_set_msg_to_cpuid
+*  Description:  设定消息信息
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_UINT32 cps_set_msg_to_cpuid(CPSS_MSG * msgTmp, VOS_UINT32 ulCpuID, VOS_UINT32 ulPID)
+{
+	return cps_set_msg_src_cpuid(msgTmp, ulCpuID, ulPID);
+}
 
 /* ===  FUNCTION  ==============================================================
-*         Name:  cps_set_msg_data
+*         Name:  cps_set_msg_to_subid
 *  Description:  设定消息信息
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_UINT32 cps_set_msg_to_subid(CPSS_MSG * msgTmp, VOS_UINT32 ulSubID)
+{
+	return cps_set_msg_src_cpuid(msgTmp,0,ulSubID);
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  cps_set_msg_dst_cpuid
+*  Description:  设定消息信息的目的CPUID/PID
 *  Input      :
 *  OutPut     :
 *  Return     :
@@ -1332,6 +1353,18 @@ VOS_UINT32 cps_set_msg_dst_cpuid(CPSS_MSG * msgTmp, VOS_UINT32 ulCpuID, VOS_UINT
 	msgTmp->Body.msghead.stDstProc.ulCpuID = ulCpuID;
 	msgTmp->Body.msghead.stDstProc.ulPID = ulPID;
 	return VOS_OK;
+}
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  cps_set_msg_from_cpuid
+*  Description:  设定消息信息来源CPUID/PID
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_UINT32 cps_set_msg_from_cpuid(CPSS_MSG * msgTmp, VOS_UINT32 ulCpuID, VOS_UINT32 ulPID)
+{
+	return cps_set_msg_dst_cpuid(msgTmp, ulCpuID, ulPID);
 }
 /* ===  FUNCTION  ==============================================================
 *         Name:  cps_set_msg_data

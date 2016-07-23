@@ -326,7 +326,7 @@ static CPSS_MEM_RECORD *cpss_mem_find_record_info(VOS_UINT32 nMemRdKey, VOS_VOID
 	}
 	if (NULL == pstuMemRecord)
 	{
-		cpss_mem_print_record_info("check list", pstuVoid);
+		// cpss_mem_print_record_info("check list", pstuVoid);
 		for (nIndex = 0; nIndex < CPSS_MEM_HEAD_KEY_CPSS_TOTAL; nIndex++)
 		{
 			if (nIndex == nMemRdKey)
@@ -492,6 +492,26 @@ VOS_VOID * cpss_mem_malloc(VOS_INT32 ulSize,
 	return uRetVoid;
 }
 
+/*===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_calloc
+*  Description:  申请内存空间
+*  Input      :
+*  OutPut     :
+*  Return     :
+* =============================================================================*/
+VOS_VOID * cpss_mem_calloc(VOS_INT32 ulSize,
+	VOS_UINT32 nMemRdKey,
+	VOS_CHAR * strFile,
+	VOS_INT32 nLine)
+{
+	VOS_VOID * uRetVoid = NULL;
+	uRetVoid = cpss_mem_malloc(ulSize, nMemRdKey, strFile, nLine);
+	if (NULL != uRetVoid)
+	{
+		VOS_Memset(uRetVoid, 0, ulSize);
+	}
+	return uRetVoid;
+}
 /*===  FUNCTION  ==============================================================
 *         Name:  cpss_mem_reset
 *  Description: 空间从新申请  

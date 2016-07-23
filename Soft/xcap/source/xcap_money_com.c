@@ -59,8 +59,7 @@ static VOS_UINT32 set_cpuid_from_dbsvr(pCPSS_MSG pMsgInfo)
 		return uRet;
 	}
 
-	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_STUCPUID, &uIndex,
-		pstrBuffer + sizeof(VOS_UINT32),(VOS_UINT32 *)pstrBuffer);
+	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_STUCPUID, pstrBuffer );
 	if (VOS_OK != uRet)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"set cpuid to stu is error :%d",

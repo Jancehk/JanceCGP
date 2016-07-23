@@ -18,7 +18,7 @@
 #include "money_pid_init.h"
 VOS_UINT32 VOS_ProcessInit()
 {
-	if (VOS_OK != VOS_RegistPidInit(CPSS_CONNECT_SUB_MONEY, CPSS_PID_MONEY,CPSS_STRING_MONEY,1,
+	if (VOS_OK != VOS_RegistPidInit(CPSS_SYSTEM_TYPE_MONEY, CPSS_PID_MONEY,CPSS_STRING_MONEY,1,
 			pid_init_proc, money_pid_timeout_proc))
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "Regist Telnet Server is Error");

@@ -431,8 +431,8 @@ static VOS_UINT32 check_cpuid_pid_in_db(pCPSS_CPUID_INFO pstuCPuID)
 	VOS_UINT32 uRet = VOS_ERR;
 	VOS_UINT32 uCount = 0;
 	sprintf(g_strCommand,"select * from CPUIDPID where SubSys=%d and m_Index=%d",
-		pstuCPuID->ulSubSys,
-		pstuCPuID->ulIndex);
+		pstuCPuID->ulSystemID,
+		pstuCPuID->ulSubsysID);
 	return get_count_in_db(g_strCommand);
 }
 /* ===  FUNCTION  ==============================================================
@@ -445,10 +445,10 @@ static VOS_UINT32 check_cpuid_pid_in_db(pCPSS_CPUID_INFO pstuCPuID)
 static VOS_UINT32 update_cpuid_pid_to_db(pCPSS_CPUID_INFO pstuCPuID)
 {
 	sprintf(g_strCommand,"update CPUIDPID t set t.ProcessCPuID=\"%u\",t.Pid=%d where t.SubSys =%d and t.m_Index=%d",
-		pstuCPuID->ulProcessCPuID,
+		pstuCPuID->ulCPuID,
 		pstuCPuID->ulPid,
-		pstuCPuID->ulSubSys,
-		pstuCPuID->ulIndex);
+		pstuCPuID->ulSystemID,
+		pstuCPuID->ulSubsysID);
 	return exec_sql(g_strCommand);
 }
 /* ===  FUNCTION  ==============================================================
@@ -461,8 +461,8 @@ static VOS_UINT32 update_cpuid_pid_to_db(pCPSS_CPUID_INFO pstuCPuID)
 static VOS_UINT32 delete_cpuid_pid_to_db(pCPSS_CPUID_INFO pstuCPuID)
 {
 	sprintf(g_strCommand,"delete * from CPUIDPID t where t.SubSys =%d and t.m_Index=%d",
-		pstuCPuID->ulSubSys,
-		pstuCPuID->ulIndex);
+		pstuCPuID->ulSystemID,
+		pstuCPuID->ulSubsysID);
 	return exec_sql(g_strCommand);
 }
 
@@ -476,9 +476,9 @@ static VOS_UINT32 delete_cpuid_pid_to_db(pCPSS_CPUID_INFO pstuCPuID)
 static VOS_UINT32 insert_cpuid_pid_to_db(pCPSS_CPUID_INFO pstuCPuID)
 {
 	sprintf(g_strCommand,"INSERT INTO CPUIDPID(SubSys,m_Index,ProcessCPuID,Pid)  VALUES (%d,%d,\"%u\",%d)",
-		pstuCPuID->ulSubSys,
-		pstuCPuID->ulIndex,
-		pstuCPuID->ulProcessCPuID,
+		pstuCPuID->ulSystemID,
+		pstuCPuID->ulSubsysID,
+		pstuCPuID->ulCPuID,
 		pstuCPuID->ulPid);
 	return exec_sql(g_strCommand);
 }
@@ -493,27 +493,39 @@ static VOS_UINT32 dbsvr_update_cpuid_pid(pCPSS_MSG pMsgInfo)
 {
 	VOS_UINT32		uRet = VOS_ERR;
 	VOS_UINT32		uCount = 0,uIndex = 0,Tmp;
+	VOS_CHAR		* pstrRecvBuffer = NULL;
+	pCPSS_CPUID_HEADER pstrCpuidCount = NULL;
 	CPSS_CPUID_INFO stuCPuID;
 	
-	uRet = dbsvr_check_file();
+	/*uRet = dbsvr_check_file();
 	if (VOS_OK != uRet)
 	{
-		DBSvr_PrintErr(__FILE__,__LINE__,"check DB faild");
+		DBSvr_PrintErr(__FILE__,__LINE__,"check DB faild[%d]", uRet);
+		return uRet;
+	}*/
+	pstrCpuidCount = (pCPSS_CPUID_HEADER)pMsgInfo->Body.strDataBuf;
+	pstrCpuidCount->ulCount = ntohl(pstrCpuidCount->ulCount);
+	//VOS_Memcpy(&uCount, pMsgInfo->Body.strDataBuf, sizeof(VOS_UINT32));
+	if (pstrCpuidCount->ulCount  > 100)
+	{
+		DBSvr_PrintErr(__FILE__, __LINE__, "check CPuID Count is Error[%d]", uCount);
+		return uRet;
 	}
-	VOS_Memcpy(&uCount, pMsgInfo->Body.strDataBuf, sizeof(VOS_UINT32));
-	while(uIndex < uCount)
+	uRet = VOS_OK;
+	pstrRecvBuffer = pMsgInfo->Body.strDataBuf + sizeof(CPSS_CPUID_HEADER);
+	while (uIndex < pstrCpuidCount->ulCount)
 	{
 		VOS_Memcpy(&stuCPuID,
-			pMsgInfo->Body.strDataBuf+sizeof(VOS_UINT32)+uIndex*sizeof(CPSS_CPUID_INFO),
+			pstrRecvBuffer + uIndex*sizeof(CPSS_CPUID_INFO),
 			sizeof(CPSS_CPUID_INFO));
-
+		uIndex++;
+		continue;
 		uRet = dbsvr_open_mdb();
 		if (VOS_OK != uRet)
 		{
 			DBSvr_PrintErr(__FILE__,__LINE__,"open db failed");
 			return uRet;
 		}
-		uIndex ++;
 		Tmp = check_cpuid_pid_in_db(&stuCPuID);
 		if (1 == Tmp)
 		{
@@ -555,8 +567,9 @@ static VOS_UINT32 dbsvr_responce_cpuid_pid(pCPSS_MSG pMsgInfo)
 	VOS_UINT32		uRet = VOS_ERR;
 	CPSS_MSG		MsgInfo = {0};
 	VOS_UINT32		uIndex = 0;
-	VOS_UINT32		uCount = 0;
+	VOS_UINT32		* puCount = NULL;
 	VOS_UINT32		uBuffLen = 0;
+	pCPSS_CPUID_HEADER pstrCpuidCount = NULL;
 	VOS_CHAR		strBuffer[CPSS_MSG_BUFFER_SIZE]={0};
 
 	uRet = dbsvr_update_cpuid_pid(pMsgInfo);
@@ -564,21 +577,20 @@ static VOS_UINT32 dbsvr_responce_cpuid_pid(pCPSS_MSG pMsgInfo)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"update cpuid is error :%d", 
 			uRet);
+		return uRet;
 	}
 
 	BZERO(&MsgInfo, sizeof(CPSS_MSG));
-	
-	uCount = (VOS_UINT32)*pMsgInfo->Body.strDataBuf;
-	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_STUCPUID,&uIndex,
-		pMsgInfo->Body.strDataBuf + sizeof(VOS_UINT32), &uCount);
+	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_STUCPUID,
+		pMsgInfo->Body.strDataBuf );
 	if (VOS_OK != uRet)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"set cpuid to stu is error :%d",
 			(VOS_UINT32 *)pMsgInfo->Body.strDataBuf);
 	}
 
-	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_BUFFER,&uIndex,
-		strBuffer + sizeof(VOS_UINT32), &uCount);
+	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_BUFFER,
+		strBuffer);
 	if (VOS_OK != uRet)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"get cpuid to stu is error :%d",
@@ -588,12 +600,15 @@ static VOS_UINT32 dbsvr_responce_cpuid_pid(pCPSS_MSG pMsgInfo)
 
 	VOS_Memcpy(&MsgInfo.Body.msghead, 
 		&pMsgInfo->Body.msghead,sizeof(CPSS_COM_HEAD));
+	cps_set_msg_to_subid(&MsgInfo, CPSS_SUBSYS_TYPE_FW);
+	//cps_set_msg_to_cpuid(&MsgInfo, 0, pMsgInfo->Body.msghead.stDstProc.ulPID);
+
 
 	MsgInfo.Body.msghead.uType = cps_set_msg_type( CPSS_REQUEST_SYSTEM, CPSS_TYPE_SYS, CPSS_MSG_RESU);
 	//MsgInfo.Body.msghead.uSubType = CPSS_TYPE_CPUID_PID;
-
-	VOS_Memcpy(strBuffer, (VOS_CHAR *)&uCount,sizeof(VOS_UINT32));
-	uBuffLen = sizeof(VOS_UINT32) + sizeof(CPSS_CPUID_INFO)*uCount;
+	pstrCpuidCount = (pCPSS_CPUID_HEADER)strBuffer;
+	uBuffLen = sizeof(CPSS_CPUID_HEADER) + sizeof(CPSS_CPUID_INFO)*pstrCpuidCount->ulCount;
+	pstrCpuidCount->ulCount = htonl(pstrCpuidCount->ulCount);
 
 	uRet = cpss_send_data(&MsgInfo,
 		strBuffer, uBuffLen,

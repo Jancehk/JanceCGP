@@ -35,8 +35,8 @@ static VOS_UINT32 framwork_send_data(VOS_UINT32 ulCpuID,
 	VOS_UINT32 uRet = VOS_ERR;
 	CPSS_MSG		MsgSend = { 0 };
 
-	cps_set_msg_dst_cpuid(&MsgSend, CPSSFWCPUID, CPSSFWPID);
-	cps_set_msg_src_cpuid(&MsgSend, ulCpuID, ulPID);
+	cps_set_msg_from_cpuid(&MsgSend, CPSSFWCPUID, CPSSFWPID);
+	cps_set_msg_to_cpuid(&MsgSend, ulCpuID, ulPID);
 
 	MsgSend.Body.msghead.uType = uType;
 	MsgSend.Body.msghead.uCmd = uCmd;
@@ -59,6 +59,7 @@ static VOS_UINT32 framwork_send_data(VOS_UINT32 ulCpuID,
 static VOS_UINT32 regist_cpuid_to_dbsvr(pCPSS_MSG pMsgInfo)
 {
 	VOS_UINT32		uRet = VOS_ERR;
+	pCPSS_CPUID_HEADER pstrCpuidCount = NULL;
 	VOS_UINT32		uCount = 0,uIndex = 0;
 	VOS_UINT32		uBuffLen = 0;
 	VOS_CHAR		strBuffer[CPSS_MSG_BUFFER_SIZE]={0};
@@ -67,24 +68,16 @@ static VOS_UINT32 regist_cpuid_to_dbsvr(pCPSS_MSG pMsgInfo)
 		VOS_PrintErr(__FILE__,__LINE__,"input msg is error");
 		return uRet;
 	}
-	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_BUFFER,&uIndex,
-			strBuffer + sizeof(VOS_UINT32), (VOS_UINT32 *)&uCount);
-	if (VOS_OK != uRet)
+	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_BUFFER,	strBuffer);
+	if (VOS_OK != uRet || NULL == strBuffer)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"add cpuid data error");
 		return uRet;
 	}
-	VOS_Memcpy(strBuffer, (VOS_CHAR *)&uCount,sizeof(VOS_UINT32));
-	uBuffLen = sizeof(VOS_UINT32) + sizeof(CPSS_CPUID_INFO)*uCount;
-/*	VOS_PrintInfo(__FILE__,__LINE__,"Src:CPuID:%u->Pid:%d,Dst:CPuID:%u->Pid:%d",
-		MsgSend.Body.msghead.stSrcProc.ulCpuID,
-		MsgSend.Body.msghead.stSrcProc.ulPID,
-		MsgSend.Body.msghead.stDstProc.ulCpuID,
-		MsgSend.Body.msghead.stDstProc.ulPID);
+	pstrCpuidCount = (pCPSS_CPUID_HEADER)strBuffer;
+	uBuffLen = sizeof(CPSS_CPUID_HEADER) + (sizeof(CPSS_CPUID_INFO)*pstrCpuidCount->ulCount);
+	pstrCpuidCount->ulCount = htonl(pstrCpuidCount->ulCount);
 
-	VOS_PrintInfo(__FILE__,__LINE__,"Dst:CPuID:%u->Pid:%d",
-		pMsgSend->Body.msghead.stDstProc.ulCpuID,
-		pMsgSend->Body.msghead.stDstProc.ulPID);*/
 	uRet = framwork_send_data(DBSVRCPUID, DBSVRPID,
 		cps_set_msg_type(DBSVR_REQUEST_MGR, DBSVR_TYPE_CPUIDPID, CPSS_MSG_REG),
 		0,	strBuffer, uBuffLen);
@@ -105,6 +98,7 @@ static VOS_UINT32 set_cpuid_from_dbsvr(pCPSS_MSG pMsgInfo)
 {
 	VOS_UINT32		uRet = VOS_ERR,uIndex = 0;
 	VOS_CHAR	  * pstrBuffer = NULL;
+	pCPSS_CPUID_HEADER pstrCpuidCount = NULL;
 
 	pstrBuffer = pMsgInfo->Body.strDataBuf;
 	if (NULL == pstrBuffer)
@@ -112,10 +106,10 @@ static VOS_UINT32 set_cpuid_from_dbsvr(pCPSS_MSG pMsgInfo)
 		VOS_PrintErr(__FILE__,__LINE__,"set cpuid param is error");
 		return uRet;
 	}
-	
-	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_STUCPUID,&uIndex,
-		pstrBuffer + sizeof(VOS_UINT32),
-		(VOS_UINT32 *)pstrBuffer);
+	pstrCpuidCount = (pCPSS_CPUID_HEADER)pstrBuffer;
+	pstrCpuidCount->ulCount = ntohl(pstrCpuidCount->ulCount);
+
+	uRet = cpss_get_cpuid_pid_to_buffer(CPSS_SET_TO_STUCPUID, pstrBuffer);
 	if (VOS_OK != uRet)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"set cpuid to stu is error :%d",

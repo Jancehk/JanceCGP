@@ -162,10 +162,25 @@ VOS_UINT32 cpss_move_udp_recv_free_to_used(CPSS_MSG *pMsgInfo);
 * ==========================================================================*/
 VOS_UINT32 cps_set_msg_src_cpuid(CPSS_MSG * msgTmp, VOS_UINT32 ulCpuID, VOS_UINT32 ulPID);
 /* ===  FUNCTION  ==============================================================
-*         Name:  cps_set_msg_data
+*         Name:  cps_set_msg_to_cpuid
+*  Description:  设定消息信息
+* ==========================================================================*/
+VOS_UINT32 cps_set_msg_to_cpuid(CPSS_MSG * msgTmp, VOS_UINT32 ulCpuID, VOS_UINT32 ulPID);
+/* ===  FUNCTION  ==============================================================
+*         Name:  cps_set_msg_to_subid
+*  Description:  设定消息信息
+* ==========================================================================*/
+VOS_UINT32 cps_set_msg_to_subid(CPSS_MSG * msgTmp, VOS_UINT32 ulSubID);
+/* ===  FUNCTION  ==============================================================
+*         Name:  cps_set_msg_dst_cpuid
 *  Description:  设定消息信息
 * ==========================================================================*/
 VOS_UINT32 cps_set_msg_dst_cpuid(CPSS_MSG * msgTmp, VOS_UINT32 ulCpuID, VOS_UINT32 ulPID);
+/* ===  FUNCTION  ==============================================================
+*         Name:  cps_set_msg_from_cpuid
+*  Description:  设定消息信息
+* ==========================================================================*/
+VOS_UINT32 cps_set_msg_from_cpuid(CPSS_MSG * msgTmp, VOS_UINT32 ulCpuID, VOS_UINT32 ulPID);
 /* ===  FUNCTION  ==============================================================
 *         Name:  cps_set_msg_data
 *  Description:  设定消息信息

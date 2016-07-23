@@ -61,7 +61,7 @@ VOS_UINT32 dbsvr_pid_timeout_proc(VOS_VOID *argc,VOS_UINT32 argv)
 }
 VOS_UINT32 VOS_ProcessInit()
 {
-	if (VOS_OK != VOS_RegistPidInit(CPSS_CONNECT_SUB_DBSVR, CPSS_PID_DBSvr, "DBSVR", 1, pid_init_proc, dbsvr_pid_timeout_proc))
+	if (VOS_OK != VOS_RegistPidInit(CPSS_SYSTEM_TYPE_DBSVR, CPSS_PID_DBSvr, CPSS_STRING_DBSVR, 1, pid_init_proc, dbsvr_pid_timeout_proc))
 	{
 		DBSvr_PrintErr(__FILE__, __LINE__, "Regist Telnet Server is Error");
 		return VOS_ERR;

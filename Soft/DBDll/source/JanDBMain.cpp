@@ -188,9 +188,8 @@ Jance_API_EXP VOS_UINT32 OpenAccMDB(VOS_CHAR * m_strPath, VOS_UINT32 *adoConnect
 	VOS_UINT32 uRet = VOS_ERR;
 	try
 	{
-		if (!g_adoConnection->ConnectAccess(m_strPath))//,"JanceHeiter"
+		if (!g_adoConnection->ConnectAccess(m_strPath, "JanceHeiter"))//
 		{
-			//sprintf(lpszError,"打开数据库出错%s",m_strPath);
 			uRet = -1;
 			goto END_PROC;
 		}
