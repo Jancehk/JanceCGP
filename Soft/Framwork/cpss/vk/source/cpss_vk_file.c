@@ -158,3 +158,39 @@ VOS_INT32 cpss_get_file_handle()
 {
 	return VOS_OK;
 }
+/*===  FUNCTION  ===============================================================
+*         Name:  cpss_get_file_data
+*  Description:  得到文件的内容
+*  Input      :
+*  OutPut     :
+*  Return     :
+* =============================================================================*/
+VOS_CHAR* cpss_get_file_data(VOS_CHAR * pstrPath)
+{
+	VOS_INT32 fd = 0, nSize = 0, result = 0;
+	VOS_CHAR		strFileDataTemp[1024] = { 0 };
+	VOS_CHAR		buffer[MAX_PATH] = { 0 };
+	VOS_CHAR *		pstrFileData = NULL;
+
+	result = cpss_get_current_path(buffer);
+	if (VOS_OK != result)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "Get Self Path Error%d", fd);
+		return NULL;
+	}
+	//strcat(buffer,"\\local.cfg");
+	VOS_Strcat(buffer, pstrPath);
+	fd = open(buffer, O_RDONLY);//O_RDWR|O_CREAT);, S_IREAD | S_IWRITE O_BINARY O_WRONLY
+	if (VOS_OK > fd)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "Get Self Path Error%d", fd);
+		return NULL;
+	}
+	VOS_Memset(strFileDataTemp, 0, sizeof(strFileDataTemp));
+	while (nSize = read(fd, strFileDataTemp, sizeof(strFileDataTemp)) && nSize > 0)
+	{
+		VOS_PrintBuffer(&pstrFileData, "%s", strFileDataTemp);
+	}
+	close(fd);
+	return pstrFileData;
+}

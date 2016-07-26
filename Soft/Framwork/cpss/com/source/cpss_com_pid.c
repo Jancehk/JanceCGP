@@ -668,7 +668,7 @@ static VOS_VOID cpss_print_cpuid_pid (VOS_CHAR * strType, pCPSS_CPUID_INFO pstuC
 	{
 		return ;
 	}
-	VOS_PrintInfo(__FILE__, __LINE__, "%s [%s:%s] CPuID[%u] PID[%d]",
+	VOS_PrintDebug(__FILE__, __LINE__, "%s [%s:%s] CPuID[%u] PID[%d]",
 		strType,
 		g_CPuID_CPuID_Manage[pstuCPuID->ulSystemID - CPSS_SYSTEM_TYPE_SELF].szPidName,
 		g_CPuID_PID_Manage[pstuCPuID->ulSubsysID - CPSS_SUBSYS_TYPE_SELF].szPidName,

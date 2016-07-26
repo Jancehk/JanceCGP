@@ -26,8 +26,6 @@
 #include "cpss_common.h"
 //#include "cpss_tm_timer.h"
 
-//客户信息
-#define CPSS_CLIENT_IPADS_LENGTH	32
 #define CPSS_SOCKET_ERROR (-1)
 
 #define  CPSS_MSG_SEND_TCP		0x01
@@ -117,12 +115,15 @@ typedef enum VOS_SOCKET_STAT_M{
 
 /* vos socket status*/
 typedef enum VOS_SEND_SKT_TYPE_M{
-	VOS_SEND_SKT_TYPE_TCP =1,
-	VOS_SEND_SKT_TYPE_UDP,
-	VOS_SEND_SKT_TYPE_INSERT =4,
-	VOS_SEND_SKT_TYPE_FINISH=8,
+	VOS_SEND_SKT_TYPE_FINISH = 0x00,
+	VOS_SEND_SKT_TYPE_INSERT = 0x01,
+	VOS_SEND_SKT_TYPE_TCP = 0x02,
+	VOS_SEND_SKT_TYPE_UDP = 0x04,
+	VOS_SEND_ALL_OF_PID = 0x10,
+	VOS_SEND_SAVE_TO_RECV = 0x20,
 };
 
+#define  CPSS_COMM_SEG_NAME		"JCPG"
 typedef struct _CPSS_COM_PID_T
 {
 	VOS_UINT32 	ulCpuID;
@@ -131,29 +132,27 @@ typedef struct _CPSS_COM_PID_T
 typedef struct _CPSS_COM_HEAD_T
 {
 	VOS_CHAR			strSegName[4];
-	CPSS_COM_PID 		stDstProc;		//目标地址
-	CPSS_COM_PID 		stSrcProc;		//源地址
-	VOS_UINT8			uResevr[4];
-	/*-----------------------------------------*/
-	VOS_UINT32 			ulParentMsgID;	//父消息消息ID;
-	VOS_UINT32 			ulRecvMsgID;	//接受消息ID
-	VOS_UINT8 			RFU0[16];	//下一个源消息ID
-	/*-----------------------------------------*/
+	VOS_UINT32 			ulMsgLength;	//消息长度
 	VOS_UINT32			uType;
 	VOS_UINT32			uCmd;
-	VOS_UINT32 			ulMsgLength;	//消息长度
-	VOS_UINT8			RFU1[4];
+	/*--------------------16byte----------------*/
+	VOS_UINT32 			ulParentMsgID;	//父消息消息ID;
+	VOS_UINT32 			ulRecvMsgID;	//接受消息ID
+	VOS_UINT8 			RFU2[8];		//下一个源消息ID
+	/*--------------------16byte----------------*/
+	CPSS_COM_PID 		stDstProc;		//目标地址
+	CPSS_COM_PID 		stSrcProc;		//源地址
+	/*--------------------16byte----------------*/
 	/*-----------------------------------------*/
 }CPSS_COM_HEAD,*pCPSS_COM_HEAD;
 
-#define  CPSS_MSG_HEAD_SIZE		sizeof(CPSS_COM_HEAD) //+(24)
-#define  CPSS_MSG_BUFFER_SIZE	1024
+#define  CPSS_MSG_HEAD_SIZE		sizeof(CPSS_COM_HEAD) //+(48)
 //#define  CPSS_MSG_BUFFER_USED	(CPSS_MSG_BUFFER_SIZE - 4)
 //#define  CPSS_MSG_BUF_HEAD_SIZE	(sizeof(VOS_UINT32)*4)
-#define  CPSS_COMM_SEG_NAME		"JCPG"
 typedef struct _CPSS_COM_DATA_T
 {
 	CPSS_COM_HEAD		msghead;
+	VOS_CHAR			rfu[12];
 	VOS_CHAR*			strDataBuf;
 }CPSS_COM_DATA,*pCPSS_COM_DATA;
 typedef struct _CPSS_MSG_T
@@ -161,13 +160,20 @@ typedef struct _CPSS_MSG_T
 	VOS_VOID 		   * pTimer;			/*定时器句柄*/
 	VOS_UINT8			 nSelfStat;			/*1:空闲   2:预约     3:使用中 4:使用完*/
 	VOS_UINT8			 nRState;			/*5:接受中 6:接受完了 7:发送中 8:发送完了*/
+	VOS_UINT8			 rfu[2];			/*rfu*/
 	VOS_VOID		   * pClient;
 	VOS_UINT32 			 ulMsgID;			//消息ID;
+	/* ------------------16byte---------------------- */
+	VOS_VOID		   * pXcapMgr;
+	VOS_UINT32 			 rfu1[3];
+	/* -------------------16byte----------------------- */
+	VOS_VOID		   * pPid;
+	VOS_UINT32 			 ulMsgLength;    //消息长度
 	struct _CPSS_MSG_T * next;
 	struct _CPSS_MSG_T * prev;
-	VOS_UINT32 			 ulMsgLength;    //消息长度
-	VOS_VOID		   * pRecvBuffer[4];
+	/* ------------------16byte---------------------- */
 	CPSS_COM_DATA        Body;
+	/* ------------------64byte---------------------- */
 }CPSS_MSG,*pCPSS_MSG;
 typedef struct _CPSS_MSG_TAB_T
 {

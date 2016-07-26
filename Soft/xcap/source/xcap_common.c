@@ -19,6 +19,7 @@
 #include "xcap_common.h"
 
 #define VOS_XCAP_Malloc(ulSize)				VOS_Malloc((ulSize), (XCAP_MEM_HEAD_KEY_URL_XCAP))
+#define VOS_XCAP_Calloc(ulSize)				VOS_Calloc((ulSize), (XCAP_MEM_HEAD_KEY_URL_XCAP))
 #define VOS_XCAP_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (XCAP_MEM_HEAD_KEY_URL_XCAP))
 #define VOS_XCAP_Remset(pstrads)			VOS_Remset((pstrads), (XCAP_MEM_HEAD_KEY_URL_XCAP))
 #define VOS_XCAP_MemSize(pstrads)			VOS_Memsize((pstrads), (XCAP_MEM_HEAD_KEY_URL_XCAP))
@@ -226,17 +227,97 @@ static VOS_VOID xcap_print_request(pXCAP_REQUEST pMsgInfo)
 		XCAP_PrintErr(__FILE__, __LINE__, "xcap printf requet pMsg is NULL");
 		return ;
 	}
-	XCAP_PrintInfo(__FILE__, __LINE__, "<-- Method:%s URL:%s Ver:%s",pMsgInfo->Req_head.Method,
+	XCAP_PrintInfo(__FILE__, __LINE__, "--Method:%s URL:%s Ver:%s",pMsgInfo->Req_head.Method,
 		pMsgInfo->Req_head.Request_URI,
 		pMsgInfo->Req_head.Request_version);
-	/*
+	
 	for (uIndex = 0; uIndex <pMsgInfo->fields_num; uIndex++)
 	{
-		XCAP_PrintInfo("", CPSS_PRINTF_BUFFER,"<-- %s%s", pMsgInfo->Req_head_fields[uIndex].Key, pMsgInfo->Req_head_fields[uIndex].Value);
+		XCAP_PrintInfo("", CPSS_PRINTF_BUFFER,"--%s%s", pMsgInfo->Req_head_fields[uIndex].Key, pMsgInfo->Req_head_fields[uIndex].Value);
 	}
-	*/
 }
 
+/* ===  FUNCTION  ==============================================================
+*         Name:  xcap_document_select
+*  Description:  给xcap 服务器发送url信息
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static VOS_UINT32 xcap_document_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr)
+{
+	VOS_UINT32 uRet = VOS_ERR;
+	VOS_CHAR * pstrFileBuffer = NULL;
+	if (NULL == pXcap_Msg_Mgr)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "document select parameter error");
+		return uRet;
+	}
+	if (0 == pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI[0])
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "document select path is error");
+		return uRet;
+	}
+	pstrFileBuffer = cpss_get_file_data(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI);
+	if (NULL == pstrFileBuffer)
+	{
+		pXcap_Msg_Mgr->xCap_Respone_Info.pstrBody = (VOS_CHAR*)VOS_XCAP_Remset(pstrFileBuffer);
+	}
+	return VOS_OK;
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  xcap_root
+*  Description:  xcap 路由器
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static VOS_UINT32 xcap_root(pXCAP_MSG_MANAGE pMsgMgr)
+{
+	VOS_UINT32		uRet = VOS_ERR;
+	pXCAP_REQUEST	pMsgInfo = NULL;
+	pXCAP_RESPONSE	pRespone_Info = NULL;
+
+	if (NULL == pMsgMgr)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "xcap msg mgr null");
+		return uRet;
+	}
+	pMsgInfo = &pMsgMgr->xCap_Request_Info;
+	pRespone_Info = &pMsgMgr->xCap_Respone_Info;
+	switch (pMsgInfo->Req_mothod)
+	{
+	case XCAP_REQ_GET:
+		uRet = xcap_document_select(pMsgMgr);
+		if (VOS_OK != uRet)
+		{
+			XCAP_PrintErr(__FILE__, __LINE__, "xcap get documet data failed");
+			return uRet;
+		}
+		if (NULL == pRespone_Info->pstrBody)
+		{
+			pRespone_Info->Res_head.StatueCode = XCAP_RES_CODE_404;
+		}
+		break;
+	case XCAP_REQ_PUT:
+		break;
+	case XCAP_REQ_OTHER:
+		break;
+	case XCAP_REQ_POST:
+		break;
+	case XCAP_REQ_HEAD:
+		break;
+	case XCAP_REQ_DELETE:
+		break;
+	case XCAP_REQ_TRACE:
+		break;
+	case XCAP_REQ_CONNECT:
+		break;
+	default:
+		break;
+	}
+	return uRet;
+}
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_get_Fields
  *  Description: 
@@ -267,7 +348,7 @@ static VOS_UINT32 xcap_request_check(XCAP_REQUEST * pReq)
 	uRet = VOS_OK;
 	if (uIndex == uCount)
 	{
-		XCAP_PrintErr(__FILE__,__LINE__,"req version not allow");
+		XCAP_PrintErr(__FILE__,__LINE__,"req method not allow");
 		uRet = VOS_ERR;
 	}
 	return uRet;
@@ -327,10 +408,6 @@ VOS_UINT32 xcap_analyzing_buffer(pXCAP_REQUEST pMsgInfo, VOS_CHAR * pstrInput)
 			VOS_Strncpy(pMsgInfo->Req_head.Request_URI, pstrTemp , pstrTemp1 - pstrTemp);
 			VOS_Strcpy(pMsgInfo->Req_head.Request_version, pstrTemp1);
 		}
-		else
-		{
-			XCAP_PrintErr(__FILE__, __LINE__, "buf no find / or http:%s",pbuf);
-		}
 	}
 /*	pstrTemp = xcap_find_fields(pMsgInfo, XCAP_REQ_FIELDE_REFERER);
 	if (NULL != pstrTemp)
@@ -382,67 +459,64 @@ static VOS_VOID xcap_set_fildes(VOS_UINT32 ufildesNum, pXCAP_RESPONSE pxCap_Resp
  *  OutPut     :  
  *  Return     :  
  * ==========================================================================*/
-static VOS_UINT32 xcap_set_head(pXCAP_RESPONSE pxCap_Response, VOS_UINT16 StatueCode)
+static VOS_UINT32 xcap_set_head(pXCAP_RESPONSE pxCap_Response)
 {
 	VOS_UINT32	uRet = VOS_ERR;
 	VOS_CHAR	strTimebuffer[INTERNET_RFC1123_BUFSIZE] = {0};
 	VOS_Strcpy(pxCap_Response->Res_head.Request_version, "HTTP/1.1");
-	pxCap_Response->Res_head.StatueCode = StatueCode;
+	if (0 == pxCap_Response->Res_head.StatueCode)
+	{
+		pxCap_Response->Res_head.StatueCode = XCAP_RES_CODE_203;
+	}
 	xcap_set_fildes(XCAP_RES_FIELDE_SERVER,	   pxCap_Response, "Jance Xcap Server");
 //	set_xcap_fildes(XCAP_RES_FIELDE_CONNECTIN, pxCap_Response, "keep-alive");
 //	xcap_set_fildes(XCAP_RES_FIELDE_DATE,      pxCap_Response, xcap_get_http_date(strTimebuffer, NULL));
 	uRet = VOS_OK;
 	return uRet;
 }
-
 /* ===  FUNCTION  ==============================================================
- *         Name:  set_xcap_body
- *  Description:  解析xcap 字符串
- *  Input      :  
- *  OutPut     :  
- *  Return     :  
- * ==========================================================================*/
-static VOS_UINT32 xcap_set_body_size(pXCAP_RESPONSE pxCap_Response, pCPSS_MSG pMsgInfo, VOS_UINT32 ulOffset)
+*         Name:  xcap_set_body_size
+*  Description:  设置body的size
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static VOS_UINT32 xcap_set_body_size(pXCAP_RESPONSE pxCap_Response, VOS_UINT32 ulBodySize)
 {
 	VOS_UINT32		ulRet = VOS_ERR;
-	VOS_CHAR		strSize[64]={0};
-	VOS_CHAR		* pstrDataBuffer = pMsgInfo->Body.strDataBuf;
-	VOS_UINT32		ulBodySize = 0;
-	if (NULL == pxCap_Response ||
-		NULL == pMsgInfo)
+	VOS_CHAR		strSize[64] = { 0 };
+	if (NULL == pxCap_Response)
 	{
-		XCAP_PrintErr(__FILE__, __LINE__,"get body size input is NULL");
+		XCAP_PrintErr(__FILE__, __LINE__, "get body size input is NULL");
 		return ulRet;
 	}
-	//VOS_PrintBufferBin(pstrDataBuffer,"",0,&ulBodySize);
-	if (0 == ulBodySize)
+	if (0 > ulBodySize)
 	{
-		XCAP_PrintErr(__FILE__, __LINE__,"get body is empty");
+		ulBodySize = 0;
 	}
-	ulBodySize = ulBodySize - ulOffset;//Content-Length:
 	sprintf(strSize, "%d", ulBodySize);
-	xcap_set_fildes(XCAP_RES_FIELDE_CONTENT_LENGTH,pxCap_Response, strSize);
+	xcap_set_fildes(XCAP_RES_FIELDE_CONTENT_LENGTH, pxCap_Response, strSize);
 	return VOS_OK;
 }
 
 /* ===  FUNCTION  ==============================================================
- *         Name:  set_xcap_head
- *  Description:  解析xcap 字符串
- *  Input      :  
- *  OutPut     :  
- *  Return     :  
- * ==========================================================================*/
-static VOS_UINT32 xcap_set_responce_head(VOS_CHAR* pstrDataBuffer, pXCAP_RESPONSE pxCap_Response)
+*         Name:  xcap_set_responce_head
+*  Description:  设置body的head内容
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static VOS_UINT32 xcap_set_responce_head(pXCAP_RESPONSE pxCap_Response, VOS_CHAR* pstrDataBuffer)
 {
 	VOS_UINT32	uRet = VOS_ERR;
 	VOS_UINT32  uIndex = 0;
 	if (NULL == pstrDataBuffer ||
 		NULL == pxCap_Response)
 	{
-		XCAP_PrintErr(__FILE__,__LINE__,"input is NULL");
+		XCAP_PrintErr(__FILE__, __LINE__, "input is NULL");
 		return uRet;
 	}
-	while(uIndex <= pxCap_Response->fields_num)
+	while (uIndex <= pxCap_Response->fields_num)
 	{
 		if (pxCap_Response->Res_head_fields[uIndex].Key[0] == 0 ||
 			pxCap_Response->Res_head_fields[uIndex].Value[0] == 0)
@@ -450,13 +524,14 @@ static VOS_UINT32 xcap_set_responce_head(VOS_CHAR* pstrDataBuffer, pXCAP_RESPONS
 			uIndex++;
 			continue;
 		}
-		VOS_PrintBuffer(pstrDataBuffer,"%s%s\r\n",
+		VOS_PrintBuffer(pstrDataBuffer, "%s%s\r\n",
 			pxCap_Response->Res_head_fields[uIndex].Key,
 			pxCap_Response->Res_head_fields[uIndex].Value);
 		uIndex++;
 	}
 	return VOS_OK;
 }
+
 /* ===  FUNCTION  ==============================================================
  *         Name:  set_xcap_body
  *  Description:  解析xcap 字符串
@@ -464,29 +539,22 @@ static VOS_UINT32 xcap_set_responce_head(VOS_CHAR* pstrDataBuffer, pXCAP_RESPONS
  *  OutPut     :  
  *  Return     :  
  * ==========================================================================*/
-static VOS_UINT32 xcap_set_body(pXCAP_RESPONSE pxCap_Response, pCPSS_MSG pMsgInfo)
+static VOS_UINT32 xcap_set_responce_body(pCPSS_MSG pMsgInfo, pXCAP_RESPONSE pxCap_Response)
 {
-	VOS_UINT32	uRet = VOS_ERR;
-	VOS_CHAR	* pstrDataBuffer = NULL;
-	VOS_CHAR	stTemp =0;
-	VOS_UINT32  uRecvBufferLen = 0;
-	VOS_UINT32  uOffsetSize = 0;
-	pCPSS_MSG   pRecvMsgInfo = NULL;
-	STATUS_CODE *pCode = NULL;
+	VOS_UINT32		uRet = VOS_ERR;
+	VOS_CHAR	*	pstrDataBuffer = NULL;
+	VOS_CHAR		stTemp =0;
+	CPSS_MSG		MsgInfo;
+	STATUS_CODE	*	pCode = NULL;
 
-	if (NULL == pxCap_Response ||
-		NULL == pMsgInfo)
+
+	if (NULL == pxCap_Response)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"input is NULL");
 		return uRet;
 	}
-	if (pxCap_Response->ulMsgID == 0)
-	{
-		XCAP_PrintErr(__FILE__,__LINE__,"xcap client is null");
-		return uRet;
-	}
-	pstrDataBuffer = pMsgInfo->Body.strDataBuf;
-	if (VOS_OK != xcap_get_response_status_code(pxCap_Response->Res_head.StatueCode, &pCode))
+	uRet = xcap_get_response_status_code(pxCap_Response->Res_head.StatueCode, &pCode);
+	if (VOS_OK != uRet)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"get responce code is failed");
 		return uRet;
@@ -497,69 +565,99 @@ static VOS_UINT32 xcap_set_body(pXCAP_RESPONSE pxCap_Response, pCPSS_MSG pMsgInf
 		return uRet;
 	}
 
-	VOS_PrintBuffer(pstrDataBuffer,"%s %d %s\r\n",pxCap_Response->Res_head.Request_version,
+	VOS_PrintBuffer(&pstrDataBuffer,"%s %d %s\r\n",pxCap_Response->Res_head.Request_version,
  		pCode->uCode,pCode->phrase);
-	
-	if (VOS_OK != xcap_set_responce_head(pstrDataBuffer, pxCap_Response))
+	uRet = xcap_set_responce_head(pxCap_Response, pstrDataBuffer);
+	if (VOS_OK != uRet)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"get responce code is failed");
 		return uRet;
 	}
 	
-	pstrDataBuffer = pMsgInfo->Body.strDataBuf;
-	while(NULL != pstrDataBuffer)
-	{
-		//xcap_send_info_msgid(pxCap_Response->ulMsgID, pstrDataBuffer->strBuffer, pstrDataBuffer->nSize,VOS_SEND_SKT_TYPE_INSERT);
-		/*
-		if (pstrDataBuffer != &pMsgInfo->Body.strDataBuf)
-		{
-			pstrDataBuffer = (CPSS_MEM_BUFFER *)cpss_get_next_buffer(&pMsgInfo->Body.strDataBuf);
-		}
-		else
-		{
-			pstrDataBuffer = pMsgInfo->Body.strDataBuf.next;
-		}
-		*/
-	}	
-	stTemp = (VOS_CHAR)0XEF;
+	/*stTemp = (VOS_CHAR)0XEF;
 	xcap_send_info_msgid(pxCap_Response->ulMsgID, (VOS_CHAR*)&stTemp,1,VOS_SEND_SKT_TYPE_INSERT);
 	stTemp = (VOS_CHAR)0XBB;
 	xcap_send_info_msgid(pxCap_Response->ulMsgID, (VOS_CHAR*)&stTemp,1,VOS_SEND_SKT_TYPE_INSERT);
 	stTemp = (VOS_CHAR)0XBF;
 	xcap_send_info_msgid(pxCap_Response->ulMsgID, (VOS_CHAR*)&stTemp,1,VOS_SEND_SKT_TYPE_INSERT);
-	xcap_send_info_msgid(pxCap_Response->ulMsgID, 
-		XCAP_HEAD_BODY,VOS_Strlen(XCAP_HEAD_BODY),VOS_SEND_SKT_TYPE_INSERT);
-
-	
-	//uRecvBufferLen = sizeof(XCAP_SER_MGR);
-	pstrDataBuffer = pMsgInfo->Body.strDataBuf;
-	while(NULL != pstrDataBuffer)
+	*/
+	VOS_PrintBuffer(&pstrDataBuffer, "%s%s%s", XCAP_DOC_BODY, XCAP_HTML_BEGIN, XCAP_HEAD_BEGIN);
+	VOS_PrintBuffer(&pstrDataBuffer, "%s%s%s", "title name", XCAP_HEAD_END, XCAP_BODY_BEGIN);
+	if (NULL == pxCap_Response->pstrBody)
 	{
-		/*if (pstrDataBuffer->nSize >= CPSS_MSG_BUFFER_USED || NULL == pstrDataBuffer->next)
-		{
-			xcap_send_info_msgid(pxCap_Response->ulMsgID, pstrDataBuffer->strBuffer+uRecvBufferLen, 
-				pstrDataBuffer->nSize-uRecvBufferLen,VOS_SEND_SKT_TYPE_FINISH);
-			uRet = VOS_OK;
-			break;
-		}
-		
-		xcap_send_info_msgid(pxCap_Response->ulMsgID, pstrDataBuffer->strBuffer+uRecvBufferLen, 
-			pstrDataBuffer->nSize-uRecvBufferLen,VOS_SEND_SKT_TYPE_INSERT);
-		uRecvBufferLen = 0;
-		
-		if (pstrDataBuffer != &pMsgInfo->Body.strDataBuf)
-		{
-			pstrDataBuffer = (CPSS_MEM_BUFFER *)cpss_get_next_buffer(&pMsgInfo->Body.strDataBuf);
-		}
-		else
-		{
-			pstrDataBuffer = pMsgInfo->Body.strDataBuf.next;
-		}
-		*/
+		VOS_PrintBuffer(&pstrDataBuffer, "%s%s%s", "not found", XCAP_BODY_END, XCAP_HTML_END);
 	}
+	else
+	{
+		VOS_PrintBuffer(&pstrDataBuffer, "%s%s%s", pxCap_Response->pstrBody, XCAP_BODY_END, XCAP_HTML_END);
+	}
+	VOS_Memcpy(&MsgInfo.Body.msghead.stSrcProc,
+		&pMsgInfo->Body.msghead.stDstProc, sizeof(CPSS_COM_PID));
+	VOS_Memcpy(&MsgInfo.Body.msghead.stDstProc,
+		&pMsgInfo->Body.msghead.stSrcProc, sizeof(CPSS_COM_PID));
+	uRet = cpss_send_data(&MsgInfo, pstrDataBuffer, VOS_Strlen(pstrDataBuffer),
+						VOS_SEND_SKT_TYPE_TCP);
+	if (VOS_OK != uRet)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "send data failed");
+	}
+	VOS_PrintBufferRelease(pstrDataBuffer);
 	return uRet;
 }
 
+/* ===  FUNCTION  ==============================================================
+*         Name:  set_xcap_head
+*  Description:  解析xcap 字符串
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static VOS_UINT32 xcap_responce_data(pCPSS_MSG pMsgInfo)
+{
+	VOS_UINT32		uRet = VOS_ERR;
+	CPSS_MSG		MsgInfo;
+
+	BZERO(&MsgInfo, sizeof(CPSS_MSG));
+
+	MsgInfo.Body.msghead.stSrcProc.ulCpuID = cpss_get_cpuid_pid(
+		CPSS_SYSTEM_TYPE_XCAP, CPSS_SUBSYS_TYPE_MOCLI, CPSS_GET_TYPE_CPUID);
+	if (0 == MsgInfo.Body.msghead.stSrcProc.ulCpuID)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "src cpuid is error");
+		return uRet;
+	}
+	MsgInfo.Body.msghead.stSrcProc.ulPID = cpss_get_cpuid_pid(
+		CPSS_SYSTEM_TYPE_XCAP, CPSS_SUBSYS_TYPE_MOCLI, CPSS_GET_TYPE_PID);
+	if (0 == MsgInfo.Body.msghead.stSrcProc.ulPID)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "src pid is error");
+		return uRet;
+	}
+	MsgInfo.Body.msghead.stDstProc.ulCpuID = cpss_get_cpuid_pid(
+		CPSS_SYSTEM_TYPE_MONEY, CPSS_SUBSYS_TYPE_MONEY, CPSS_GET_TYPE_CPUID);
+	if (0 == MsgInfo.Body.msghead.stDstProc.ulCpuID)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "dst cpuid is error");
+		return uRet;
+	}
+	MsgInfo.Body.msghead.stDstProc.ulPID = cpss_get_cpuid_pid(
+		CPSS_SYSTEM_TYPE_MONEY, CPSS_SUBSYS_TYPE_MONEY, CPSS_GET_TYPE_PID);
+	if (0 == MsgInfo.Body.msghead.stDstProc.ulPID)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "dst pid is error");
+		return uRet;
+	}
+
+	MsgInfo.Body.msghead.ulParentMsgID = pMsgInfo->ulMsgID;
+	//MsgInfo.Body.msghead.uType = uType;
+
+	//uRet = money_send_data(&MsgInfo, pstuBuffer, uBufLen, VOS_SEND_SKT_TYPE_TCP);
+	if (VOS_OK != uRet)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "send udp data error");
+	}
+	return uRet;
+}
 /* ===  FUNCTION  ==============================================================
  *         Name:  xcap_responce_proc
  *  Description:  xcap responce 
@@ -571,90 +669,39 @@ VOS_UINT32 xcap_responce_proc(pCPSS_MSG pMsgInfo)
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 	pXCAP_RESPONSE pxCap_Respone_Info = NULL;
-	pXCAP_MSG_MANAGE pXcap_Msg_Mgr = NULL;
-	//pXCAP_SER_MGR  pXcap_Svr_Mgr = (pXCAP_SER_MGR)pMsgInfo->Body.strDataBuf;
-	/*
-	if (NULL == pXcap_Svr_Mgr)
-	{
-		XCAP_PrintErr(__FILE__,__LINE__,"xcap request is msg mgr is NULL");
-		return ulRet;
-	}
-	pXcap_Msg_Mgr = pXcap_Svr_Mgr->Req_Mgr;
-	*/
+	pXCAP_MSG_MANAGE pXcap_Msg_Mgr = (pXCAP_MSG_MANAGE)pMsgInfo->pXcapMgr;
 	if (NULL == pXcap_Msg_Mgr)
 	{
 		XCAP_PrintErr(__FILE__,__LINE__,"xcap request is msg mgr is NULL");
 		return ulRet;
 	}
-	//if (0 == pMsgInfo->Body.strDataBuf.strBuffer[sizeof(XCAP_SER_MGR)])
+	pxCap_Respone_Info = &pXcap_Msg_Mgr->xCap_Respone_Info;
+	ulRet = xcap_set_head(pxCap_Respone_Info);
+	if (VOS_OK != ulRet)
 	{
-		XCAP_PrintErr(__FILE__,__LINE__,"xcap request is msg mgr is NULL");
+		XCAP_PrintErr(__FILE__, __LINE__, "xcap_set_head is error");
 		return ulRet;
 	}
-	
-	pxCap_Respone_Info = &pXcap_Msg_Mgr->xCap_Respone_Info;
-	xcap_set_head(pxCap_Respone_Info, XCAP_RES_CODE_200);
-	//xcap_set_body_size(pxCap_Respone_Info, pMsgInfo, sizeof(XCAP_SER_MGR));
-	xcap_set_body(pxCap_Respone_Info,pMsgInfo);
-	//VOS_Free(pXcap_Msg_Mgr, sizeof(pXCAP_MSG_MANAGE));
+	ulRet = xcap_set_body_size(pxCap_Respone_Info, VOS_Strlen(pxCap_Respone_Info->pstrBody));
+	if (VOS_OK != ulRet)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "xcap_set_body_size is error");
+		return ulRet;
+	}
+	ulRet = xcap_set_responce_body(pMsgInfo, pxCap_Respone_Info);
+	if (VOS_OK != ulRet)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "xcap_set_body_size is error");
+		return ulRet;
+	}
+	if (NULL != pXcap_Msg_Mgr)
+	{
+		VOS_XCAP_Free(pXcap_Msg_Mgr);
+	}
 	return VOS_OK;
 }
 
 
-/* ===  FUNCTION  ==============================================================
- *         Name:  set_xcap_head
- *  Description:  解析xcap 字符串
- *  Input      :  
- *  OutPut     :  
- *  Return     :  
- * ==========================================================================*/
-static VOS_UINT32 xcap_get_body_proc(pCPSS_MSG pMsgInfo, VOS_VOID * pstuBuffer, VOS_UINT32 uBufLen,
-								 VOS_UINT8 uType, VOS_UINT8 uSubType)
-{
-	VOS_UINT32		uRet = VOS_ERR;
-	CPSS_MSG		MsgInfo;
-
-	BZERO(&MsgInfo, sizeof(CPSS_MSG));
-	
-	MsgInfo.Body.msghead.stSrcProc.ulCpuID = cpss_get_cpuid_pid(
-		CPSS_SYSTEM_TYPE_XCAP, CPSS_SUBSYS_TYPE_MOCLI, CPSS_GET_TYPE_CPUID);
-	if (0 == MsgInfo.Body.msghead.stSrcProc.ulCpuID)
-	{
-		XCAP_PrintErr(__FILE__,__LINE__,"src cpuid is error");
-		return uRet;
-	}
-	MsgInfo.Body.msghead.stSrcProc.ulPID   = cpss_get_cpuid_pid(
-		CPSS_SYSTEM_TYPE_XCAP, CPSS_SUBSYS_TYPE_MOCLI, CPSS_GET_TYPE_PID);
-	if (0 == MsgInfo.Body.msghead.stSrcProc.ulPID)
-	{
-		XCAP_PrintErr(__FILE__,__LINE__,"src pid is error");
-		return uRet;
-	}
-	MsgInfo.Body.msghead.stDstProc.ulCpuID = cpss_get_cpuid_pid(
-		CPSS_SYSTEM_TYPE_MONEY, CPSS_SUBSYS_TYPE_MONEY, CPSS_GET_TYPE_CPUID);
-	if (0 == MsgInfo.Body.msghead.stDstProc.ulCpuID)
-	{
-		XCAP_PrintErr(__FILE__,__LINE__,"dst cpuid is error");
-		return uRet;
-	}
-	MsgInfo.Body.msghead.stDstProc.ulPID   = cpss_get_cpuid_pid(
-		CPSS_SYSTEM_TYPE_MONEY, CPSS_SUBSYS_TYPE_MONEY, CPSS_GET_TYPE_PID);
-	if (0 == MsgInfo.Body.msghead.stDstProc.ulPID)
-	{
-		XCAP_PrintErr(__FILE__,__LINE__,"dst pid is error");
-		return uRet;
-	}
-
-	MsgInfo.Body.msghead.ulParentMsgID = pMsgInfo->ulMsgID;
-	MsgInfo.Body.msghead.uType = uType;
-
-	uRet = money_send_data(&MsgInfo,pstuBuffer,uBufLen,VOS_SEND_SKT_TYPE_FINISH);
-	if (VOS_OK != uRet)
-	{
-		XCAP_PrintErr(__FILE__,__LINE__,"send udp data error");
-	}
-	return uRet;
-}
 /* ===  FUNCTION  ==============================================================
  *         Name:  get_xcap_user_body
  *  Description:  解析xcap 字符串
@@ -668,61 +715,7 @@ static VOS_UINT32 get_xcap_user_body(pXCAP_RESPONSE pxCap_Response)
 //	set_xcap_head();
 	return uRet;
 }
-#if 0 
-/* ===  FUNCTION  ==============================================================
- *         Name:  xcap_analyzing_info
- *  Description:  解析xcap 字符串
- *  Input      :  
- *  OutPut     :  
- *  Return     :  
- * ==========================================================================*/
-VOS_UINT32 xcap_analyzing_root(pXCAP_SER_MGR pSerMgr, pXCAP_REQUEST pMsgInfo)
-{
-	VOS_UINT32 ulRet = VOS_ERR;
-	VOS_CHAR	strTimebuffer[INTERNET_RFC1123_BUFSIZE] = {0};
-	VOS_CHAR * pstrTemp1 = NULL;
 
-	if (NULL == pSerMgr)
-	{
-		XCAP_PrintErr(__FILE__, __LINE__,"analyzing root input null");
-		return ulRet;
-	}
-	BZERO(pSerMgr,sizeof(XCAP_SER_MGR));
-	pstrTemp1 = VOS_Strstr(pMsgInfo->Req_head.Request_URI,"/");
-	if (pMsgInfo->Req_head.Request_URI == pstrTemp1)
-	{
-		VOS_Strcpy(pSerMgr->RootName,"money");
-	}
-	*pstrTemp1 = 0;
-	VOS_Strcpy(pSerMgr->RootName,pMsgInfo->Req_head.Request_URI);
-	*pstrTemp1 = '/';
-	VOS_Strcpy(&pSerMgr->URL,pMsgInfo->Req_head.Request_URI);
-	ulRet = VOS_OK;
-	return ulRet;
-}
-#endif
-
-/* ===  FUNCTION  ==============================================================
-*         Name:  send_xcap_URL
-*  Description:  给xcap 服务器发送url信息
-*  Input      :
-*  OutPut     :
-*  Return     :
-* ==========================================================================*/
-static VOS_UINT32 xcap_document_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr)
-{
-	VOS_UINT32 uRet = VOS_ERR;
-	if (NULL == pXcap_Msg_Mgr)
-	{
-		XCAP_PrintErr(__FILE__, __LINE__, "document select parameter error");
-		return uRet;
-	}
-	if (0 == pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI[0])
-	{
-		XCAP_PrintErr(__FILE__, __LINE__, "document select path is error");
-		return uRet;
-	}
-}
 /* ===  FUNCTION  ==============================================================
  *         Name:  send_xcap_URL
  *  Description:  给xcap 服务器发送url信息
@@ -732,7 +725,7 @@ static VOS_UINT32 xcap_document_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr)
  * ==========================================================================*/
 VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo)
 {
-	VOS_UINT32 uRet = VOS_ERR;
+	VOS_UINT32	uRet = VOS_ERR;
 	VOS_UINT32		uBuffLen = 0;
 	//VOS_CHAR		strBuffer[CPSS_MSG_BUFFER_SIZE]={0};
 	//pXCAP_SER_MGR    pstuXcapSerMgr = NULL;
@@ -751,6 +744,7 @@ VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo)
 		return uRet;
 	}
 	BZERO(pXcap_Msg_Mgr, sizeof(XCAP_MSG_MANAGE));
+	pMsgInfo->pXcapMgr = pXcap_Msg_Mgr;
 
 	uRet = xcap_analyzing_buffer(&pXcap_Msg_Mgr->xCap_Request_Info, 
 		pMsgInfo->Body.strDataBuf);
@@ -759,62 +753,35 @@ VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo)
 		XCAP_PrintErr(__FILE__, __LINE__, "analyzing xcap buffer error");
 		goto ERR_PROC;
 	}
-	if(VOS_OK != xcap_request_check(&pXcap_Msg_Mgr->xCap_Request_Info))
+	uRet = xcap_request_check(&pXcap_Msg_Mgr->xCap_Request_Info);
+	if (VOS_OK != uRet )
 	{
 		XCAP_PrintErr(__FILE__, __LINE__, "check xcap buffer error");
 		goto ERR_PROC;
 	}
-#if 0
-	//pstuXcapSerMgr = (pXCAP_SER_MGR)strBuffer;
-	if (VOS_OK != xcap_analyzing_root(pstuXcapSerMgr,&pXcap_Msg_Mgr->xCap_Request_Info))
-	{
-		XCAP_PrintErr(__FILE__, __LINE__, "analyzing xcap root error ");
-		goto ERR_PROC;
-	}
-	pstuXcapSerMgr->Req_Mgr = pXcap_Msg_Mgr;
-	pstuXcapSerMgr->uStat = 0x0A;
-#endif
 	pXcap_Msg_Mgr->xCap_Request_Info.ulMsgID = pMsgInfo->ulMsgID;
-	pXcap_Msg_Mgr->xCap_Respone_Info.ulMsgID = pMsgInfo->ulMsgID;
+	//pXcap_Msg_Mgr->xCap_Respone_Info.ulMsgID = pMsgInfo->ulMsgID;
 	
 	xcap_print_request(&pXcap_Msg_Mgr->xCap_Request_Info);
-	switch (pXcap_Msg_Mgr->xCap_Request_Info.Req_mothod)
+	uRet = xcap_root(pXcap_Msg_Mgr);
+	if (VOS_OK != uRet)
 	{
-	case XCAP_REQ_GET:
-		//VOS_Memcpy(strBuffer,(VOS_CHAR*)&stuXcapSerMgr,sizeof(XCAP_SER_MGR));
-		//uBuffLen = sizeof(XCAP_SER_MGR)+VOS_Strlen(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI);
-		//uRet = xcap_get_body_proc(pMsgInfo, strBuffer, uBuffLen, CPSS_REQ_XCAP_GET, CPSS_TYPE_GET_SUBURL);
-		if (VOS_OK != uRet)
-		{
-			XCAP_PrintErr(__FILE__, __LINE__, "send xcap data failed");
-		}
-		break;
-	case XCAP_REQ_PUT:
-		break;
-	case XCAP_REQ_OTHER:
-		break;
-	case XCAP_REQ_POST:
-		break;
-	case XCAP_REQ_HEAD:
-		break;
-	case XCAP_REQ_DELETE:
-		break;
-	case XCAP_REQ_TRACE:
-		break;
-	case XCAP_REQ_CONNECT:
-		break;
-	default:
-		break;
+		XCAP_PrintErr(__FILE__, __LINE__, "check xcap buffer error");
+		goto ERR_PROC;
 	}
-//END_PROC:
-	//pMsgInfo->pRecvBuffer[0] = pXcap_Msg_Mgr;
+	uRet = xcap_responce_proc(pMsgInfo);
+	if (VOS_OK != uRet)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "xcap responce error");
+		goto ERR_PROC;
+	}
 	return VOS_OK;
 ERR_PROC:
 	if (NULL != pXcap_Msg_Mgr)
 	{
-		VOS_Free(pXcap_Msg_Mgr, sizeof(XCAP_MSG_MANAGE));
+		VOS_XCAP_Free(pXcap_Msg_Mgr);
 	}
-	return VOS_ERR;
+	return uRet;
 }
 
 /* ===  FUNCTION  ==============================================================
@@ -910,7 +877,7 @@ VOS_UINT32 xcap_send_info_msgid(VOS_UINT32 uMsgID, VOS_VOID * pstuBuffer, VOS_UI
 static VOS_UINT32 get_xcap_file_no_find(pXCAP_RESPONSE pxCap_Response)
 {
 	VOS_UINT32 uRet = VOS_ERR;
-	VOS_PrintBuffer(&pxCap_Response->pstuBuffer,"%s"
+	VOS_PrintBuffer(&pxCap_Response->pstrBody, "%s"
 		"<html>\r\n<head>\r\n\t<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\r\n\t<title>Insert title here</title>\r\n</head>\r\n" \
 		"<body>" \
 		"\r\n<table align=\"center\">" \

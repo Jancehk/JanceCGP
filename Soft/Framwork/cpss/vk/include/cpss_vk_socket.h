@@ -83,14 +83,6 @@ typedef enum _CPSS_IOCP_THREAD_LIST_M
 	CPSS_IOCP_THREAD_URECV,
 	CPSS_IOCP_THREAD_COUNT,
 };
-typedef struct CPSS_CLT_CMD_T
-{
-	VOS_UINT32  nCmdID;
-	VOS_CHAR	strCmdBuff[CPSS_MSG_BUFFER_SIZE]; 
-	VOS_UINT32	nCmdLength;
-	struct CPSS_CLT_CMD_T * prev;
-	struct CPSS_CLT_CMD_T * next;
-}CPSS_CLT_CMD,CPSS_CLT_CMD;
 typedef struct CPSS_SKT_FD_SET_T
 {
 	fd_set		fdread;
@@ -117,30 +109,6 @@ typedef struct CPSS_SOCKET_LINK_T
 	struct CPSS_SOCKET_LINK_T * prev;
 }CPSS_SOCKET_LINK, *pCPSS_SOCKET_LINK;
 
-typedef struct CPSS_CLIENT_INFO_T
-{
-	VOS_UINT32  ulID;									// 客户 的序号
-	VOS_UINT8   nStat;									// socket的状态 空闲 预约 使用 使用完毕 
-	VOS_UINT8   nType;									// msg   的状态
-	VOS_UINT8   nLineStat;								// 登录状态 0 没有登录用户 1 设置用户名 2 已经登录
-	VOS_UINT8   uClientStat;							// current Client stat
-	VOS_UINT32  dwTThreadId;
-	SOCKADDR_IN clientaddr;								//Client Addr
-	CPSS_USER_INFO stuUserInfo;
-	VOS_CHAR    strIPaddress[CPSS_CLIENT_IPADS_LENGTH];
-	CPSS_SOCKET_LINK *	pAccptSocket;					// Accept Parent Socket Handle
-	//CPSS_SOCKET_LINK *	pClientSocket;					// Client Socket Handle
-	VOS_UINT32			ulCientHaveTime;
-	VOS_Event			hCmdEvent;						//开始等待数据
-	VOS_UINT8			bIsEvent;						//是否处理完数据 0 没有接受完 1 接受完数据
-	VOS_VOID		 *	msg;
-	CPSS_CLT_CMD	    stuCmdLink;
-	VOS_UINT32			nCmdConut;
-	struct CPSS_CLIENT_INFO_T *prev;
-	struct CPSS_CLIENT_INFO_T *next;
-	VOS_CHAR			*pstuBuffer;
-	VOS_UINT32			nBufferLeng;
-}CPSS_CLIENT_INFO, *pCPSS_CLIENT_INFO;
 typedef struct _CPSS_IOCP_THREAD_INFO_T
 {
 	VOS_THREAD_INFO hThread;
@@ -228,13 +196,12 @@ VOS_VOID cpss_iocp_close ();
 CPSS_MSG_SEM_MANAGE * cpss_get_msgtab ();
 
 /* ===  FUNCTION  ==============================================================
- *         Name:  cpss_tcp_send_msg
+ *         Name:  cpss_send_data
  *  Description: 
  *  Input      : 
  *  OutPut     : 
  *  Return     : 
  * ==========================================================================*/
-//VOS_UINT32 cpss_tcp_send_msg (VOS_VOID *pVoidMsg);
 VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 uBufLen, VOS_UINT32 uType);
 
 /* ===  FUNCTION  ==============================================================

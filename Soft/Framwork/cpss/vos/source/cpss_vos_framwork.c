@@ -19,37 +19,6 @@
 #include "cpss_vos_framwork.h"
 
 /* ===  FUNCTION  ==============================================================
-*         Name:  framwork_send_data
-*  Description:  发送telnet的数据
-*  Input      :
-*  OutPut     :
-*  Return     :
-* ==========================================================================*/
-static VOS_UINT32 framwork_send_data(VOS_UINT32 ulCpuID,
-	VOS_UINT32 ulPID,
-	VOS_UINT32 uType,
-	VOS_UINT32 uCmd,
-	VOS_CHAR * pstrBuffer,
-	VOS_UINT32 uBufLen)
-{
-	VOS_UINT32 uRet = VOS_ERR;
-	CPSS_MSG		MsgSend = { 0 };
-
-	cps_set_msg_from_cpuid(&MsgSend, CPSSFWCPUID, CPSSFWPID);
-	cps_set_msg_to_cpuid(&MsgSend, ulCpuID, ulPID);
-
-	MsgSend.Body.msghead.uType = uType;
-	MsgSend.Body.msghead.uCmd = uCmd;
-
-	uRet = cpss_send_data(&MsgSend, pstrBuffer, uBufLen,
-		VOS_SEND_SKT_TYPE_FINISH | VOS_SEND_SKT_TYPE_UDP);
-	if (VOS_OK != uRet)
-	{
-		VOS_PrintErr(__FILE__, __LINE__, "send udp data error");
-	}
-	return uRet;
-}
-/* ===  FUNCTION  ==============================================================
  *         Name:  regist_cpuid_to_dbsvr
  *  Description:  发送telnet的数据
  *  Input      :  
@@ -63,6 +32,8 @@ static VOS_UINT32 regist_cpuid_to_dbsvr(pCPSS_MSG pMsgInfo)
 	VOS_UINT32		uCount = 0,uIndex = 0;
 	VOS_UINT32		uBuffLen = 0;
 	VOS_CHAR		strBuffer[CPSS_MSG_BUFFER_SIZE]={0};
+	CPSS_MSG		MsgSend = { 0 };
+
 	if (NULL == pMsgInfo)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"input msg is error");
@@ -78,9 +49,13 @@ static VOS_UINT32 regist_cpuid_to_dbsvr(pCPSS_MSG pMsgInfo)
 	uBuffLen = sizeof(CPSS_CPUID_HEADER) + (sizeof(CPSS_CPUID_INFO)*pstrCpuidCount->ulCount);
 	pstrCpuidCount->ulCount = htonl(pstrCpuidCount->ulCount);
 
-	uRet = framwork_send_data(DBSVRCPUID, DBSVRPID,
-		cps_set_msg_type(DBSVR_REQUEST_MGR, DBSVR_TYPE_CPUIDPID, CPSS_MSG_REG),
-		0,	strBuffer, uBuffLen);
+	cps_set_msg_from_cpuid(&MsgSend, CPSSFWCPUID, CPSSFWPID);
+	cps_set_msg_to_cpuid(&MsgSend, DBSVRCPUID, DBSVRPID);
+
+	MsgSend.Body.msghead.uType = cps_set_msg_type(DBSVR_REQUEST_MGR, DBSVR_TYPE_CPUIDPID, CPSS_MSG_REG);
+
+	uRet = cpss_send_data(&MsgSend, strBuffer, uBuffLen,
+		VOS_SEND_SKT_TYPE_UDP);
 	if (VOS_OK != uRet)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "send udp data error");

@@ -32,6 +32,7 @@ extern "C" {
 #include <pthread.h>
 #endif
 #include "cpss_default.h"
+#include "cpss_public.h"
 	
 #if (OS_TYPE == OS_TYPE_WINDOW)
 #define _THREAD_ _declspec(thread)
@@ -40,7 +41,12 @@ extern "C" {
 #endif
 #define THREAD _THREAD_
 
-	
+#define  CPSS_MSG_BUFFER_SIZE	1024
+
+typedef struct _CPSS_CPUID_HEADER_T{
+	VOS_UINT32 ulCount;
+	VOS_UINT32 rfu[3];
+}CPSS_CPUID_HEADER, *pCPSS_CPUID_HEADER;
 typedef struct _CPSS_CPUID_INFO_T{
 	VOS_UINT32 ulSystemID;
 	VOS_UINT32 ulSubsysID;
@@ -48,10 +54,6 @@ typedef struct _CPSS_CPUID_INFO_T{
 	VOS_UINT32 ulPid;
 }CPSS_CPUID_INFO,*pCPSS_CPUID_INFO;
 
-typedef struct _CPSS_CPUID_HEADER_T{
-	VOS_UINT32 ulCount;
-	VOS_UINT32 rfu[3];
-}CPSS_CPUID_HEADER, *pCPSS_CPUID_HEADER;
 
 typedef struct _CONFIG_TAB_T
 {
@@ -70,6 +72,41 @@ typedef struct _CPSS_USER_INFO_T{
 	VOS_CHAR	strPass[CPSS_CLIENT_PASS_LENGTH];
 	VOS_UINT32	ulResult;
 }CPSS_USER_INFO, *pCPSS_USER_INFO;
+
+typedef struct CPSS_CLT_CMD_T
+{
+	VOS_UINT32  nCmdID;
+	VOS_CHAR	strCmdBuff[CPSS_MSG_BUFFER_SIZE];
+	VOS_UINT32	nCmdLength;
+	struct CPSS_CLT_CMD_T * prev;
+	struct CPSS_CLT_CMD_T * next;
+}CPSS_CLT_CMD, CPSS_CLT_CMD;
+//客户信息
+#define CPSS_CLIENT_IPADS_LENGTH	32
+typedef struct CPSS_CLIENT_INFO_T
+{
+	VOS_UINT32			ulID;									// 客户 的序号
+	VOS_UINT8			nStat;									// socket的状态 空闲 预约 使用 使用完毕 
+	VOS_UINT8			nType;									// msg   的状态
+	VOS_UINT8			nLineStat;								// 登录状态 0 没有登录用户 1 设置用户名 2 已经登录
+	VOS_UINT8			uClientStat;							// current Client stat
+	VOS_UINT32			dwTThreadId;
+	SOCKADDR_IN			clientaddr;								//Client Addr
+	CPSS_USER_INFO		stuUserInfo;
+	VOS_CHAR			strIPaddress[CPSS_CLIENT_IPADS_LENGTH];
+	VOS_VOID *			pAccptSocket;					// Accept Parent Socket Handle
+	//CPSS_SOCKET_LINK *	pClientSocket;					// Client Socket Handle
+	VOS_UINT32			ulCientHaveTime;
+	VOS_VOID *			pCmdEvent;						//开始等待数据
+	VOS_UINT8			bIsEvent;						//是否处理完数据 0 没有接受完 1 接受完数据
+	VOS_VOID		 *	msg;
+	CPSS_CLT_CMD		stuCmdLink;
+	VOS_UINT32			nCmdConut;
+	struct CPSS_CLIENT_INFO_T *prev;
+	struct CPSS_CLIENT_INFO_T *next;
+	VOS_CHAR			*pstuBuffer;
+	VOS_UINT32			nBufferLeng;
+}CPSS_CLIENT_INFO, *pCPSS_CLIENT_INFO;
 
 //常用库函数
 
@@ -139,14 +176,18 @@ extern VOS_UINT32 VOS_PrintBuffer (
 		const VOS_STRING fmt, ...);
 
 /* ===  FUNCTION  =========================================================
- *         Name:  VOS_PrintBuffer
- *  Description:  
- * ========================================================================*/
-extern VOS_UINT32 VOS_PrintBufferBin (
+*         Name:  VOS_PrintBufferRelease
+*  Description:
+* ========================================================================*/
+extern VOS_UINT32 VOS_PrintBufferRelease(VOS_VOID * pstuBuffer);
+/* ===  FUNCTION  =========================================================
+*         Name:  VOS_PrintBufferBin
+*  Description:
+* ========================================================================*/
+extern VOS_UINT32 VOS_PrintBufferBin(
 		VOS_VOID * pstuBuffer,
-		VOS_VOID * pstrBuffer,
-		VOS_UINT32 ulSize,
-		VOS_UINT32 *ulTotal);
+		VOS_CHAR * pstuInput,
+		VOS_UINT32 nLen);
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_trim
  *  Description:   左右截取
@@ -202,7 +243,7 @@ extern VOS_STRING cpss_getline(VOS_STRING pbuf, VOS_STRING pline, VOS_INT32 skip
 extern VOS_STRING cpss_getver();
 
 /* ===  FUNCTION  ==============================================================
- *         Name:  cpss_tcp_send_msg
+ *         Name:  cpss_send_data
  * ==========================================================================*/
 extern VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 uBufLen, VOS_UINT32 uType);
 
@@ -252,6 +293,14 @@ extern VOS_UINT32 cpss_set_cpuid_pid (VOS_UINT32 ulSubSys,
 extern VOS_UINT32 cpss_get_cpuid_pid_to_buffer (
 	   VOS_UINT32 ulType,
 	   VOS_STRING strBuffer);
+/*===  FUNCTION  ===============================================================
+*         Name:  cpss_get_file_data
+*  Description:  得到文件的内容
+*  Input      :
+*  OutPut     :
+*  Return     :
+* =============================================================================*/
+extern VOS_CHAR* cpss_get_file_data(VOS_CHAR * pstrPath);
 
 #ifdef _cplusplus
 }

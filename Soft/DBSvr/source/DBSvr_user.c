@@ -64,7 +64,7 @@ static VOS_UINT32 dbsvr_check_user_proc(pCPSS_MSG pMsgInfo)
 	VOS_Memcpy(strBuffer, (VOS_CHAR *)pstuUserInfo,sizeof(CPSS_USER_INFO));
 	uBuffLen = sizeof(CPSS_USER_INFO);
 
-	ulRet = dbsvr_send_data(&MsgInfo, strBuffer, uBuffLen, VOS_SEND_SKT_TYPE_FINISH);
+	ulRet = dbsvr_send_data(&MsgInfo, strBuffer, uBuffLen, VOS_SEND_SKT_TYPE_UDP);
 	if (VOS_OK != ulRet)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"send udp data error");

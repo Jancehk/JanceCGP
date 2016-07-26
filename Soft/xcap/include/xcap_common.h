@@ -47,7 +47,13 @@ extern "C" {
 
 #define XCAP_FIELDS_HOST			7
 
-#define XCAP_HEAD_BODY	"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\">\r\n"
+#define XCAP_DOC_BODY	"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01 Transitional//EN\" \"http://www.w3.org/TR/html4/loose.dtd\">\r\n"
+#define XCAP_HTML_BEGIN "<html>\r\n"
+#define XCAP_HEAD_BEGIN "<head>\r\n\t<meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\">\r\n\t<title>"
+#define XCAP_HEAD_END	"</title>\r\n</head>"
+#define XCAP_BODY_BEGIN	"\r\n<body>"
+#define XCAP_BODY_END	"\r\n</body>"
+#define XCAP_HTML_END	"\r\n</html>"
 
 typedef enum XCAP_REQ_METHOD {
 	XCAP_REQ_GET =3,
@@ -177,10 +183,9 @@ typedef struct _XCAP_RESPONSE_T
 {
 	XCAP_RESPONSE_HEAD	Res_head;
 	VOS_UINT8			fields_num;
-	VOS_UINT32			ulMsgID;
 	XCAP_FIELDS			Res_head_fields[XCAP_FIELDS_NUM];
 	VOS_CHAR		    pstrFilePath[MAX_PATH];
-	VOS_CHAR			*pstuBuffer;
+	VOS_CHAR			*pstrBody;
 }XCAP_RESPONSE,*pXCAP_RESPONSE;
 typedef struct _XCAP_FIELDS_TEMP_T{
 	VOS_UINT8 m_num;

@@ -239,7 +239,7 @@ VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 		
 		//Money_PrintInfo(__FILE__,__LINE__,"Recv MsgID:%d\n", pMsgInfo->Body.msghead.ulMsgID);
 		
-		//uRet = send_udp_data(&MsgInfo, "", 0,VOS_SEND_SKT_TYPE_FINISH,	CPSS_RES_XCAP_GET,CPSS_TYPE_GET_SUBURL);
+		//uRet = send_udp_data(&MsgInfo, "", 0,VOS_SEND_SKT_TYPE_TCP,	CPSS_RES_XCAP_GET,CPSS_TYPE_GET_SUBURL);
 		if (VOS_OK != uRet)
 		{
 			Money_PrintErr(__FILE__,__LINE__,"send udp data error");

@@ -599,7 +599,7 @@ static VOS_UINT32 dbsvr_responce_cpuid_pid(pCPSS_MSG pMsgInfo)
 
 
 	VOS_Memcpy(&MsgInfo.Body.msghead, 
-		&pMsgInfo->Body.msghead,sizeof(CPSS_COM_HEAD));
+		&pMsgInfo->Body.msghead, CPSS_MSG_HEAD_SIZE);
 	cps_set_msg_to_subid(&MsgInfo, CPSS_SUBSYS_TYPE_FW);
 	//cps_set_msg_to_cpuid(&MsgInfo, 0, pMsgInfo->Body.msghead.stDstProc.ulPID);
 
@@ -611,8 +611,7 @@ static VOS_UINT32 dbsvr_responce_cpuid_pid(pCPSS_MSG pMsgInfo)
 	pstrCpuidCount->ulCount = htonl(pstrCpuidCount->ulCount);
 
 	uRet = cpss_send_data(&MsgInfo,
-		strBuffer, uBuffLen,
-		VOS_SEND_SKT_TYPE_FINISH | VOS_SEND_SKT_TYPE_UDP);
+		strBuffer, uBuffLen, VOS_SEND_SKT_TYPE_UDP | VOS_SEND_ALL_OF_PID);
 	if (VOS_OK != uRet)
 	{
 		DBSvr_PrintErr(__FILE__, __LINE__, "send udp data error");

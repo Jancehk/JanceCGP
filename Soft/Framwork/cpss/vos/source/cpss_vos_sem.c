@@ -116,11 +116,10 @@ static VOS_VOID cpss_print_msginfo_debug(VOS_VOID * pstuBuffer,CPSS_MSG *pstuMsg
 	VOS_CHAR *pstrStat[] = {"Free","Resv","Useg","Used"};
 	while(NULL != pstuMsg)
 	{
-		VOS_PrintBuffer(pstuBuffer, "msg tab link [%p]->[%p][ID:%d Stat:%d:%s Clit:%p Len:%d]\n", 
+		VOS_PrintBuffer(pstuBuffer, "  >[%p]->[%p][ID:%d Stat:%s Clit:%p Len:%d]\n", 
 			pstuMsg,
 			pstuMsg->next,
 			pstuMsg->ulMsgID,
-			pstuMsg->nSelfStat,
 			pstrStat[pstuMsg->nSelfStat - CPSS_MSG_SELF_STAT_FREE],
 			pstuMsg->pClient,
 			pstuMsg->ulMsgLength);
@@ -179,7 +178,8 @@ static VOS_VOID cpss_print_msgtab_debug(VOS_UINT32 ulType)
 		break;
 	}
 	
-	VOS_PrintBuffer(&stuBuffer,"\nMsg Free Table list\nMsg Total [%d]\nFree cont %d head[%p]-tail[%p]\n", 
+	VOS_PrintBuffer(&stuBuffer,"\nMsg Free Table list\nMsg Total %d[%d]\nFree cont %d head[%p]-tail[%p]\n", 
+		g_cpsMsgSem_Manage->msgtab.nIDCount,
 		g_cpsMsgSem_Manage->msgtab.nMsgTotalCount,
 		g_cpsMsgSem_Manage->msgtab.nFreeCount,
 		g_cpsMsgSem_Manage->msgtab.pFreeHead,
@@ -221,6 +221,7 @@ static VOS_VOID cpss_print_msgtab_debug(VOS_UINT32 ulType)
 
 
 	VOS_PrintInfo("", CPSS_PRINTF_BUFFER, "%s", stuBuffer);
+	VOS_PrintBufferRelease(stuBuffer);
 }
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_msg_del_a_to_b
@@ -514,6 +515,12 @@ static VOS_UINT32 cpss_move_msg_use_msg(CPSS_MSG *pMsgInfo, VOS_UINT32 uType)
 	{
 		*pUsedCount = *pUsedCount-1;
 		pMsgtab->nFreeCount++;
+		if (NULL != pMsgInfo->Body.strDataBuf)
+		{
+			VOS_Free(pMsgInfo->Body.strDataBuf, CPSS_MEM_HEAD_KEY_CPSS_SKT);
+			pMsgInfo->Body.strDataBuf = NULL;
+		}
+		pMsgInfo->ulMsgLength = 0;
 	}else
 	if (MOVE_FREE_TO_USED == nType)
 	{
@@ -593,10 +600,6 @@ static CPSS_MSG	* cpss_get_msg_use_id(VOS_UINT32 uMsgID, VOS_UINT32 uType,VOS_UI
 		goto EXITPROC;
 	}
 	pMsgInfo = cpss_get_msg_use_id_in_tab(pTypeTbale, uMsgID);
-	if (NULL == pMsgInfo)
-	{
-		cpss_print_msgtab_debug(*puTypeNext);
-	}
 EXITPROC:
 	return pMsgInfo;
 }
@@ -615,21 +618,16 @@ static VOS_UINT32 cpss_move_msg_use_msgid(VOS_UINT32 uMsgID, VOS_UINT32 uType)
 	pMsgInfo = cpss_get_msg_use_id(uMsgID,uType,&uTypeNext);
 	if (NULL == pMsgInfo)
 	{
-		VOS_PrintErr(__FILE__,__LINE__,"not find in %d:%d",uMsgID,uType);
 		goto EXITPROC;
 	}
 	uRet = cpss_move_msg_use_msg(pMsgInfo,uTypeNext);
 	if (VOS_OK != uRet)
 	{
+		cpss_print_msgtab_debug(uTypeNext);
 		VOS_PrintErr(__FILE__,__LINE__,"move a to b error");
 		goto EXITPROC;
 	}
 EXITPROC:
-	// del a lock
-	if (VOS_OK != uRet)
-	{
-		VOS_PrintErr(__FILE__,__LINE__,"msg_use_msgid error");
-	}
 	return uRet;
 }
 
@@ -1270,10 +1268,21 @@ CPSS_MSG * cpss_get_used_msg(VOS_UINT32 ulPID, VOS_UINT32 uType)
 		}
 		pMsgInfo = pMsgInfo->next;
 	}
-	VOS_PrintDebug(__FILE__,__LINE__,"Get %s:Msg:%p Pid:%d",
-		GET_UDP_RECV_USED == uType?"UDP":"TCP",
-		pMsgInfo,
-		ulPID);
+	if (NULL != pMsgInfo)
+	{
+		VOS_PrintDebug(__FILE__, __LINE__, "Get Msg:%p[%d] use Pid:%d in %s queue",
+			pMsgInfo,
+			pMsgInfo->ulMsgID,
+			ulPID,
+			GET_UDP_RECV_USED == uType ? "UDP" : "TCP");
+	}/*
+	else
+	{
+		VOS_PrintDebug(__FILE__, __LINE__, "No Msg:%p use Pid:%d in %s queue",
+			pMsgInfo,
+			ulPID,
+			GET_UDP_RECV_USED == uType ? "UDP" : "TCP");
+	}*/
 END_PROC:
 	if (VOS_OK != VOS_Mutex_Unlock(&g_cpsMsgSem_Manage->hMutex))
 	{

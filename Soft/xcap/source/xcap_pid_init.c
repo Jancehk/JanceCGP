@@ -16,6 +16,7 @@
  * =====================================================================================
  */
 #include "xcap_pid_init.h"
+//#include "cpss_vk_socket.h"
 /* ===  FUNCTION  ==============================================================
  *         Name:  VOS_ProcessInit
  *  Description: 
@@ -51,6 +52,7 @@ static VOS_UINT32 xcap_system_proc(pCPSS_MSG pMsgInfo)
 {
 	VOS_UINT32 uRet = VOS_ERR;
 	VOS_UINT8 nCheck = 0;
+	CPSS_CLIENT_INFO *	pClientInfo = NULL;
 	if (NULL == pMsgInfo)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "msg head is null");
@@ -71,12 +73,32 @@ static VOS_UINT32 xcap_system_proc(pCPSS_MSG pMsgInfo)
 			uRet = VOS_OK;
 		}
 		break;
+	case XCAP_TYPE_NEW_CLIENT:
+		pClientInfo = pMsgInfo->pClient;
+		if (NULL == pClientInfo)
+		{
+			XCAP_PrintErr(__FILE__, __LINE__, "Client Ifo is NULL in request init");
+			goto EXIT_OVER;
+		}
+		if (CPSS_MSG_INIT == cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
+		{
+			XCAP_PrintInfo(__FILE__, __LINE__, "New Xcap Client ID:%d IP:%s was connection",
+				pClientInfo->ulID, pClientInfo->strIPaddress);
+		}
+		else if (CPSS_MSG_UNIT == cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
+		{
+			XCAP_PrintInfo(__FILE__, __LINE__, "New Xcap Client ID:%d IP:%s was disconnection",
+				pClientInfo->ulID, pClientInfo->strIPaddress);
+		}
+		uRet = VOS_OK;
+		break;
 	default:
-		VOS_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
+		XCAP_PrintInfo(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
 			pMsgInfo->Body.msghead.uType,
 			pMsgInfo->Body.msghead.uCmd);
 		break;
 	}
+EXIT_OVER:
 	return uRet;
 }
 
@@ -97,6 +119,11 @@ static VOS_UINT32 xcap_system_url_proc(pCPSS_MSG pMsgInfo)
 	switch (cps_get_reqcontent_from_msg(pMsgInfo->Body.msghead.uType))
 	{
 	case XCAP_TYPE_URL:
+		if (CPSS_MSG_REQ != cps_get_reqtype_from_msg(pMsgInfo->Body.msghead.uType))
+		{
+			VOS_PrintErr(__FILE__, __LINE__, "msg req type is null");
+			return uRet;
+		}
 		uRet = xcap_request_URL(pMsgInfo);
 		if (VOS_OK != uRet)
 		{

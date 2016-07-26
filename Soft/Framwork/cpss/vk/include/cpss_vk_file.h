@@ -43,6 +43,12 @@ VOS_UINT32 cpss_get_current_path (VOS_CHAR * pSelfPath);/* -----  end of functio
  *  Return     :    
  * =============================================================================*/
 VOS_UINT32 cpss_get_ip_address (VOS_CHAR * pstrCPUID, VOS_CHAR * pstrOutput);/* -----  end of function cpss_get_ipaddress  ----- */
+/*===  FUNCTION  ===============================================================
+ *         Name:  cpss_get_file_data
+ *  Description:	  
+ * =============================================================================*/
+VOS_CHAR* cpss_get_file_data(VOS_CHAR * pstrPath);
+
 #ifdef _cplusplus
 }
 #endif

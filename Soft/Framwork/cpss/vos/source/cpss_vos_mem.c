@@ -395,7 +395,7 @@ static VOS_INT32 cpss_mem_move_to_free(VOS_UINT32 nMemRdKey, CPSS_MEM_RECORD * p
 	VOS_UINT32 nMemRdKeyTmp = nMemRdKey;
 	if (nMemRdKey != pstuMemRecord->nTagID)
 	{
-		VOS_PrintInfo(__FILE__, __LINE__, "mem[%p] tag id[%d] was change to [%d]", pstuMemRecord, pstuMemRecord->nTagID,nMemRdKey);
+		//VOS_PrintDebug(__FILE__, __LINE__, "mem[%p] tag id[%d] was change to [%d]", pstuMemRecord, pstuMemRecord->nTagID,nMemRdKey);
 		nMemRdKeyTmp = pstuMemRecord->nTagID;
 	}
 	uRet = cpss_mem_record_manager(nMemRdKeyTmp, &pstuMemRecord, MEM_RECORD_MGR_REMOVEU);
@@ -653,8 +653,10 @@ VOS_UINT32 cpss_mem_free(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * strFil
 	CPSS_MEM_RECORD * pstuMemRecord = NULL;
 	if (NULL == vAdress)
 	{
+		/*
 		VOS_PrintWarn(strFile, nLine, "free address is NULL",
 			nMemRdKey, vAdress);
+		*/
 		return uRet;
 	}
 	if (nMemRdKey >= CPSS_MEM_HEAD_KEY_CPSS_TOTAL)
@@ -748,6 +750,7 @@ VOS_CHAR* cpss_str_cat(VOS_UINT32 nMemRdKey, void * vAdressA, void * vAdressB, V
 		{
 			return NULL;
 		}
+		pstrTmp[ulSizeA] = 0;
 	}
 	VOS_Strcat(pstrTmp, vAdressB);
 	return pstrTmp;

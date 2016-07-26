@@ -30,7 +30,7 @@
 
 static VOS_THREAD_INFO		g_cmd_thread_info;
 VOS_Event			g_cmd_Event;
-CPSS_CLIENT_INFO	ClientInfo;
+static CPSS_CLIENT_INFO	ClientInfo;
 /*===  FUNCTION  ===============================================================
 -         Name:  shell_cmd_init
 -  Description:	ÃüÁîº¯Êý³õÊ¼»¯  
@@ -209,7 +209,7 @@ static VOS_UINT32 cpss_check_use_info(pCPSS_USER_INFO pstuUserInfo)
 	VOS_Memcpy(strBuffer,pstuUserInfo,ulSendSize);
 
 	ulRet = cpss_send_data(&MsgInfo, strBuffer, ulSendSize,
-		VOS_SEND_SKT_TYPE_FINISH|VOS_SEND_SKT_TYPE_UDP);
+		VOS_SEND_SKT_TYPE_UDP);
 
 	if (VOS_OK != ulRet)
 	{
@@ -237,7 +237,7 @@ VOS_UINT32 cpss_result_use_info(pCPSS_USER_INFO pstuUserInfo)
 		return ulRet;
 	}
 	pClient->stuUserInfo.ulResult = pstuUserInfo->ulResult;
-	VOS_Set_Event(&pClient->hCmdEvent);
+	VOS_Set_Event(pClient->pCmdEvent);
 	ulRet = VOS_OK;
 	return ulRet;
 }
@@ -260,7 +260,7 @@ static VOS_UINT32 telnet_check_user(pCPSS_CLIENT_INFO pClient)
 			pClient->stuUserInfo.strUser,
 		pClient->stuUserInfo.strUser);
 	}
-	VOS_Wait_Event(&pClient->hCmdEvent, INFINITE);
+	VOS_Wait_Event(pClient->pCmdEvent, INFINITE);
 	ulRet = VOS_ERR;
 	if (VOS_OK == pClient->stuUserInfo.ulResult)
 	{
@@ -502,7 +502,7 @@ VOS_UINT32 cpss_exec_cmd (VOS_VOID * lpParameter)
 	print_user_info(pClient);
 #endif
 	pClient->bIsEvent = CPSS_CLIENT_CMD_DOED;
-	VOS_Set_Event(&pClient->hCmdEvent);
+	VOS_Set_Event(pClient->pCmdEvent);
 
 FREE_END:
 	if (NULL != pstuCmdTimer)
@@ -624,12 +624,17 @@ VOS_UINT32 shell_cmd_exec_proc(VOS_VOID * lpParameter)
 	BZERO(&ClientInfo, sizeof(CPSS_CLIENT_INFO));
 	ClientInfo.nLineStat = CPSS_CLIENT_OFFLINE;
 	//ClientInfo.nCmdConut = 1;
-
+	ClientInfo.pCmdEvent = VOS_Shl_Malloc(sizeof(VOS_Event));
+	if (ClientInfo.pCmdEvent == NULL)
+	{
+		VOS_PrintErr(__FILE__,__LINE__,"get Event size is null");
+		return VOS_ERR;
+	}
 	ClientInfo.nBufferLeng = 0;
 TRY_EVENT:
 	sprintf(strMsgEvent, "CLIENT_EMENT_SHELL_%p", &ClientInfo);
 
-	if (VOS_OK != VOS_Init_Event(&ClientInfo.hCmdEvent, strMsgEvent))
+	if (VOS_OK != VOS_Init_Event(ClientInfo.pCmdEvent, strMsgEvent))
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "cpss system get init event ");
 		goto TRY_EVENT;
@@ -644,7 +649,7 @@ TRY_EVENT:
 		if (CPSS_CLIENT_ONLINE == uStat	&&
 			CPSS_CLIENT_CMD_DOING == ClientInfo.bIsEvent)
 		{
-			VOS_Wait_Event(&ClientInfo.hCmdEvent, INFINITE);
+			VOS_Wait_Event(ClientInfo.pCmdEvent, INFINITE);
 			if (NULL != ClientInfo.pstuBuffer)
 			{
 				VOS_PrintDebug(__FILE__, __LINE__, "Print Wait clint buffer address [%p]",
@@ -657,7 +662,7 @@ TRY_EVENT:
 		{
 			if (0 >= VOS_Strlen(ClientInfo.pstuBuffer))
 			{
-				VOS_Wait_Event(&ClientInfo.hCmdEvent, INFINITE);
+				VOS_Wait_Event(ClientInfo.pCmdEvent, INFINITE);
 				VOS_PrintDebug(__FILE__, __LINE__, "Print Wait [%p] size[%d]",
 					ClientInfo.pstuBuffer, VOS_Strlen(ClientInfo.pstuBuffer));
 				continue;
@@ -786,7 +791,7 @@ VOS_UINT32 cpss_shell_cmd_exit()
 	}
 	cpss_close_thread(g_cmd_thread_info.hThread, &g_cmd_thread_info.dwThreadId);
 
-	VOS_Destroy_Event(&ClientInfo.hCmdEvent, 0);
+	VOS_Destroy_Event(ClientInfo.pCmdEvent, 0);
 	g_cmd_thread_info.hThread = NULL;
 	cpss_shell_cmd_set();
 	return VOS_OK;
