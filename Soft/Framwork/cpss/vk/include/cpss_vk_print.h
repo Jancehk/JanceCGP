@@ -215,10 +215,6 @@ VOS_UINT32 VOS_PrintBufferRelease(VOS_VOID * pstuBuffer);
 *         Name:  VOS_PrintBufferBin
 *  Description:
 * ========================================================================*/
-VOS_UINT32 VOS_PrintBufferBin(
-		VOS_VOID * pstuBuffer,
-		VOS_CHAR * pstuInput,
-		VOS_UINT32 nLen);
 /* ===  FUNCTION  =========================================================
  *         Name:  VOS_PrintDump
  *  Description:  

@@ -47,11 +47,18 @@ typedef struct _CPSS_CPUID_HEADER_T{
 	VOS_UINT32 ulCount;
 	VOS_UINT32 rfu[3];
 }CPSS_CPUID_HEADER, *pCPSS_CPUID_HEADER;
+
+typedef struct _CPSS_CPUID_T{
+	VOS_UINT32 ulCPuID;
+	VOS_UINT32 ulPid;
+}CPSS_CPUID, *pCPSS_CPUID;
+
 typedef struct _CPSS_CPUID_INFO_T{
 	VOS_UINT32 ulSystemID;
 	VOS_UINT32 ulSubsysID;
-	VOS_UINT32 ulCPuID;
-	VOS_UINT32 ulPid;
+	CPSS_CPUID stuCPuid;
+	//VOS_UINT32 ulCPuID;
+	//VOS_UINT32 ulPid;
 }CPSS_CPUID_INFO,*pCPSS_CPUID_INFO;
 
 
@@ -110,15 +117,15 @@ typedef struct CPSS_CLIENT_INFO_T
 
 //常用库函数
 
-#define VOS_Memset(pstaddres, nVal, ulSize)	memset((pstaddres), (nVal) ,(ulSize))
-#define VOS_Memcpy(pstSou,pstDes,ulSize)	memcpy((pstSou), (pstDes), (ulSize))
-#define VOS_Memcmp(pstSou,pstDes,ulSize)	memcmp((pstSou), (pstDes), (ulSize))
-#define VOS_Strcpy(pstSou,pstDes)			strcpy((pstSou), (pstDes))
-#define VOS_Strncpy(pstSou,pstDes,nLen)		strncpy((pstSou), (pstDes),(nLen))
-#define VOS_Strlen(pstSou)					strlen((pstSou))
-#define VOS_Strcat(pstSou,pstDes)			strcat((pstSou), ((const char *)pstDes))
-#define VOS_Strstr(pstSou,pstDes)			strstr(((const char *)pstSou), ((const char *)pstDes))
-#define VOS_Strcmp(pstSou,pstDes)			strcmp(((const char *)pstSou), ((const char *)pstDes))
+#define VOS_Memset(pstaddres, nVal, ulSize)			memset((pstaddres), (nVal) ,(ulSize))
+#define VOS_Memcpy(pstSou,pstDes,ulSize)			memcpy((pstSou), (pstDes), (ulSize))
+#define VOS_Memcmp(pstSou,pstDes,ulSize)			memcmp((pstSou), (pstDes), (ulSize))
+#define VOS_Strcpy(pstSou,pstDes)					strcpy((pstSou), (pstDes))
+#define VOS_Strncpy(pstSou,pstDes,nLen)				strncpy((pstSou), (pstDes),(nLen))
+#define VOS_Strlen(pstSou)							strlen((pstSou))
+#define VOS_Strcat(pstSou,pstDes)					strcat((pstSou), ((const char *)pstDes))
+#define VOS_Strstr(pstSou,pstDes)					strstr(((const char *)pstSou), ((const char *)pstDes))
+#define VOS_Strcmp(pstSou,pstDes)					strcmp(((const char *)pstSou), ((const char *)pstDes))
 #define BZERO(pszStr,nSize)							memset((pszStr),(0),(nSize))
 
 #define VOS_Malloc(ulSize,strInfo)					cpss_mem_malloc((ulSize), (strInfo), (__FILE__),(__LINE__))
@@ -127,8 +134,10 @@ typedef struct CPSS_CLIENT_INFO_T
 #define VOS_Remset(pstrads,strInfo)					cpss_mem_reset((strInfo), (pstrads),(__FILE__),(__LINE__))
 #define VOS_Memcls(pstrads, ulSize, strInfo)		cpss_mem_cls((strInfo), (pstrads), (ulSize),(__FILE__),(__LINE__))
 #define VOS_Memcat(pstradsA, pstradsB, strInfo)		cpss_mem_cat((strInfo), (pstradsA), (pstradsB),(__FILE__),(__LINE__))
+#define VOS_MemcatEx(pstradsA, pstradsB, ulSize, strInfo)	cpss_mem_catex((strInfo), (pstradsA), (pstradsB), (ulSize), (__FILE__),(__LINE__))
 #define VOS_Memsize(pstrads,strInfo)				cpss_mem_getsize((strInfo), (pstrads),(__FILE__),(__LINE__))
 #define VOS_Free(pstrads,strInfo)					cpss_mem_free((strInfo), (pstrads),(__FILE__),(__LINE__))
+#define VOS_MemErrNo()								cpss_mem_get_lasterr()
 
 #define VOS_CpsStrcat(pstradsA, pstradsB, strInfo)	cpss_str_cat((strInfo), (pstradsA), (pstradsB),(__FILE__),(__LINE__))
 
@@ -180,14 +189,6 @@ extern VOS_UINT32 VOS_PrintBuffer (
 *  Description:
 * ========================================================================*/
 extern VOS_UINT32 VOS_PrintBufferRelease(VOS_VOID * pstuBuffer);
-/* ===  FUNCTION  =========================================================
-*         Name:  VOS_PrintBufferBin
-*  Description:
-* ========================================================================*/
-extern VOS_UINT32 VOS_PrintBufferBin(
-		VOS_VOID * pstuBuffer,
-		VOS_CHAR * pstuInput,
-		VOS_UINT32 nLen);
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_trim
  *  Description:   左右截取
@@ -302,6 +303,17 @@ extern VOS_UINT32 cpss_get_cpuid_pid_to_buffer (
 * =============================================================================*/
 extern VOS_CHAR* cpss_get_file_data(VOS_CHAR * pstrPath);
 
+/*===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_catex
+*  Description:  设置内存管理信息
+* =============================================================================*/
+extern VOS_VOID * cpss_mem_catex(
+	VOS_UINT32 nMemRdKey,
+	VOS_VOID * vAdressA,
+	VOS_VOID * vAdressB,
+	VOS_UINT32 nLen,
+	VOS_CHAR * strFile,
+	VOS_INT32 nLine);
 #ifdef _cplusplus
 }
 #endif

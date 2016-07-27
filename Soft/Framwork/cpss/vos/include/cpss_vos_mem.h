@@ -103,19 +103,35 @@ VOS_VOID * cpss_mem_calloc(VOS_INT32 ulSize,
 *         Name:  cpss_mem_realloc
 *  Description:
 * =============================================================================*/
-VOS_VOID * cpss_mem_realloc(VOS_UINT32 nMemRdKey, void * vAdress, VOS_INT32 ulSize, VOS_CHAR * strFile, VOS_INT32 nLine);
+VOS_VOID * cpss_mem_realloc(VOS_UINT32 nMemRdKey, VOS_VOID * vAdress, VOS_INT32 ulSize, VOS_CHAR * strFile, VOS_INT32 nLine);
 
 /*===  FUNCTION  ==============================================================
 *         Name:  cpss_mem_reset
 *  Description:  设置内存管理信息
 * =============================================================================*/
-VOS_VOID * cpss_mem_reset(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * strFile, VOS_INT32 nLine);
+VOS_VOID * cpss_mem_reset(VOS_UINT32 nMemRdKey, VOS_VOID * vAdress, VOS_CHAR * strFile, VOS_INT32 nLine);
 
 /*===  FUNCTION  ==============================================================
 *         Name:  cpss_mem_cat
 *  Description:  连接两段内存
 * =============================================================================*/
-VOS_VOID * cpss_mem_cat(VOS_UINT32 nMemRdKey, void * vAdressA, void * vAdressB, VOS_CHAR * strFile, VOS_INT32 nLine);
+VOS_VOID * cpss_mem_cat(
+		VOS_UINT32 nMemRdKey, 
+		VOS_VOID * vAdressA, 
+		VOS_VOID * vAdressB, 
+		VOS_CHAR * strFile, 
+		VOS_INT32 nLine);
+/*===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_catex
+*  Description:  设置内存管理信息
+* =============================================================================*/
+VOS_VOID * cpss_mem_catex(
+		VOS_UINT32 nMemRdKey, 
+		VOS_VOID * vAdressA, 
+		VOS_VOID * vAdressB, 
+		VOS_UINT32 nLen, 
+		VOS_CHAR * strFile, 
+		VOS_INT32 nLine);
 /*===  FUNCTION  ==============================================================
 *         Name:  cpss_mem_reset
 *  Description:  得到memory的大小

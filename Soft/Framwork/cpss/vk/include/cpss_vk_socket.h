@@ -94,17 +94,16 @@ typedef struct CPSS_SKT_FD_SET_T
 
 typedef struct CPSS_SOCKET_LINK_T
 {
-	VOS_UINT8		 uID;					// ID
-	VOS_UINT8		 uIStat;				// Socket Stat
-	VOS_UINT8		 nlSocketType;			// TCP UDP socket type
-	VOS_UINT8		 rfu1;					// RFU
-	VOS_UINT16		 uPort;					// Port
-	VOS_UINT16		 rfu2;					// RFU
-	VOS_INT32		 nlSocketfd;			// socket fd
-	CPSS_PID_TABLE   *pstuPid;				// Pid Handle
-	VOS_VOID		 *pstuClientInfo;		// Client Handle
-	//VOS_VOID		 *pstuRecvMsg;			// Recv Msg Handle
-	//VOS_VOID		 *pstuSendMsg;			// Send Msg Handle
+	VOS_UINT8			uID;				// ID
+	VOS_UINT8			uIStat;				// Socket Stat
+	VOS_UINT8			nlSocketType;		// TCP UDP socket type
+	VOS_UINT8			rfu1;				// RFU
+	VOS_UINT16			uPort;				// Port
+	VOS_UINT16			rfu2;				// RFU
+	VOS_INT32			nlSocketfd;			// socket fd
+	CPSS_PID_TABLE *	pstuPid;			// Pid Handle
+	CPSS_CPUID			stuSrcCPuID;		// CPUID/PID
+	VOS_VOID *			pstuClientInfo;		// Client Handle
 	struct CPSS_SOCKET_LINK_T * next;
 	struct CPSS_SOCKET_LINK_T * prev;
 }CPSS_SOCKET_LINK, *pCPSS_SOCKET_LINK;

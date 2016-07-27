@@ -1523,7 +1523,7 @@ VOS_UINT32 VOS_PrintBuffer (
 	}
 	if (NULL == pstuFmtBuf)
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "print buffer get memory is error2");
+		VOS_PrintErr(__FILE__, __LINE__, "print buffer get memory is error2[%d]", VOS_MemErrNo());
 		goto END_PROC;
 	}
 	*pstuBufRtn = pstuFmtBuf;
@@ -1549,52 +1549,6 @@ VOS_UINT32 VOS_PrintBufferRelease(VOS_VOID * pstuBuffer)
 		goto END_PROC;
 	}
 	VOS_Log_Free(pstuBuffer);
-	ulRet = VOS_OK;
-END_PROC:
-	if (VOS_OK != ulRet)
-	{
-		VOS_PrintErr(__FILE__, __LINE__, "print buffer is error exit");
-	}
-	return ulRet;
-}
-/* ===  FUNCTION  =========================================================
-*         Name:  VOS_PrintBuffer
-*  Description:
-* ========================================================================*/
-VOS_UINT32 VOS_PrintBufferBin(
-	VOS_VOID * pstuBuffer,
-	VOS_CHAR * pstuInput, 
-	VOS_UINT32 nLen )
-{
-	VOS_UINT32		ulRet = VOS_OK;
-	VOS_CHAR	**	pstuBufRtn = NULL;
-	VOS_CHAR	*	pstuFmtBuf = NULL;
-	VOS_UINT32		uLenTmp = 0;
-
-	if (pstuBuffer == NULL)
-	{
-		VOS_PrintErr(__FILE__, __LINE__, "print buffer is param is error");
-		goto END_PROC;
-	}
-	pstuBufRtn = pstuBuffer;
-	if (*pstuBufRtn == NULL)
-	{
-		pstuFmtBuf = (VOS_CHAR*)VOS_Log_Malloc(nLen);
-	}
-	else
-	{
-		uLenTmp = VOS_Log_Memsize(*pstuBufRtn);
-		uLenTmp += nLen;
-		pstuFmtBuf = (VOS_CHAR*)VOS_Log_Realloc(*pstuBufRtn, uLenTmp);
-	}
-	if (NULL == pstuFmtBuf)
-	{
-		VOS_PrintErr(__FILE__, __LINE__, "print buffer realloc is error");
-		goto END_PROC;
-	}
-	VOS_Memcpy(pstuFmtBuf + uLenTmp, pstuInput, nLen);
-
-	*pstuBufRtn = pstuFmtBuf;
 	ulRet = VOS_OK;
 END_PROC:
 	if (VOS_OK != ulRet)

@@ -445,8 +445,8 @@ static VOS_UINT32 check_cpuid_pid_in_db(pCPSS_CPUID_INFO pstuCPuID)
 static VOS_UINT32 update_cpuid_pid_to_db(pCPSS_CPUID_INFO pstuCPuID)
 {
 	sprintf(g_strCommand,"update CPUIDPID t set t.ProcessCPuID=\"%u\",t.Pid=%d where t.SubSys =%d and t.m_Index=%d",
-		pstuCPuID->ulCPuID,
-		pstuCPuID->ulPid,
+		pstuCPuID->stuCPuid.ulCPuID,
+		pstuCPuID->stuCPuid.ulPid,
 		pstuCPuID->ulSystemID,
 		pstuCPuID->ulSubsysID);
 	return exec_sql(g_strCommand);
@@ -478,8 +478,8 @@ static VOS_UINT32 insert_cpuid_pid_to_db(pCPSS_CPUID_INFO pstuCPuID)
 	sprintf(g_strCommand,"INSERT INTO CPUIDPID(SubSys,m_Index,ProcessCPuID,Pid)  VALUES (%d,%d,\"%u\",%d)",
 		pstuCPuID->ulSystemID,
 		pstuCPuID->ulSubsysID,
-		pstuCPuID->ulCPuID,
-		pstuCPuID->ulPid);
+		pstuCPuID->stuCPuid.ulCPuID,
+		pstuCPuID->stuCPuid.ulPid);
 	return exec_sql(g_strCommand);
 }
 /* ===  FUNCTION  ==============================================================

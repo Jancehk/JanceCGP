@@ -119,15 +119,10 @@ static VOS_UINT32 xcap_system_url_proc(pCPSS_MSG pMsgInfo)
 	switch (cps_get_reqcontent_from_msg(pMsgInfo->Body.msghead.uType))
 	{
 	case XCAP_TYPE_URL:
-		if (CPSS_MSG_REQ != cps_get_reqtype_from_msg(pMsgInfo->Body.msghead.uType))
-		{
-			VOS_PrintErr(__FILE__, __LINE__, "msg req type is null");
-			return uRet;
-		}
 		uRet = xcap_request_URL(pMsgInfo);
 		if (VOS_OK != uRet)
 		{
-			XCAP_PrintErr(__FILE__, __LINE__, "send url to XCAP Error ");
+			XCAP_PrintErr(__FILE__, __LINE__, "analyzing request url");
 		}
 		break;
 	default:

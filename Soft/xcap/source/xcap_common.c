@@ -524,7 +524,7 @@ static VOS_UINT32 xcap_set_responce_head(pXCAP_RESPONSE pxCap_Response, VOS_CHAR
 			uIndex++;
 			continue;
 		}
-		VOS_PrintBuffer(pstrDataBuffer, "%s%s\r\n",
+		VOS_PrintBuffer(&pstrDataBuffer, "%s%s\r\n",
 			pxCap_Response->Res_head_fields[uIndex].Key,
 			pxCap_Response->Res_head_fields[uIndex].Value);
 		uIndex++;
@@ -544,7 +544,6 @@ static VOS_UINT32 xcap_set_responce_body(pCPSS_MSG pMsgInfo, pXCAP_RESPONSE pxCa
 	VOS_UINT32		uRet = VOS_ERR;
 	VOS_CHAR	*	pstrDataBuffer = NULL;
 	VOS_CHAR		stTemp =0;
-	CPSS_MSG		MsgInfo;
 	STATUS_CODE	*	pCode = NULL;
 
 
@@ -591,11 +590,7 @@ static VOS_UINT32 xcap_set_responce_body(pCPSS_MSG pMsgInfo, pXCAP_RESPONSE pxCa
 	{
 		VOS_PrintBuffer(&pstrDataBuffer, "%s%s%s", pxCap_Response->pstrBody, XCAP_BODY_END, XCAP_HTML_END);
 	}
-	VOS_Memcpy(&MsgInfo.Body.msghead.stSrcProc,
-		&pMsgInfo->Body.msghead.stDstProc, sizeof(CPSS_COM_PID));
-	VOS_Memcpy(&MsgInfo.Body.msghead.stDstProc,
-		&pMsgInfo->Body.msghead.stSrcProc, sizeof(CPSS_COM_PID));
-	uRet = cpss_send_data(&MsgInfo, pstrDataBuffer, VOS_Strlen(pstrDataBuffer),
+	uRet = cpss_send_data(pMsgInfo, pstrDataBuffer, VOS_Strlen(pstrDataBuffer),
 						VOS_SEND_SKT_TYPE_TCP);
 	if (VOS_OK != uRet)
 	{
@@ -668,6 +663,7 @@ static VOS_UINT32 xcap_responce_data(pCPSS_MSG pMsgInfo)
 VOS_UINT32 xcap_responce_proc(pCPSS_MSG pMsgInfo)
 {
 	VOS_UINT32 ulRet = VOS_ERR;
+	VOS_UINT32 ulBodySize = 0;
 	pXCAP_RESPONSE pxCap_Respone_Info = NULL;
 	pXCAP_MSG_MANAGE pXcap_Msg_Mgr = (pXCAP_MSG_MANAGE)pMsgInfo->pXcapMgr;
 	if (NULL == pXcap_Msg_Mgr)
@@ -682,7 +678,11 @@ VOS_UINT32 xcap_responce_proc(pCPSS_MSG pMsgInfo)
 		XCAP_PrintErr(__FILE__, __LINE__, "xcap_set_head is error");
 		return ulRet;
 	}
-	ulRet = xcap_set_body_size(pxCap_Respone_Info, VOS_Strlen(pxCap_Respone_Info->pstrBody));
+	if (NULL != pxCap_Respone_Info->pstrBody)
+	{
+		ulBodySize = VOS_Strlen(pxCap_Respone_Info->pstrBody);
+	}
+	ulRet = xcap_set_body_size(pxCap_Respone_Info, ulBodySize);
 	if (VOS_OK != ulRet)
 	{
 		XCAP_PrintErr(__FILE__, __LINE__, "xcap_set_body_size is error");

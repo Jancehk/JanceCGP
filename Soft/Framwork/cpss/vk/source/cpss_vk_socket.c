@@ -20,14 +20,15 @@
 #include "cpss_vk_print.h"
 
 
-#define VOS_Skt_Malloc(ulSize)			VOS_Malloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
-#define VOS_Skt_Calloc(ulSize)			VOS_Calloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
-#define VOS_Skt_Realloc(pstrads,ulSize)	VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
-#define VOS_Skt_Remset(pstrads)			VOS_Remset((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
-#define VOS_Skt_MemSize(pstrads)		VOS_Memsize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
-#define VOS_Skt_Memcls(pstrads)			VOS_Memcls((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
-#define VOS_Skt_Memcat(pstrA,pstrB)		VOS_Memcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
-#define VOS_Skt_Free(pstrads)			VOS_Free((pstrads), CPSS_MEM_HEAD_KEY_CPSS_SKT)
+#define VOS_Skt_Malloc(ulSize)					VOS_Malloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_Calloc(ulSize)					VOS_Calloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_Realloc(pstrads,ulSize)			VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_Remset(pstrads)					VOS_Remset((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_MemSize(pstrads)				VOS_Memsize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_Memcls(pstrads)					VOS_Memcls((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_Memcat(pstrA,pstrB)				VOS_Memcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_MemcatEx(pstrA,pstrB,ulSize)	VOS_MemcatEx((pstrA), (pstrB), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
+#define VOS_Skt_Free(pstrads)					VOS_Free((pstrads), CPSS_MEM_HEAD_KEY_CPSS_SKT)
 /* ===  FUNCTION  ==============================================================
 *         Name:  cpss_socket_delete
 *  Description:  将socket从指定的链表上移出
@@ -152,9 +153,10 @@ static VOS_VOID cpss_close_socket(CPSS_SOCKET_LINK * pSocketLinkTInfo)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "socket insert error");
 	}
-	VOS_Destroy_Event(&pSocketLinkTInfo->pstuPid->pMsgEvent, 0);
-	
-
+	if (VOS_SOCKET_TCP != pSocketLinkTInfo->nlSocketType)
+	{
+		VOS_Destroy_Event(&pSocketLinkTInfo->pstuPid->pMsgEvent, 0);
+	}
 }		/* -----  end of function cpss_iocp_close  ----- */
 
 /************************************************************************/
@@ -286,11 +288,11 @@ static VOS_UINT32 cpss_update_skt_pid(pCPSS_SOCKET_LINK pSocketLink,VOS_UINT32 u
 	
 	//char *ip=inet_ntoa(sockAddr.sin_addr);
 	pSocketLink->uPort= ntohs(seraddr.sin_port);
-	pSocketLink->pstuPid->pCPuID->ulPid = VOS_SOCKET_IN | uType | pSocketLink->uPort;
+	pSocketLink->pstuPid->pCPuID->stuCPuid.ulPid = VOS_SOCKET_IN | uType | pSocketLink->uPort;
 	
 	ulPidIndex = cpss_get_id_for_pid_str(pSocketLink->pstuPid->szPidName);
 	ulRet = cpss_update_cpuid_pid(cpss_get_systemid(), ulPidIndex,
-		CPSS_STAT_ENABLE, pSocketLink->pstuPid->pCPuID->ulPid, CPSS_GET_TYPE_PID);
+		CPSS_STAT_ENABLE, pSocketLink->pstuPid->pCPuID->stuCPuid.ulPid, CPSS_GET_TYPE_PID);
 	if (VOS_OK != ulRet)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "set %s cpuid is error",
@@ -774,7 +776,7 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketIN)
 	{
 		VOS_Memcpy(msgTmp->Body.msghead.strSegName, CPSS_COMM_SEG_NAME, sizeof(CPSS_COMM_SEG_NAME));
 
-		cps_set_msg_dst_cpuid(msgTmp, CPSSCPUID, pSocketLink->pstuPid->pCPuID->ulPid);
+		cps_set_msg_dst_cpuid(msgTmp, CPSSCPUID, pSocketLink->pstuPid->pCPuID->stuCPuid.ulPid);
 		cps_set_msg_src_cpuid(msgTmp, get_cpuid_from_str(pClientInfo->strIPaddress), 
 			VOS_SOCKET_IN | VOS_TCP_PID | pSocketLink->uPort);
 
@@ -833,11 +835,11 @@ static VOS_UINT32 cpss_tcp_recv_msg(pCPSS_SOCKET_LINK pSocketIN)
 		}
 
 		if (CPSSCPUID != msgTmp->Body.msghead.stDstProc.ulCpuID ||
-			pSocketLink->pstuPid->pCPuID->ulPid != msgTmp->Body.msghead.stDstProc.ulPID)
+			pSocketLink->pstuPid->pCPuID->stuCPuid.ulPid != msgTmp->Body.msghead.stDstProc.ulPID)
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "Dst error:CPUID:%08d:%08d PID:%08d:%08d",
 				CPSSCPUID, msgTmp->Body.msghead.stDstProc.ulCpuID,
-				pSocketLink->pstuPid->pCPuID->ulPid, msgTmp->Body.msghead.stDstProc.ulPID);
+				pSocketLink->pstuPid->pCPuID->stuCPuid.ulPid, msgTmp->Body.msghead.stDstProc.ulPID);
 			goto END_DIS_PROC;
 		}
 		if (VOS_OK != cps_get_msg_mem_data(msgTmp))
@@ -1260,7 +1262,7 @@ VOS_UINT32 cpss_tcp_recv_proc (VOS_VOID * lpParameter)
 		if (VOS_OK != ulRet)
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "PID:%08X Recv Set Event error",
-				pSocketInfo->pstuPid->pCPuID->ulPid);
+				pSocketInfo->pstuPid->pCPuID->stuCPuid.ulPid);
 		//	cpss_move_reserve_to_free(pSocketInfo->pstuRecvMsg);
 		}
 	}
@@ -1416,7 +1418,6 @@ static VOS_UINT32 cpss_tcp_send_msg (VOS_VOID *pVoidMsg)
 		VOS_PrintErr(__FILE__,__LINE__,"check send msg is NULL");
 		return ulRet;
 	}
-	pSendMsg->pClient = pMsg->pClient;
 	pClient = (pCPSS_CLIENT_INFO)pMsg->pClient;
 	if (NULL == pClient)
 	{
@@ -1429,6 +1430,7 @@ static VOS_UINT32 cpss_tcp_send_msg (VOS_VOID *pVoidMsg)
 		VOS_PrintErr(__FILE__,__LINE__,"get send msg is NULL");
 		return ulRet;
 	}
+	pSendMsg->pClient = pMsg->pClient;
 	cpss_move_tcp_send_free_to_used(pSendMsg);
 
 	ulRet = VOS_Set_Event(&g_handleiocpmanage.hIOThread[CPSS_IOCP_THREAD_TSEND].pMsgEvent);
@@ -1609,27 +1611,13 @@ VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 
 	pMsgInfo->ulMsgLength = CPSS_MSG_HEAD_SIZE;
 	if (NULL != strBuffer && 0 < uBufLen)
 	{
-		strSendBuff = (VOS_CHAR*)VOS_Skt_Malloc(uBufLen);
+		strSendBuff = VOS_Skt_MemcatEx(pMsgInfo->Body.strDataBuf, strBuffer, uBufLen);
 		if (NULL == strSendBuff)
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "send data get memory is error:%d",GetLastError());
 			return ulRet;
 		}
-		VOS_Memcpy(strSendBuff, strBuffer, uBufLen);
-		if (NULL == pMsgInfo->Body.strDataBuf)
-		{
-			pMsgInfo->Body.strDataBuf = (VOS_CHAR*)VOS_Skt_Remset(strSendBuff);
-		}
-		else
-		{
-			strSendBuff = (VOS_CHAR*)VOS_Skt_Memcat(pMsgInfo->Body.strDataBuf, strSendBuff);
-			if (NULL == strSendBuff)
-			{
-				VOS_PrintErr(__FILE__, __LINE__, "send data get memory is error:%d", GetLastError());
-				return ulRet;
-			}
-			pMsgInfo->Body.strDataBuf = strSendBuff;
-		}
+		pMsgInfo->Body.strDataBuf = strSendBuff;
 		pMsgInfo->Body.msghead.ulMsgLength = uBufLen;
 		pMsgInfo->ulMsgLength +=  uBufLen;
 		/*VOS_PrintDebug(__FILE__, __LINE__, "send len:%d buff len:%d",
@@ -1667,8 +1655,8 @@ VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 
 				continue;
 			}
 			cps_set_msg_to_cpuid(pMsgInfo, 
-				pstuCPuIDTemp->stuCPuID_Info.ulCPuID,
-				pstuCPuIDTemp->stuCPuID_Info.ulPid);
+				pstuCPuIDTemp->stuCPuID_Info.stuCPuid.ulCPuID,
+				pstuCPuIDTemp->stuCPuID_Info.stuCPuid.ulPid);
 			if (VOS_SEND_SKT_TYPE_TCP == (uType & VOS_SEND_SKT_TYPE_TCP))
 			{
 				ulRet = cpss_tcp_send_msg(pMsgInfo);
@@ -1794,7 +1782,7 @@ VOS_UINT32 cpss_udp_recv_proc (VOS_VOID * lpParameter)
 		if (VOS_OK != ulRet)
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "PID:%08X Recv Set Event error",
-				pSocketLink->pstuPid->pCPuID->ulPid);
+				pSocketLink->pstuPid->pCPuID->stuCPuid.ulPid);
 		}
 	}
 	return ulRet;
@@ -2006,7 +1994,7 @@ VOS_UINT32 cpss_tcp_distribute_proc (VOS_VOID * lpParameter)
 			uRet = VOS_OK;
 			break;
 		}
-		pMsgInfo = cpss_get_used_msg(pstuPidInfo->pCPuID->ulPid, GET_TCP_RECV_USED);
+		pMsgInfo = cpss_get_used_msg(pstuPidInfo->pCPuID->stuCPuid.ulPid, GET_TCP_RECV_USED);
 		if (NULL == pMsgInfo)
 		{
 			if (0 == pstuPidInfo->pMsgEvent.strmutex[0])
@@ -2018,7 +2006,7 @@ VOS_UINT32 cpss_tcp_distribute_proc (VOS_VOID * lpParameter)
 			if (VOS_OK != uRet)
 			{
 				VOS_PrintErr(__FILE__, __LINE__, "PID %08X Wait Event error",
-					pstuPidInfo->pCPuID->ulPid);
+					pstuPidInfo->pCPuID->stuCPuid.ulPid);
 			}
 			continue;
 		}
@@ -2048,7 +2036,7 @@ VOS_UINT32 cpss_tcp_distribute_proc (VOS_VOID * lpParameter)
 		pMsgInfo->nRState = CPSS_MSG_RS_STAT_DOING;
 		if (VOS_OK != pstuPidInfo->ppid_init_proc((VOS_VOID *)pMsgInfo))
 		{
-			VOS_PrintInfo(__FILE__,__LINE__,"Msg:%p Socket:%p Stat:%x exec is faild",
+			VOS_PrintErr(__FILE__,__LINE__,"Msg:%p Socket:%p Stat:%x exec is faild",
 				pMsgInfo, pSocket, pMsgInfo->nRState);
 		}
 		if (CPSS_MSG_RS_STAT_SENDED == pMsgInfo->nRState ||
@@ -2091,7 +2079,7 @@ static VOS_UINT32 cpss_tcp_accept_client (CPSS_SOCKET_LINK * pstuSocket)
 	
 	pClientInfo->pAccptSocket = pAccptSocket;
 	pRecvSocket = cpss_get_socket_from_pid(pAccptSocket->pstuPid->szPidName,
-		pAccptSocket->pstuPid->pCPuID->ulPid);
+		pAccptSocket->pstuPid->pCPuID->stuCPuid.ulPid);
 	nSocketLength= sizeof(SOCKADDR_IN);
 	nlClientSocketfd = accept(pAccptSocket->nlSocketfd,
 		(SOCKADDR *)&pClientInfo->clientaddr,
@@ -2138,7 +2126,7 @@ static VOS_UINT32 cpss_tcp_accept_client (CPSS_SOCKET_LINK * pstuSocket)
 	
 	if (CPSS_SOCKET_PACKAGE_ON != pClientInfo->uClientStat)
 	{
-		cps_set_msg_src_cpuid(&stuMsgInfo, CPSSCPUID, pAccptSocket->pstuPid->pCPuID->ulPid);
+		cps_set_msg_src_cpuid(&stuMsgInfo, CPSSCPUID, pAccptSocket->pstuPid->pCPuID->stuCPuid.ulPid);
 		cps_set_msg_dst_cpuid(&stuMsgInfo, get_cpuid_from_str(pClientInfo->strIPaddress), 
 			VOS_SOCKET_IN | VOS_TCP_PID | pRecvSocket->uPort);
 		stuMsgInfo.pClient = pClientInfo;
@@ -2293,14 +2281,14 @@ VOS_UINT32 cpss_udp_distribute_proc (VOS_VOID * lpParameter)
 			uRet = VOS_OK;
 			break;
 		}
-		pMsgInfo = cpss_get_used_msg(pstuPidInfo->pCPuID->ulPid, GET_UDP_RECV_USED);
+		pMsgInfo = cpss_get_used_msg(pstuPidInfo->pCPuID->stuCPuid.ulPid, GET_UDP_RECV_USED);
 		if (NULL == pMsgInfo)
 		{
 			uRet = VOS_Wait_Event(&pstuPidInfo->pMsgEvent, INFINITE);
 			if (VOS_OK != uRet)
 			{
 				VOS_PrintErr(__FILE__,__LINE__,"PID %08X Wait Event error",
-					pstuPidInfo->pCPuID->ulPid);
+					pstuPidInfo->pCPuID->stuCPuid.ulPid);
 			}
 			continue;
 		}
@@ -2310,7 +2298,7 @@ VOS_UINT32 cpss_udp_distribute_proc (VOS_VOID * lpParameter)
 		*/	
 		pMsgInfo->nRState = CPSS_MSG_RS_STAT_DOING;
 
-		VOS_PrintDebug(__FILE__, __LINE__, "PID:%d pSocket:%p pMsg:%p", pstuPidInfo->pCPuID->ulPid,
+		VOS_PrintDebug(__FILE__, __LINE__, "PID:%d pSocket:%p pMsg:%p", pstuPidInfo->pCPuID->stuCPuid.ulPid,
 			pstuPidInfo->pSocketInfo, pMsgInfo);
 
 		VOS_PrintMsg("udp distribute msg", pMsgInfo);
@@ -2393,7 +2381,7 @@ static VOS_UINT32 cpss_socket_tcp_open (CPSS_SOCKET_LINK * pSocketLink)
 	if (VOS_OK != ulRet)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"PID %s Init Event error",
-			pSocketLink->pstuPid->pCPuID->ulPid);
+			pSocketLink->pstuPid->pCPuID->stuCPuid.ulPid);
 		return ulRet;
 	}
 	pSocketLink->nlSocketType = VOS_SOCKET_ACC;
@@ -2428,7 +2416,7 @@ static VOS_UINT32 cpss_socket_udp_open (CPSS_SOCKET_LINK * pSocketLink)
 	pSocketLink->uIStat = CPSS_SKT_STAT_OPEN;
 	seraddr.sin_family = AF_INET;
 	seraddr.sin_port = htons(pSocketLink->uPort);
-	seraddr.sin_addr.s_addr = get_cpuid_from_ip(pSocketLink->pstuPid->pCPuID->ulCPuID);//CPSSCPUID pCPuID
+	seraddr.sin_addr.s_addr = get_cpuid_from_ip(pSocketLink->pstuPid->pCPuID->stuCPuid.ulCPuID);//CPSSCPUID pCPuID
 	ulSoRet = bind(pSocketLink->nlSocketfd,(SOCKADDR*)&seraddr,sizeof(SOCKADDR_IN));
 	if (VOS_OK != ulSoRet)
 	{
@@ -2477,7 +2465,7 @@ static VOS_UINT32 cpss_socket_udp_open (CPSS_SOCKET_LINK * pSocketLink)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"[%s] PID %s Init Event error",
 			pSocketLink->pstuPid->szPidName,
-			pSocketLink->pstuPid->pCPuID->ulPid);
+			pSocketLink->pstuPid->pCPuID->stuCPuid.ulPid);
 		closesocket(pSocketLink->nlSocketfd);
 		return ulRet;
 	}
@@ -2634,10 +2622,10 @@ VOS_UINT32 cpss_iocp_init ()
 	while (NULL != pstuPidList)
 	{
 		ulProcessPid = 0;
-		if (0 != (VOS_SOCKET_IN & pstuPidList->pCPuID->ulPid))
+		if (0 != (VOS_SOCKET_IN & pstuPidList->pCPuID->stuCPuid.ulPid))
 		{
 			hSocketLinkTemp = cpss_get_socket_from_pid(pstuPidList->szPidName,
-				pstuPidList->pCPuID->ulPid);
+				pstuPidList->pCPuID->stuCPuid.ulPid);
 			if (NULL == hSocketLinkTemp)
 			{
 				VOS_PrintErr(__FILE__, __LINE__, "get socket handle error");
@@ -2651,7 +2639,7 @@ VOS_UINT32 cpss_iocp_init ()
 				if (VOS_OK == cpss_socket_tcp_open(hSocketLinkTemp))
 				{
 					VOS_PrintInfo(__FILE__, __LINE__, "T PID:[%08d:%s] Port:%d",
-						pstuPidList->pCPuID->ulPid,
+						pstuPidList->pCPuID->stuCPuid.ulPid,
 						pstuPidList->szPidName,
 						hSocketLinkTemp->uPort);
 				}
@@ -2669,7 +2657,7 @@ VOS_UINT32 cpss_iocp_init ()
 
 				{
 					VOS_PrintInfo(__FILE__, __LINE__, "U PID:[%08d:%s] Port:%d",
-						pstuPidList->pCPuID->ulPid,
+						pstuPidList->pCPuID->stuCPuid.ulPid,
 						pstuPidList->szPidName,
 						hSocketLinkTemp->uPort);
 				}
@@ -2738,7 +2726,7 @@ VOS_UINT32 cpss_subsystem_init (VOS_UINT32 uType, VOS_UINT32 uCmd)
 			if (VOS_OK != ulRet)
 			{
 				VOS_PrintErr(__FILE__, __LINE__, "PID:%08X Recv Set Event error",
-					hSocketLink->pstuPid->pCPuID->ulPid);
+					hSocketLink->pstuPid->pCPuID->stuCPuid.ulPid);
 			}
 			hSocketLink = hSocketLink->next;
 			continue;
@@ -2754,10 +2742,10 @@ VOS_UINT32 cpss_subsystem_init (VOS_UINT32 uType, VOS_UINT32 uCmd)
 			hSocketLink = hSocketLink->next;
 			continue;
 		}
-		if (CPSS_SYSTEM_TYPE_DBSVR == cpss_get_systemid() && CPSSFWPID == hSocketLink->pstuPid->pCPuID->ulPid)
+		if (CPSS_SYSTEM_TYPE_DBSVR == cpss_get_systemid() && CPSSFWPID == hSocketLink->pstuPid->pCPuID->stuCPuid.ulPid)
 		{
 			VOS_PrintInfo(__FILE__, __LINE__, "This PID[%d] is DBSvr", 
-				hSocketLink->pstuPid->pCPuID->ulPid);
+				hSocketLink->pstuPid->pCPuID->stuCPuid.ulPid);
 			hSocketLink = hSocketLink->next;
 			continue;
 		}
@@ -2766,11 +2754,11 @@ VOS_UINT32 cpss_subsystem_init (VOS_UINT32 uType, VOS_UINT32 uCmd)
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "Socket:%p PID[%d] get msg faild", 
 				hSocketLink,
-				hSocketLink->pstuPid->pCPuID->ulPid);
+				hSocketLink->pstuPid->pCPuID->stuCPuid.ulPid);
 			hSocketLink = hSocketLink->next;
 			continue;
 		}
-		cps_set_msg_dst_cpuid(pMsgInfo, CPSSCPUID, hSocketLink->pstuPid->pCPuID->ulPid);
+		cps_set_msg_dst_cpuid(pMsgInfo, CPSSCPUID, hSocketLink->pstuPid->pCPuID->stuCPuid.ulPid);
 		cps_set_msg_src_cpuid(pMsgInfo, CPSSFWCPUID, CPSSFWPID);
 		pMsgInfo->Body.msghead.uType = uType;
 		pMsgInfo->Body.msghead.uCmd = uCmd;
@@ -2799,7 +2787,7 @@ VOS_UINT32 cpss_subsystem_init (VOS_UINT32 uType, VOS_UINT32 uCmd)
 		if (VOS_OK != ulRet)
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "PID:%08X Recv Set Event error",
-				hSocketLink->pstuPid->pCPuID->ulPid);
+				hSocketLink->pstuPid->pCPuID->stuCPuid.ulPid);
 			hSocketLink = hSocketLink->next;
 			continue;
 		}
