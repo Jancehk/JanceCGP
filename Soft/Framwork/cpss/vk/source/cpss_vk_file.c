@@ -25,6 +25,16 @@
 
 static VOS_CHAR g_CurrentDir[MAX_PATH]={0};
 
+#define VOS_File_Malloc(ulSize)					VOS_Malloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_FILE))
+#define VOS_File_Calloc(ulSize)					VOS_Calloc((ulSize), (CPSS_MEM_HEAD_KEY_CPSS_FILE))
+#define VOS_File_Realloc(pstrads,ulSize)		VOS_Realloc((pstrads), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_FILE))
+#define VOS_File_Remset(pstrads)				VOS_Remset((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_FILE))
+#define VOS_File_MemcatEx(pstrA,pstrB,ulSize)	VOS_MemcatEx((pstrA), (pstrB), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_FILE))
+#define VOS_File_MemcatEx2(pstrA,pstrB,ulSize)	VOS_MemcatEx2((pstrA), (pstrB), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_FILE))
+#define VOS_File_MemSize(pstrads)				VOS_Memsize((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_FILE))
+#define VOS_File_Memcls(pstrads)				VOS_Memcls((pstrads), (CPSS_MEM_HEAD_KEY_CPSS_FILE))
+#define VOS_File_Memcat(pstrA,pstrB)			VOS_Memcat((pstrA), (pstrB), (CPSS_MEM_HEAD_KEY_CPSS_FILE))
+#define VOS_File_Free(pstrads)					VOS_Free((pstrads), CPSS_MEM_HEAD_KEY_CPSS_FILE)
 /* ===  FUNCTION  ==============================================================
 *         Name:  cpss_notdir
 *  Description:	È¡ÏûÄ¿Â¼
@@ -168,28 +178,53 @@ VOS_INT32 cpss_get_file_handle()
 VOS_CHAR* cpss_get_file_data(VOS_CHAR * pstrPath)
 {
 	VOS_INT32 fd = 0, nSize = 0, result = 0;
-	VOS_CHAR		strFileDataTemp[1024] = { 0 };
+	VOS_CHAR		strFileDataTemp[10240] = { 0 };
 	VOS_CHAR		buffer[MAX_PATH] = { 0 };
+	VOS_CHAR		* pstrFilePath = NULL;
+	VOS_CHAR		* pstrFilePath2 = NULL;
 	VOS_CHAR *		pstrFileData = NULL;
+	VOS_CHAR *		pstrFileDataTmp = NULL;
 
 	result = cpss_get_current_path(buffer);
-	if (VOS_OK != result)
+	if (VOS_OK != result || NULL == pstrPath)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "Get Self Path Error%d", fd);
 		return NULL;
 	}
 	//strcat(buffer,"\\local.cfg");
-	VOS_Strcat(buffer, pstrPath);
-	fd = open(buffer, O_RDONLY);//O_RDWR|O_CREAT);, S_IREAD | S_IWRITE O_BINARY O_WRONLY
+	VOS_Strcat(buffer, "\\Web");
+	pstrFilePath = buffer + VOS_Strlen(buffer);
+	pstrFilePath2 = pstrPath;
+	while (0 != *pstrFilePath2)
+	{
+		if ('/' == *pstrFilePath2)
+		{
+			*pstrFilePath = '\\';
+		}
+		else
+		{
+			*pstrFilePath = *pstrFilePath2;
+		}
+		pstrFilePath2++;
+		pstrFilePath++;
+	}
+	fd = open(buffer, O_RDONLY | O_BINARY);//O_RDWR|O_CREAT);, S_IREAD | S_IWRITE  O_WRONLY
 	if (VOS_OK > fd)
 	{
-		VOS_PrintErr(__FILE__, __LINE__, "Get Self Path Error%d", fd);
+		VOS_PrintErr(__FILE__, __LINE__, "not found file[%s] Error%d", buffer, fd);
 		return NULL;
 	}
 	VOS_Memset(strFileDataTemp, 0, sizeof(strFileDataTemp));
-	while (nSize = read(fd, strFileDataTemp, sizeof(strFileDataTemp)) && nSize > 0)
+	while ((nSize = read(fd, strFileDataTemp, sizeof(strFileDataTemp))) && (nSize > 0))
 	{
-		VOS_PrintBuffer(&pstrFileData, "%s", strFileDataTemp);
+		pstrFileDataTmp = VOS_File_MemcatEx(pstrFileData, strFileDataTemp, nSize);
+		if (NULL == pstrFileDataTmp)
+		{
+			VOS_File_Free(pstrFileData);
+			pstrFileData = NULL;
+			break;
+		}
+		pstrFileData = pstrFileDataTmp;
 	}
 	close(fd);
 	return pstrFileData;

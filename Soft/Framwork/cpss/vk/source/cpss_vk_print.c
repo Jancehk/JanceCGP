@@ -213,7 +213,7 @@ static VOS_INT32 cpss_open_trace_handle(VOS_STRING buffer, VOS_STRING strbuffKey
 	{
 		return nRet;
 	}
-	sprintf(pszTracePath,"%s\\trace",buffer);
+	sprintf(pszTracePath,"%s\\trace\\",buffer);
 	if (VOS_OK != chdir(pszTracePath))
 	{
 #if (OS_TYPE == OS_TYPE_WINDOW)

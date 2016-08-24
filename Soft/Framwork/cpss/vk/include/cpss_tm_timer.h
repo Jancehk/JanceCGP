@@ -21,7 +21,7 @@
 extern "C" {
 #endif
 #include 	"cpss_common.h"
-#define CPSS_MAX_TIME		32
+#define CPSS_MAX_TIME		64
 #if OS_TYPE == OS_TYPE_WINDOW
 #pragma comment(lib,"winmm.lib")
 #elif OS_TYPE == OS_TYPE_LINUX

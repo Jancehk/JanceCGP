@@ -102,7 +102,7 @@ typedef struct CPSS_CLIENT_INFO_T
 	CPSS_USER_INFO		stuUserInfo;
 	VOS_CHAR			strIPaddress[CPSS_CLIENT_IPADS_LENGTH];
 	VOS_VOID *			pAccptSocket;					// Accept Parent Socket Handle
-	//CPSS_SOCKET_LINK *	pClientSocket;					// Client Socket Handle
+	VOS_VOID *			pClientSocket;					// Client Socket Handle
 	VOS_UINT32			ulCientHaveTime;
 	VOS_VOID *			pCmdEvent;						//开始等待数据
 	VOS_UINT8			bIsEvent;						//是否处理完数据 0 没有接受完 1 接受完数据
@@ -135,6 +135,7 @@ typedef struct CPSS_CLIENT_INFO_T
 #define VOS_Memcls(pstrads, ulSize, strInfo)		cpss_mem_cls((strInfo), (pstrads), (ulSize),(__FILE__),(__LINE__))
 #define VOS_Memcat(pstradsA, pstradsB, strInfo)		cpss_mem_cat((strInfo), (pstradsA), (pstradsB),(__FILE__),(__LINE__))
 #define VOS_MemcatEx(pstradsA, pstradsB, ulSize, strInfo)	cpss_mem_catex((strInfo), (pstradsA), (pstradsB), (ulSize), (__FILE__),(__LINE__))
+#define VOS_MemcatEx2(pstradsA, pstradsB, ulSize, strInfo)	cpss_mem_catex2((strInfo), (pstradsA), (pstradsB), (ulSize), (__FILE__),(__LINE__))
 #define VOS_Memsize(pstrads,strInfo)				cpss_mem_getsize((strInfo), (pstrads),(__FILE__),(__LINE__))
 #define VOS_Free(pstrads,strInfo)					cpss_mem_free((strInfo), (pstrads),(__FILE__),(__LINE__))
 #define VOS_MemErrNo()								cpss_mem_get_lasterr()
@@ -305,9 +306,20 @@ extern VOS_CHAR* cpss_get_file_data(VOS_CHAR * pstrPath);
 
 /*===  FUNCTION  ==============================================================
 *         Name:  cpss_mem_catex
-*  Description:  设置内存管理信息
+*  Description:  设置内存管理信息 bin+bin
 * =============================================================================*/
 extern VOS_VOID * cpss_mem_catex(
+	VOS_UINT32 nMemRdKey,
+	VOS_VOID * vAdressA,
+	VOS_VOID * vAdressB,
+	VOS_UINT32 nLen,
+	VOS_CHAR * strFile,
+	VOS_INT32 nLine);
+/*===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_catex2
+*  Description:  设置内存管理信息  str+bin
+* =============================================================================*/
+extern VOS_VOID * cpss_mem_catex2(
 	VOS_UINT32 nMemRdKey,
 	VOS_VOID * vAdressA,
 	VOS_VOID * vAdressB,

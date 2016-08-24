@@ -586,7 +586,7 @@ VOS_VOID * cpss_mem_reset(VOS_UINT32 nMemRdKey, void * vAdress, VOS_CHAR * strFi
 
 /*===  FUNCTION  ==============================================================
 *         Name:  cpss_mem_cat
-*  Description:  设置内存管理信息
+*  Description:  设置内存管理信息  bin+bin
 *  Input      :
 *  OutPut     :
 *  Return     :
@@ -610,7 +610,7 @@ VOS_VOID * cpss_mem_cat(VOS_UINT32 nMemRdKey, void * vAdressA, void * vAdressB, 
 	}
 	if (NULL == pstuMemRecordA)
 	{
-		pstrTmp = cpss_mem_malloc(nMemRdKey, pstuMemRecordB->nSize, strFile, nLine);
+		pstrTmp = cpss_mem_calloc(nMemRdKey, pstuMemRecordB->nSize, strFile, nLine);
 	}
 	else
 	{
@@ -627,7 +627,7 @@ VOS_VOID * cpss_mem_cat(VOS_UINT32 nMemRdKey, void * vAdressA, void * vAdressB, 
 
 /*===  FUNCTION  ==============================================================
 *         Name:  cpss_mem_catex
-*  Description:  设置内存管理信息
+*  Description:  设置内存管理信息 bin+temp_bin
 *  Input      :
 *  OutPut     :
 *  Return     :
@@ -650,7 +650,7 @@ VOS_VOID * cpss_mem_catex(
 	}
 	if (NULL == vAdressA)
 	{
-		pstrTmp = cpss_mem_malloc(nLen, nMemRdKey, strFile, nLine);
+		pstrTmp = cpss_mem_calloc(nLen, nMemRdKey, strFile, nLine);
 	}
 	else
 	{
@@ -661,6 +661,10 @@ VOS_VOID * cpss_mem_catex(
 		}
 		nMemsize = pstuMemRecordA->nSize;
 		pstrTmp = cpss_mem_realloc(nMemRdKey, vAdressA, nMemsize + nLen, __FILE__, __LINE__);
+		if (NULL != pstrTmp)
+		{
+			memset(pstrTmp + nMemsize, 0, nLen );
+		}
 	}
 	if (NULL == pstrTmp)
 	{
@@ -670,6 +674,60 @@ VOS_VOID * cpss_mem_catex(
 	return pstrTmp;
 }
 
+/*===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_catex2
+*  Description:  设置内存管理信息  bin+str
+*  Input      :
+*  OutPut     :
+*  Return     :
+* =============================================================================*/
+VOS_VOID * cpss_mem_catex2(
+	VOS_UINT32 nMemRdKey,
+	VOS_VOID * vAdressA,
+	VOS_VOID * vAdressB,
+	VOS_UINT32 nLen,
+	VOS_CHAR * strFile,
+	VOS_INT32 nLine)
+{
+	VOS_UINT32			nMemsize = 0;
+	VOS_UINT32			nstrLen = 0;
+	CPSS_MEM_RECORD		*pstuMemRecordA = NULL;
+	VOS_CHAR			*pstrTmp = NULL;
+	if (nMemRdKey >= CPSS_MEM_HEAD_KEY_CPSS_TOTAL)
+	{
+		g_errorno = 1;
+		return NULL;
+	}
+	pstrTmp = vAdressA;
+	if (NULL == vAdressA)
+	{
+		pstrTmp = cpss_mem_calloc(nLen, nMemRdKey, strFile, nLine);
+	}
+	else
+	{
+		pstuMemRecordA = cpss_mem_find_record_info(nMemRdKey, vAdressA);
+		if (NULL == pstuMemRecordA)
+		{
+			return NULL;
+		}
+		nMemsize = pstuMemRecordA->nSize;
+		nstrLen = VOS_Strlen(vAdressA);
+		if (nMemsize < nstrLen + nLen)
+		{
+			pstrTmp = cpss_mem_realloc(nMemRdKey, vAdressA, nstrLen + nLen+1, __FILE__, __LINE__);
+			if (NULL != pstrTmp)
+			{
+				memset(pstrTmp + nstrLen, 0, nLen + 1);
+			}
+		}
+	}
+	if (NULL == pstrTmp)
+	{
+		return NULL;
+	}
+	memcpy(pstrTmp + nstrLen, vAdressB, nLen);
+	return pstrTmp;
+}
 /*===  FUNCTION  ==============================================================
 *         Name:  cpss_mem_getsize
 *  Description:  得到memory的大小
@@ -807,7 +865,8 @@ VOS_CHAR* cpss_str_cat(VOS_UINT32 nMemRdKey, void * vAdressA, void * vAdressB, V
 			g_errorno = 4;
 			return NULL;
 		}
-		pstrTmp[ulSizeA] = 0;
+		VOS_Memset(pstrTmp + ulSizeA, 0, pstuMemRecordA->nSize  - ulSizeA);
+	//	pstrTmp[ulSizeA] = 0;
 	}
 	VOS_Strcat(pstrTmp, vAdressB);
 	return pstrTmp;

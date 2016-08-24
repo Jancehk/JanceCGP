@@ -40,7 +40,7 @@ extern "C" {
 #define XCAP_METHOD_LENGTH			16
 #define XCAP_KEY_LENGTH				32
 #define XCAP_VALUE_LENGTH			512
-#define XCAP_REQUESURI_LENGTH		512
+#define XCAP_REQUESURI_LENGTH		1024
 #define XCAP_REQUESVER_LENGTH		16
 #define XCAP_FIELDS_NUM				20
 #define XCAP_HOST_LENGTH			32
@@ -67,12 +67,26 @@ typedef enum XCAP_REQ_METHOD {
 };
 
 typedef enum XCAP_RES_FIELDS {
-	XCAP_RES_FIELDE_CONTENT_TYPE,
+	XCAP_RES_FIELDE_ACCEPT_RANGES,
+	XCAP_RES_FIELDE_AGE,
+	XCAP_RES_FIELDE_ETAG,
+	XCAP_RES_FIELDE_LOCATION,
+	XCAP_RES_FIELDE_PROXY_AUTHENTICATE,
+	XCAP_RES_FIELDE_RETRY_AFTER,
 	XCAP_RES_FIELDE_SERVER,
-	XCAP_RES_FIELDE_TRANSFER_ENCODING,
-	XCAP_RES_FIELDE_CONTENT_LENGTH,
+	XCAP_RES_FIELDE_VARY,
 	XCAP_RES_FIELDE_DATE,
 	XCAP_RES_FIELDE_CONNECTIN,
+	XCAP_RES_FIELDE_WWW_AUTHENTICATE,
+	XCAP_RES_FIELDE_CONTENT_ENCODING,
+	XCAP_RES_FIELDE_CONTENT_LANGUAGE,
+	XCAP_RES_FIELDE_CONTENT_LENGTH,
+	XCAP_RES_FIELDE_CONTENT_LOCATION,
+	XCAP_RES_FIELDE_CONTENT_MD5,
+	XCAP_RES_FIELDE_CONTENT_RANGE,
+	XCAP_RES_FIELDE_CONTENT_TYPE,
+	XCAP_RES_FIELDE_CONTENT_EXPIRES,
+	XCAP_RES_FIELDE_TRANSFER_ENCODING,
 	XCAP_RES_FIELDE_LAST_MODIFIED
 };
 typedef enum XCAP_REQ_FIELDS {
@@ -99,6 +113,7 @@ typedef enum XCAP_REQ_FIELDS {
 	XCAP_REQ_FIELDE_CACHE_CONTROL,
  	XCAP_REQ_FIELDE_PRAGMA,
 	XCAP_REQ_FIELDE_CONTENT_LENGTH,
+	XCAP_REQ_FIELDE_CONTENT_TYPE,
 };
 typedef enum XCAP_RES_CODE{
 	XCAP_RES_CODE_100,
@@ -158,19 +173,20 @@ typedef struct _XCAP_STATUS_CODE_T
 //请求消息格式
 typedef struct _XCAP_REQUEST_HEAD_T
 {
-	VOS_CHAR Method[XCAP_METHOD_LENGTH];
-	VOS_CHAR Request_URI[XCAP_REQUESURI_LENGTH];
-	VOS_CHAR Request_version[XCAP_REQUESVER_LENGTH];
+	VOS_CHAR	Method[XCAP_METHOD_LENGTH];
+	VOS_CHAR	Request_URI[XCAP_REQUESURI_LENGTH];
+	VOS_CHAR	Request_version[XCAP_REQUESVER_LENGTH];
 }XCAP_REQUEST_HEAD,*pXCAP_REQUEST_HEAD;
 typedef struct _XCAP_REQUEST_T
 {
-	VOS_UINT8         Req_mothod;
-	XCAP_REQUEST_HEAD Req_head;
-	VOS_CHAR		  strHost[XCAP_HOST_LENGTH];
-	VOS_UINT32		  uPort;
-	VOS_UINT16		  fields_num;
-	VOS_UINT32		  ulMsgID;
-	XCAP_FIELDS       Req_head_fields[XCAP_FIELDS_NUM];
+	VOS_UINT8			Req_mothod;
+	XCAP_REQUEST_HEAD	Req_head;
+	VOS_CHAR			strHost[XCAP_HOST_LENGTH];
+	VOS_UINT32			uPort;
+	VOS_UINT16			fields_num;
+	VOS_UINT32			ulMsgID;
+	XCAP_FIELDS			Req_head_fields[XCAP_FIELDS_NUM];
+	VOS_CHAR *			pstrReqBody;
 }XCAP_REQUEST,*pXCAP_REQUEST;
 
 //响应消息格式
@@ -185,7 +201,10 @@ typedef struct _XCAP_RESPONSE_T
 	VOS_UINT8			fields_num;
 	XCAP_FIELDS			Res_head_fields[XCAP_FIELDS_NUM];
 	VOS_CHAR		    pstrFilePath[MAX_PATH];
-	VOS_CHAR			*pstrBody;
+	VOS_CHAR			strContentType[64];
+	VOS_UINT32			ulBodysize;
+	STATUS_CODE	*		pCode;
+	VOS_CHAR *			pstrBody;
 }XCAP_RESPONSE,*pXCAP_RESPONSE;
 typedef struct _XCAP_FIELDS_TEMP_T{
 	VOS_UINT8 m_num;
@@ -200,6 +219,11 @@ typedef struct _XCAP_MSG_MANAGE_T{
 	XCAP_REQUEST	xCap_Request_Info;
 	XCAP_RESPONSE	xCap_Respone_Info;
 }XCAP_MSG_MANAGE,*pXCAP_MSG_MANAGE;
+typedef struct _XCAP_URL_MANAGE_T{
+	VOS_UINT32		ulUrlLen;
+	VOS_UINT32		ulMethodLen;
+}CAP_URL_MANAGE, *pXCAP_URL_MANAGE;
+
 static XCAP_METHOD g_xcap_method[] ={
 	{XCAP_REQ_GET, "GET"},
 	{XCAP_REQ_PUT, "PUT"},
@@ -235,17 +259,31 @@ static XCAP_FIELDS_TEMP g_fields_req[] = {
 	{XCAP_REQ_FIELDE_CACHE_CONTROL,"Cache-Control: ","",0},
 	{XCAP_REQ_FIELDE_PRAGMA,"Pragma: ","",0},
 	{XCAP_REQ_FIELDE_CONTENT_LENGTH,"Content-Length: ","",0},
-	{XCAP_REQ_FIELDE_IF_MODIFIED_SINE,"If-Modified-Since: ", "", 19},
+	{XCAP_REQ_FIELDE_CONTENT_TYPE, "Content-Type: ", "", 0 },
 };
 
 static XCAP_FIELDS_TEMP g_fields_res[] = {
-	{XCAP_RES_FIELDE_CONTENT_TYPE,"Content-Type: ","",0},
-	{XCAP_RES_FIELDE_SERVER,"Server: ","",0},
-	{XCAP_RES_FIELDE_TRANSFER_ENCODING,"Transfer-Encoding: ","",0},
-	{XCAP_RES_FIELDE_CONTENT_LENGTH,"Content-Length: ","",0},
-	{XCAP_RES_FIELDE_DATE,"Date: ","",0},
-	{XCAP_RES_FIELDE_CONNECTIN,"Connection: ","",0},
-	{XCAP_RES_FIELDE_LAST_MODIFIED,"Last-Modified: ","",0},
+	{ XCAP_RES_FIELDE_ACCEPT_RANGES, "Accept-Ranges: ", "", 0 },
+	{ XCAP_RES_FIELDE_AGE, "Age: ", "", 0 },
+	{ XCAP_RES_FIELDE_ETAG, "Etag: ", "", 0 },
+	{ XCAP_RES_FIELDE_LOCATION, "Location: ", "", 0 },
+	{ XCAP_RES_FIELDE_PROXY_AUTHENTICATE, "Proxy-Authenticate: ", "", 0 },
+	{ XCAP_RES_FIELDE_RETRY_AFTER, "Retry-After: ", "", 0 },
+	{ XCAP_RES_FIELDE_SERVER, "Server: ", "", 0 },
+	{ XCAP_RES_FIELDE_VARY, "Vary: ", "", 0 },
+	{ XCAP_RES_FIELDE_DATE, "Date: ", "", 0 },
+	{ XCAP_RES_FIELDE_CONNECTIN, "Connection: ", "", 0 },
+	{ XCAP_RES_FIELDE_WWW_AUTHENTICATE, "WWW-Anthenticate: ", "", 0 },
+	{ XCAP_RES_FIELDE_CONTENT_ENCODING, "Content-Encoding: ", "", 0 },
+	{ XCAP_RES_FIELDE_CONTENT_LANGUAGE, "Content-Language: ", "", 0 },
+	{ XCAP_RES_FIELDE_CONTENT_LENGTH, "Content-Length: ", "", 0 },
+	{ XCAP_RES_FIELDE_CONTENT_LOCATION, "Content-Location: ", "", 0 },
+	{ XCAP_RES_FIELDE_CONTENT_MD5, "Content-MD5: ", "", 0 },
+	{ XCAP_RES_FIELDE_CONTENT_RANGE, "Content-Range: ", "", 0 },
+	{ XCAP_RES_FIELDE_CONTENT_TYPE, "Content-Type: ", "", 0 },
+	{ XCAP_RES_FIELDE_CONTENT_EXPIRES, "Content-Expires: ", "", 0 },
+	{ XCAP_RES_FIELDE_TRANSFER_ENCODING, "Transfer-Encoding: ", "", 0 },
+	{ XCAP_RES_FIELDE_LAST_MODIFIED, "Last-Modified: ", "", 0 },
 };
 	
 
@@ -331,11 +369,8 @@ VOS_UINT32 xcap_send_info_msgid(VOS_UINT32 uMsgID, VOS_VOID * pstuBuffer, VOS_UI
 /* ===  FUNCTION  ==============================================================
  *         Name:  xcap_analyzing_info
  *  Description:  解析xcap 字符串
- *  Input      :  
- *  OutPut     :  
- *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 xcap_analyzing_buffer(pXCAP_REQUEST pMsgInfo, VOS_CHAR * pstrInput);
+VOS_UINT32 xcap_analyzing_buffer(pXCAP_REQUEST pMsgInfo, VOS_CHAR * pstrInput, VOS_UINT32 ulBodySize);
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  xcap_fileds_init

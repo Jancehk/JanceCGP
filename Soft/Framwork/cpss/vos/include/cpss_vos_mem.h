@@ -133,6 +133,17 @@ VOS_VOID * cpss_mem_catex(
 		VOS_CHAR * strFile, 
 		VOS_INT32 nLine);
 /*===  FUNCTION  ==============================================================
+*         Name:  cpss_mem_catex2
+*  Description:  设置内存管理信息
+* =============================================================================*/
+VOS_VOID * cpss_mem_catex2(
+	VOS_UINT32 nMemRdKey,
+	VOS_VOID * vAdressA,
+	VOS_VOID * vAdressB,
+	VOS_UINT32 nLen,
+	VOS_CHAR * strFile,
+	VOS_INT32 nLine);
+/*===  FUNCTION  ==============================================================
 *         Name:  cpss_mem_reset
 *  Description:  得到memory的大小
 * =============================================================================*/

@@ -482,12 +482,12 @@ VOS_VOID * cpss_get_info_for_pid(VOS_UINT32 ulProcessPid, VOS_UINT32 ulType)
 			hSocketLink = hSocketLink->next;
 			continue;
 		}
-		if (VOS_SOCKET_TCP == hSocketLink->nlSocketType &&
-			(VOS_SOCKET_IN | VOS_TCP_PID | hSocketLink->uPort) != ulProcessPid)
+		if (hSocketLink->pstuPid->pCPuID->stuCPuid.ulPid == ulProcessPid)
 		{
 			break;
 		}
-		if (hSocketLink->pstuPid->pCPuID->stuCPuid.ulPid == ulProcessPid)
+		if (VOS_SOCKET_TCP == hSocketLink->nlSocketType &&
+			hSocketLink->stuSrcCPuID.ulPid == ulProcessPid)
 		{
 			break;
 		}
