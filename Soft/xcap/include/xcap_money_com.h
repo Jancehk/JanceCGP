@@ -24,6 +24,9 @@ extern "C" {
 #include "cpss_common.h"
 #include "cpss_msg.h"
 
+#define XCAP_MONEY_CPUID		cpss_get_cpuid_pid(cpss_get_systemid(), CPSS_SUBSYS_TYPE_FW, CPSS_GET_TYPE_CPUID)
+#define XCAP_MONEY_PID			cpss_get_cpuid_pid(cpss_get_systemid(), CPSS_SUBSYS_TYPE_FW, CPSS_GET_TYPE_PID)
+
 typedef struct _MONEY_CLIENT_MANAGE_T
 {
 	VOS_UINT32 uMoneyServerCPuID;

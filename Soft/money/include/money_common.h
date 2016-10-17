@@ -23,31 +23,24 @@ extern "C" {
 #endif
 #include "cpss_common.h"
 #include "cpss_msg.h"
-
-#ifndef  CPSS_UDP_DBCLI
-#define  CPSS_UDP_DBCLI		8090
-#endif	
+	
 #ifndef CPSS_TCP_MONEY
 #define CPSS_TCP_MONEY      8888
 #endif
-#define XCAP_HOST_LENGTH			32
+#define XCAP_HOST_LENGTH			128
 #define CPSS_PID_MONEY	VOS_SOCKET_IN | VOS_UDP_PID |CPSS_TCP_MONEY
-#define CPSS_PID_DBCLI	VOS_SOCKET_IN | VOS_UDP_PID |CPSS_TCP_MONEY
-	
-enum XCAP_URL_LIST{
-	XCAP_ROOT_LIST,
-	XCAP_ROOT_URL,
-	XCAP_USER_URL,
-	XCAP_USER_PATH,
-};
 
 typedef struct _XCAP_ROOT_INFO_T{
-	VOS_UINT8 m_no;
-	VOS_UINT8 m_num;
 	VOS_CHAR  RootUrlName[XCAP_HOST_LENGTH];
-	VOS_UINT32 (* dealFun) (VOS_CHAR * pstrInput, VOS_VOID * pMsgVoid);
+	VOS_UINT32(*dealFun) (VOS_VOID * pMsgVoid, VOS_CHAR * pstrInput);
 }XCAP_ROOT_INFO,*pXCAP_ROOT_INFO;
 
+typedef struct _XCAP_URL_MANAGE_T
+{
+	VOS_UINT32		ulUrlLen;
+	VOS_UINT8		ulParamCount;
+	VOS_UINT8		rfu[11];
+}XCAP_URL_MANAGE, *pXCAP_URL_MANAGE;
 /* ===  FUNCTION  =========================================================
  *         Name:  Money_PrintInfo
  *  Description:  
@@ -90,15 +83,15 @@ VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg);
  *  Description:  µÃµ½rootµÄbody
  * ==========================================================================*/
 VOS_UINT32 get_xcap_root_body(VOS_CHAR * pstrInput, VOS_VOID * pMsgVoid);
-
+/*
 static XCAP_ROOT_INFO g_rootInfo[] = {
-	{0, XCAP_ROOT_URL, "/", get_xcap_root_body},
-	{1, XCAP_ROOT_URL, "/index.html", get_xcap_root_body},
-	{2, XCAP_ROOT_URL, "/index.asp", get_xcap_root_body},
-	{3, XCAP_ROOT_URL, "/index.php", get_xcap_root_body},
-	{4, XCAP_USER_URL, "/user.html", get_xcap_root_body},
-	{5, XCAP_USER_PATH, "/src", get_xcap_root_body},
-};
+	{0, 0, "/", get_xcap_root_body},
+	{1, 0, "/index.html", get_xcap_root_body},
+	{2, 0, "/index.asp", get_xcap_root_body},
+	{3, 0, "/index.php", get_xcap_root_body},
+	{4, 0, "/user.html", get_xcap_root_body},
+	{5, 0, "/src", get_xcap_root_body},
+};*/
 
 #ifdef _cplusplus
 }

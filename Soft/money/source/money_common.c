@@ -123,21 +123,20 @@ static VOS_UINT32 send_tcp_data(VOS_VOID *pVoidMsg,VOS_VOID * pstuBuffer, VOS_UI
  *  OutPut     :  
  *  Return     :  
  * ==========================================================================*/
-static VOS_UINT32 get_xcap_root(VOS_CHAR * pstrInput)
+static XCAP_ROOT_INFO* get_root_info(XCAP_ROOT_INFO *psturootInfo, VOS_UINT32 uCount, VOS_CHAR * pstrInput)
 {
 	VOS_UINT32 uIndex = 0;
-	VOS_UINT32 uCount = sizeof(g_rootInfo)/sizeof(XCAP_ROOT_INFO);
-	VOS_CHAR * pstrRoot = NULL;
+	VOS_CHAR * pstrTmp = NULL;
+	XCAP_ROOT_INFO * pstrRoot = NULL;
 	for (uIndex = 0; uIndex < uCount; uIndex ++)
 	{
-		//pstrRoot = VOS_Strstr(pstrInput, g_rootInfo[uIndex].RootUrlName);
-		//if (NULL != pstrRoot)
-		if (0 == VOS_Strcmp(pstrInput, g_rootInfo[uIndex].RootUrlName))
+		pstrTmp = VOS_Strstr(pstrInput, psturootInfo[uIndex].RootUrlName);
+		if (NULL != pstrTmp && pstrTmp[0] == pstrInput[0])
 		{
-			return g_rootInfo[uIndex].m_no;
+			break;
 		}
 	}
-	return g_rootInfo[0].m_no;
+	return pstrRoot;
 }
 
 /* ===  FUNCTION  ==============================================================
@@ -177,9 +176,101 @@ VOS_UINT32 money_system_proc(VOS_VOID *pVoidMsg)
 	return uRet;
 }
 /* ===  FUNCTION  ==============================================================
+*         Name:  get_xcap_root_body
+*  Description:  得到root的body
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_UINT32 check_login_info(VOS_VOID * pMsgVoid, VOS_CHAR * pstrInput)
+{
+	VOS_UINT32 uRet = VOS_ERR;
+	return uRet;
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  money_url_manager_proc
+*  Description:  记账管理系统URL root
+* ==========================================================================*/
+static VOS_UINT32 money_url_manager_proc(VOS_VOID *pVoidMsg)
+{
+	VOS_UINT32 uRet = VOS_ERR;
+	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pVoidMsg;
+	VOS_CHAR		pstrUrlBuffer[XCAP_HOST_LENGTH] = { 0 };
+	XCAP_URL_MANAGE	stuUrlInfo;
+	XCAP_ROOT_INFO * pstuXcapRootInfo = NULL;
+	static XCAP_ROOT_INFO g_rootInfo[] = {
+		{ "login", check_login_info } };
+
+	if (NULL == pMsgInfo)
+	{
+		Money_PrintErr(__FILE__, __LINE__, "msg head is null");
+		return uRet;
+	}
+
+	switch (cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
+	{
+	case CPSS_MSG_REQ:
+		memcpy(&stuUrlInfo, pMsgInfo->Body.strDataBuf, sizeof(XCAP_URL_MANAGE));
+		if (stuUrlInfo.ulUrlLen > XCAP_HOST_LENGTH || stuUrlInfo.ulUrlLen < 0)
+		{
+			Money_PrintErr(__FILE__, __LINE__, "money url len is too long [%d]", stuUrlInfo.ulUrlLen);
+			return uRet;
+		}
+		memcpy(pstrUrlBuffer, pMsgInfo->Body.strDataBuf + sizeof(XCAP_URL_MANAGE), stuUrlInfo.ulUrlLen);
+		pstuXcapRootInfo = get_root_info(g_rootInfo, sizeof(XCAP_ROOT_INFO) / sizeof(g_rootInfo), pstrUrlBuffer);
+		if (NULL == pstuXcapRootInfo)
+		{
+			Money_PrintErr(__FILE__, __LINE__, "money url root faild[%s]", pMsgInfo->Body.strDataBuf + sizeof(XCAP_URL_MANAGE));
+			return uRet;
+		}
+		uRet = pstuXcapRootInfo->dealFun(pVoidMsg, pMsgInfo->Body.strDataBuf + sizeof(XCAP_URL_MANAGE)+stuUrlInfo.ulUrlLen);
+		if (VOS_OK != uRet)
+		{
+			Money_PrintErr(__FILE__, __LINE__, "deal faild in root[%s]", pstrUrlBuffer);
+			return uRet;
+		}
+		break;
+	default:
+		Money_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
+			pMsgInfo->Body.msghead.uType,
+			pMsgInfo->Body.msghead.uCmd);
+		break;
+	}
+	return uRet;
+}
+/* ===  FUNCTION  ==============================================================
  *         Name:  money_deal_proc
  *  Description:  记账管理系统主要业务逻辑
  * ==========================================================================*/
+VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
+{
+	VOS_UINT32 uRet = VOS_ERR;
+	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pVoidMsg;
+
+	if (NULL == pMsgInfo)
+	{
+		Money_PrintErr(__FILE__, __LINE__, "msg head is null");
+		return uRet;
+	}
+
+	switch (cps_get_reqcontent_from_msg(pMsgInfo->Body.msghead.uType))
+	{
+	case XCAP_TYPE_URL:
+		uRet = money_url_manager_proc(pMsgInfo);
+		if (VOS_OK != uRet)
+		{
+			Money_PrintErr(__FILE__, __LINE__, "get all cpuid faild");
+		}
+		break;
+	default:
+		Money_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
+			pMsgInfo->Body.msghead.uType,
+			pMsgInfo->Body.msghead.uCmd);
+		break;
+	}
+	return uRet;
+}
+#if 0
 VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 {
 	VOS_UINT32		uRet = VOS_ERR;
@@ -194,7 +285,6 @@ VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 		Money_PrintErr(__FILE__,__LINE__,"input msg info is NULL");
 		goto END_PROC;
 	}
-#if 0
 	stuXcapSerMgr =(pXCAP_SER_MGR)pMsgInfo->Body.strDataBuf;
 	if (0x0A != stuXcapSerMgr->uStat)
 	{
@@ -207,7 +297,6 @@ VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 	VOS_Memcpy(&MsgInfo.Body.strDataBuf, stuXcapSerMgr, sizeof(XCAP_SER_MGR));
 
 	uNum = get_xcap_root(&stuXcapSerMgr->URL);
-#endif
 	if (uNum >=  0 && uNum < sizeof(g_rootInfo)/sizeof(XCAP_ROOT_INFO))
 	{
 		if (NULL == g_rootInfo[uNum].dealFun)
@@ -251,6 +340,7 @@ VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 END_PROC:
 	return uRet;
 }
+#endif
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  get_xcap_root_body

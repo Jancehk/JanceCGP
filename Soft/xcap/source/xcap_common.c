@@ -17,6 +17,7 @@
 */
 
 #include "xcap_common.h"
+#include "xcap_money_com.h"
 
 #define VOS_XCAP_Malloc(ulSize)					VOS_Malloc((ulSize), (XCAP_MEM_HEAD_KEY_URL_XCAP))
 #define VOS_XCAP_Calloc(ulSize)					VOS_Calloc((ulSize), (XCAP_MEM_HEAD_KEY_URL_XCAP))
@@ -28,6 +29,7 @@
 #define VOS_XCAP_Memcls(pstrads)				VOS_Memcls((pstrads), (XCAP_MEM_HEAD_KEY_URL_XCAP))
 #define VOS_XCAP_Memcat(pstrA,pstrB)			VOS_Memcat((pstrA), (pstrB), (XCAP_MEM_HEAD_KEY_URL_XCAP))
 #define VOS_XCAP_Free(pstrads)					VOS_Free((pstrads), XCAP_MEM_HEAD_KEY_URL_XCAP)
+
 /* ===  FUNCTION  =========================================================
  *         Name:  XCAP_PrintInfo
  *  Description:  
@@ -212,6 +214,116 @@ static VOS_CHAR * xcap_find_fields(pXCAP_REQUEST pMsgInfo, VOS_UINT32 m_Value)
 	return NULL;
 	
 }
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  xcap_analyzing_info
+*  Description:  ½âÎöxcap ×Ö·û´®
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_UINT32 xcap_analyzing_buffer(pXCAP_REQUEST pReqInfo, VOS_CHAR * pstrInput, VOS_UINT32 ulBodySize)
+{
+	VOS_UINT32	uRet = VOS_ERR;
+	VOS_UINT32	ulReqBodySize = 0;
+	VOS_CHAR	strLastchar = 0;
+	VOS_CHAR	uFieldsNum = 0;
+	VOS_CHAR *	pstrTemp = NULL;
+	VOS_CHAR *	pstrTemp1 = NULL;
+	VOS_CHAR *	pstrInfo = NULL;
+	VOS_CHAR	uLength = 0;
+	VOS_CHAR	pbuf[CPSS_MSG_BUFFER_SIZE] = { 0 };//, VOS_STRING pline, VOS_INT32 skip;
+
+
+	pstrInfo = pstrInput;
+	strLastchar = pstrInput[ulBodySize - 1];
+	pstrInput[ulBodySize - 1] = 0;
+	while (0 != pstrInfo[0])
+	{
+		BZERO(pbuf, CPSS_MSG_BUFFER_SIZE);
+		pstrInfo = cpss_getline(pstrInfo, pbuf, VOS_FALSE);
+		cpss_trim_right(pbuf, CPSS_SEP_BUFF);
+		if (0 == pbuf[0])
+		{
+			if (ulBodySize == (VOS_UINT32)(pstrInfo + 1 - pstrInput))
+			{
+				break;
+			}
+			if (ulBodySize > (VOS_UINT32)(pstrInfo + 1 - pstrInput))
+			{
+				continue;
+			}
+			XCAP_PrintInfo(__FILE__, __LINE__, "get request body size[%d] is not correct %d: %d:%d",
+				ulReqBodySize, pstrInfo - pstrInput, ulBodySize);
+			return uRet;
+		}
+		uFieldsNum = xcap_analyzing_fields(pReqInfo, pbuf);
+		if (XCAP_FIELDS_HOST == uFieldsNum)
+		{
+			uLength = VOS_Strlen(g_fields_req[uFieldsNum].m_fields.Key);
+			pstrTemp = VOS_Strstr(pbuf + uLength, ":");
+			if (NULL != pstrTemp)
+			{
+				VOS_Strncpy(pReqInfo->strHost, pbuf + uLength, pstrTemp - pbuf - uLength);
+				pReqInfo->uPort = atoi(pstrTemp + 1);
+			}
+			continue;
+		}
+		if (VOS_OK == uFieldsNum)
+		{
+			continue;
+		}
+
+
+		pstrTemp = VOS_Strstr(pbuf, "/");
+		pstrTemp1 = VOS_Strstr(pbuf, " HTTP");
+		if (NULL != pstrTemp && NULL != pstrTemp1)
+		{
+			VOS_Strncpy(pReqInfo->Req_head.Method, pbuf, pstrTemp - pbuf);
+			cpss_trim(pReqInfo->Req_head.Method, " ");
+			VOS_Strncpy(pReqInfo->Req_head.Request_URI, pstrTemp, pstrTemp1 - pstrTemp);
+			VOS_Strcpy(pReqInfo->Req_head.Request_version, pstrTemp1);
+			continue;
+		}
+		if (0 == VOS_Strcmp(pReqInfo->Req_head.Method, "POST"))
+		{
+			if (0 != (ulBodySize - (pstrInfo + 1 - pstrInput)))
+			{
+				XCAP_PrintInfo(__FILE__, __LINE__, "get request body size[%d] is not correct %d: %d",
+					ulBodySize, pstrInfo - pstrInput);
+				return uRet;
+			}
+			pstrTemp = xcap_find_fields(pReqInfo, XCAP_REQ_FIELDE_CONTENT_LENGTH);
+			if (NULL == pstrTemp)
+			{
+				return uRet;
+			}
+			ulReqBodySize = atoi(pstrTemp);
+			if (ulReqBodySize<0 || ulReqBodySize >(VOS_Strlen(pbuf) + 1))
+			{
+				XCAP_PrintInfo(__FILE__, __LINE__, "get request body size[%d] is not correct %d: %d",
+					ulReqBodySize, pstrInfo - pstrInput);
+				return uRet;
+			}
+			pReqInfo->pstrReqBody = cpss_trim_left(pstrInfo - ulReqBodySize, CPSS_SEP_BUFF);
+			if (NULL == pReqInfo->pstrReqBody)
+			{
+				XCAP_PrintInfo(__FILE__, __LINE__, "get request body failed");
+				return uRet;
+			}
+			continue;
+		}
+		XCAP_PrintErr(__FILE__, __LINE__, "get fields %s is failed", pbuf);
+	}
+	/*	pstrTemp = xcap_find_fields(pMsgInfo, XCAP_REQ_FIELDE_REFERER);
+	if (NULL != pstrTemp)
+	{
+	XCAP_PrintInfo(__FILE__, __LINE__, "get fields %s: %s",
+	g_fields_req[XCAP_REQ_FIELDE_REFERER].m_fields.Key, pstrTemp);
+	}*/
+	uRet = VOS_OK;
+	return uRet;
+}
 /* ===  FUNCTION  ==============================================================
  *         Name:  xcap_analyzing_info
  *  Description:  ½âÎöxcap ×Ö·û´®
@@ -277,72 +389,88 @@ static VOS_VOID xcap_print_response(pXCAP_RESPONSE pxCap_Response)
 *  OutPut     :
 *  Return     :
 * ==========================================================================*/
-static VOS_UINT32 xcap_server_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr)
+static VOS_UINT32 xcap_server_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr,VOS_CHAR *strParaData)
 {
-	VOS_UINT32 uRet = VOS_ERR;
-	VOS_UINT32		ulBodysize = 0;
-	VOS_CHAR *		pstrFileBuffer = NULL;
-	VOS_CHAR *		pstrFileBufferTmp = NULL;
+	VOS_UINT32		uRet = VOS_ERR;
+	VOS_UINT8		nServerID = 0;
+	VOS_UINT8		nServerCount = 0;
 	VOS_CHAR *		pstrTemp = NULL;
-	VOS_CHAR *		pstrname = NULL;
+	VOS_CHAR *		pstrReqBuffer = NULL;
+	CPSS_MSG		MsgSend = { 0 };
+	VOS_UINT32		ulCpuID, ulPID;
+	XCAP_URL_MANAGE	stuUrlInfo;
+	static XCAP_SERVER_MGR g_stuServerMgr[] = {
+		{ "money", CPSS_SYSTEM_TYPE_MONEY, CPSS_SUBSYS_TYPE_MONEY } };
+
+
 	if (NULL == pXcap_Msg_Mgr)
 	{
 		XCAP_PrintErr(__FILE__, __LINE__, "document select parameter error");
-		return uRet;
+		goto ERR_EXIT;
 	}
 	if (0 == pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI[0])
 	{
 		XCAP_PrintErr(__FILE__, __LINE__, "document select path is error");
-		return uRet;
-	}
-	if (0 == pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI[1])
-	{
-		VOS_Strcpy(&pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI[1], "memory\\index.html");
-	}
-
-	pstrname = strrchr(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI, '?');
-	if (NULL != pstrname)
-	{
-		VOS_Strcpy(pXcap_Msg_Mgr->xCap_Respone_Info.strContentType, pstrname);
-	}
-	pstrFileBufferTmp = cpss_get_file_data(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI);
-	if (NULL == pstrFileBufferTmp)
-	{
 		goto ERR_EXIT;
 	}
-	pstrTemp = xcap_find_fields(&pXcap_Msg_Mgr->xCap_Request_Info, XCAP_REQ_FIELDE_ACCEPT);
-	if (NULL != pstrTemp && NULL != VOS_Strstr(pstrTemp, "text/html"))
+	nServerCount = sizeof(g_stuServerMgr) / sizeof(XCAP_SERVER_MGR);
+	while (nServerID<nServerCount)
 	{
-		pstrFileBuffer = VOS_XCAP_MemcatEx(pstrFileBuffer, XCAP_DOC_BODY, VOS_Strlen(XCAP_DOC_BODY));
-		if (NULL == pstrFileBuffer)
+		pstrTemp = VOS_Strstr(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI,
+			g_stuServerMgr[nServerID].strServerName);
+		if (NULL != pstrTemp)
 		{
-			goto ERR_EXIT;
+			break;
 		}
-		ulBodysize = VOS_XCAP_MemSize(pstrFileBufferTmp);
-		pstrFileBuffer = VOS_XCAP_MemcatEx(pstrFileBuffer, pstrFileBufferTmp, ulBodysize);
-		if (NULL == pstrFileBuffer)
-		{
-			goto ERR_EXIT;
-		}
-		ulBodysize += VOS_Strlen(XCAP_DOC_BODY);
-		VOS_XCAP_Free(pstrFileBufferTmp);
-		pstrFileBufferTmp = NULL;
+		nServerID++;
 	}
-	else
+	ulCpuID = cpss_get_cpuid_pid(CPSS_SYSTEM_TYPE_SELF,	CPSS_SUBSYS_TYPE_MOCLI, CPSS_GET_TYPE_CPUID);
+
+	ulPID = cpss_get_cpuid_pid(g_stuServerMgr[nServerID].ulSystemID,
+		g_stuServerMgr[nServerID].ulSubsysID, CPSS_GET_TYPE_PID);
+
+	cps_set_msg_from_cpuid(&MsgSend, XCAP_MONEY_CPUID, XCAP_MONEY_PID);
+
+	ulCpuID = cpss_get_cpuid_pid(g_stuServerMgr[nServerID].ulSystemID, 
+		g_stuServerMgr[nServerID].ulSubsysID, CPSS_GET_TYPE_CPUID);
+
+	ulPID = cpss_get_cpuid_pid(g_stuServerMgr[nServerID].ulSystemID, 
+		g_stuServerMgr[nServerID].ulSubsysID, CPSS_GET_TYPE_PID);
+
+	cps_set_msg_to_cpuid(&MsgSend, ulCpuID, ulPID);
+
+	MsgSend.Body.msghead.uType = cps_set_msg_type(MONEY_REQUEST_MGR, XCAP_TYPE_URL, CPSS_MSG_REQ);
+
+	memset(&stuUrlInfo, 0, sizeof(XCAP_URL_MANAGE));
+	stuUrlInfo.ulUrlLen = VOS_Strlen(pstrTemp);
+	pstrReqBuffer = VOS_XCAP_MemcatEx(pstrReqBuffer, &stuUrlInfo, sizeof(XCAP_URL_MANAGE));
+	if (NULL == pstrReqBuffer)
 	{
-		pstrFileBuffer = (VOS_CHAR*)VOS_XCAP_Remset(pstrFileBufferTmp);
-		ulBodysize = VOS_XCAP_MemSize(pstrFileBuffer);
+		XCAP_PrintErr(__FILE__, __LINE__, "memcpy is faild from url control info to req buffer");
+		goto ERR_EXIT;
 	}
-	goto OK_EXIT;
+	pstrReqBuffer = VOS_XCAP_MemcatEx(pstrReqBuffer, pstrTemp, VOS_Strlen(pstrTemp));
+	if (NULL == pstrReqBuffer)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "memcpy is faild from url to req buffer");
+		goto ERR_EXIT;
+	}
+
+	uRet = cpss_send_data(&MsgSend, pstrReqBuffer, VOS_XCAP_MemSize(pstrReqBuffer), VOS_SEND_SKT_TYPE_UDP);
+	if (VOS_OK != uRet)
+	{
+		VOS_PrintErr(__FILE__, __LINE__, "send udp data error");
+		goto ERR_EXIT;
+	}
+	uRet = VOS_OK;
+TERM_LAB:
+	if (NULL != pstrReqBuffer)
+	{
+		VOS_XCAP_Free(pstrReqBuffer);
+		pstrReqBuffer = NULL;
+	}
 ERR_EXIT:
-	VOS_PrintBuffer(&pstrFileBuffer, "%s%s%s", XCAP_DOC_BODY, XCAP_HTML_BEGIN, XCAP_HEAD_BEGIN);
-	VOS_PrintBuffer(&pstrFileBuffer, "%s%s%s", "title name", XCAP_HEAD_END, XCAP_BODY_BEGIN);
-	VOS_PrintBuffer(&pstrFileBuffer, "%s%s%s", "<center><h1>404 Not Found</h1></center><hr><center>Powered by Jance</center>", XCAP_BODY_END, XCAP_HTML_END);
-	ulBodysize = VOS_Strlen(pstrFileBuffer);
-OK_EXIT:
-	pXcap_Msg_Mgr->xCap_Respone_Info.ulBodysize = ulBodysize;
-	pXcap_Msg_Mgr->xCap_Respone_Info.pstrBody = pstrFileBuffer;
-	return VOS_OK;
+	goto TERM_LAB;
 }
 /* ===  FUNCTION  ==============================================================
 *         Name:  xcap_document_select
@@ -371,12 +499,15 @@ static VOS_UINT32 xcap_document_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr)
 	}
 	if (0 == pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI[1])
 	{
-		VOS_Strcpy(&pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI[1], "index.html");
+		XCAP_PrintErr(__FILE__, __LINE__, "document select path is error");
+		return uRet;
 	}
-	pstrname = strrchr(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI, '.');
-	if (NULL != pstrname)
+	pstrTemp = strstr(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI, "?");
+	if (NULL != pstrTemp)
 	{
-		VOS_Strcpy(pXcap_Msg_Mgr->xCap_Respone_Info.strContentType, pstrname);
+		*pstrTemp = 0;
+		pstrTemp++;
+		return xcap_server_select(pXcap_Msg_Mgr, pstrTemp);
 	}
 	pstrFileBufferTmp = cpss_get_file_data(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI);
 	if (NULL == pstrFileBufferTmp)
@@ -406,8 +537,10 @@ static VOS_UINT32 xcap_document_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr)
 		pstrFileBuffer = (VOS_CHAR*)VOS_XCAP_Remset(pstrFileBufferTmp);
 		ulBodysize = VOS_XCAP_MemSize(pstrFileBuffer);
 	}
+	pXcap_Msg_Mgr->xCap_Respone_Info.Res_head.StatueCode = XCAP_RES_CODE_202;
 	goto OK_EXIT;
 ERR_EXIT:
+	pXcap_Msg_Mgr->xCap_Respone_Info.Res_head.StatueCode = XCAP_RES_CODE_404;
 	VOS_PrintBuffer(&pstrFileBuffer, "%s%s%s", XCAP_DOC_BODY, XCAP_HTML_BEGIN, XCAP_HEAD_BEGIN);
 	VOS_PrintBuffer(&pstrFileBuffer, "%s%s%s", "title name", XCAP_HEAD_END, XCAP_BODY_BEGIN);
 	VOS_PrintBuffer(&pstrFileBuffer, "%s%s%s", "<center><h1>404 Not Found</h1></center><hr><center>Powered by Jance</center>", XCAP_BODY_END, XCAP_HTML_END);
@@ -424,7 +557,7 @@ OK_EXIT:
 *  OutPut     :
 *  Return     :
 * ==========================================================================*/
-static VOS_UINT32 xcap_root(pXCAP_MSG_MANAGE pMsgMgr)
+static VOS_UINT32 xcap_url_root(pXCAP_MSG_MANAGE pMsgMgr)
 {
 	VOS_UINT32		uRet = VOS_ERR;
 	pXCAP_REQUEST	pMsgInfo = NULL;
@@ -440,15 +573,11 @@ static VOS_UINT32 xcap_root(pXCAP_MSG_MANAGE pMsgMgr)
 	switch (pMsgInfo->Req_mothod)
 	{
 	case XCAP_REQ_GET:
-		uRet = xcap_server_select(pMsgMgr);
+		uRet = xcap_document_select(pMsgMgr);
 		if (VOS_OK != uRet)
 		{
 			XCAP_PrintErr(__FILE__, __LINE__, "xcap get documet data failed");
 			return uRet;
-		}
-		if (NULL == pRespone_Info->pstrBody)
-		{
-			pRespone_Info->Res_head.StatueCode = XCAP_RES_CODE_404;
 		}
 		break;
 	case XCAP_REQ_PUT:
@@ -456,6 +585,12 @@ static VOS_UINT32 xcap_root(pXCAP_MSG_MANAGE pMsgMgr)
 	case XCAP_REQ_OTHER:
 		break;
 	case XCAP_REQ_POST:
+		uRet = xcap_server_select(pMsgMgr,pMsgMgr->xCap_Request_Info.pstrReqBody);
+		if (VOS_OK != uRet)
+		{
+			XCAP_PrintErr(__FILE__, __LINE__, "xcap get documet data failed");
+			return uRet;
+		}
 		break;
 	case XCAP_REQ_HEAD:
 		break;
@@ -507,115 +642,6 @@ static VOS_UINT32 xcap_request_check(XCAP_REQUEST * pReq)
 }
 
 /* ===  FUNCTION  ==============================================================
- *         Name:  xcap_analyzing_info
- *  Description:  ½âÎöxcap ×Ö·û´®
- *  Input      :  
- *  OutPut     :  
- *  Return     :  
- * ==========================================================================*/
-VOS_UINT32 xcap_analyzing_buffer(pXCAP_REQUEST pReqInfo, VOS_CHAR * pstrInput, VOS_UINT32 ulBodySize)
-{
-	VOS_UINT32	uRet = VOS_ERR;
-	VOS_UINT32	ulReqBodySize = 0;
-	VOS_CHAR	strLastchar = 0;
-	VOS_CHAR	uFieldsNum = 0;
-	VOS_CHAR *	pstrTemp = NULL;
-	VOS_CHAR *	pstrTemp1 = NULL;
-	VOS_CHAR *	pstrInfo = NULL;
-	VOS_CHAR	uLength = 0;
-	VOS_CHAR	pbuf[CPSS_MSG_BUFFER_SIZE] = {0};//, VOS_STRING pline, VOS_INT32 skip;
-
-
-	pstrInfo = pstrInput;
-	strLastchar = pstrInput[ulBodySize - 1];
-	pstrInput[ulBodySize-1] = 0;
-	while(0 != pstrInfo[0])
-	{
-		BZERO(pbuf, CPSS_MSG_BUFFER_SIZE);
-		pstrInfo = cpss_getline(pstrInfo, pbuf, VOS_FALSE);
-		cpss_trim_right(pbuf, CPSS_SEP_BUFF);
-		if (0 ==pbuf[0])
-		{
-			if (ulBodySize == (VOS_UINT32)(pstrInfo+1 - pstrInput))
-			{
-				break;
-			}
-			if (ulBodySize > (VOS_UINT32)(pstrInfo + 1 - pstrInput))
-			{
-				continue;
-			}
-			XCAP_PrintInfo(__FILE__, __LINE__, "get request body size[%d] is not correct %d: %d:%d",
-				ulReqBodySize, pstrInfo - pstrInput, ulBodySize);
-			return uRet;
-		}
-		uFieldsNum = xcap_analyzing_fields(pReqInfo, pbuf);
-		if (XCAP_FIELDS_HOST == uFieldsNum)
-		{
-			uLength = VOS_Strlen(g_fields_req[uFieldsNum].m_fields.Key);
-			pstrTemp = VOS_Strstr(pbuf + uLength, ":");
-			if (NULL != pstrTemp)
-			{
-				VOS_Strncpy(pReqInfo->strHost, pbuf + uLength, pstrTemp - pbuf - uLength);
-				pReqInfo->uPort = atoi(pstrTemp + 1);
-			}
-			continue;
-		}
-		if (VOS_OK == uFieldsNum)
-		{
-			continue;
-		}
-		
-		
-		pstrTemp = VOS_Strstr(pbuf, "/");
-		pstrTemp1 = VOS_Strstr(pbuf, " HTTP");
-		if (NULL != pstrTemp && NULL != pstrTemp1)
-		{
-			VOS_Strncpy(pReqInfo->Req_head.Method, pbuf, pstrTemp - pbuf);
-			cpss_trim(pReqInfo->Req_head.Method, " ");
-			VOS_Strncpy(pReqInfo->Req_head.Request_URI, pstrTemp, pstrTemp1 - pstrTemp);
-			VOS_Strcpy(pReqInfo->Req_head.Request_version, pstrTemp1);
-			continue;
-		}
-		if (0 == VOS_Strcmp(pReqInfo->Req_head.Method, "POST"))
-		{
-			if (0 != (ulBodySize - (pstrInfo + 1 - pstrInput)))
-			{
-				XCAP_PrintInfo(__FILE__, __LINE__, "get request body size[%d] is not correct %d: %d",
-					ulBodySize, pstrInfo - pstrInput);
-				return uRet;
-			}
-			pstrTemp = xcap_find_fields(pReqInfo, XCAP_REQ_FIELDE_CONTENT_LENGTH);
-			if (NULL == pstrTemp)
-			{
-				return uRet;
-			}
-			ulReqBodySize = atoi(pstrTemp);
-			if (ulReqBodySize<0 || ulReqBodySize > (VOS_Strlen(pbuf)+1))
-			{
-				XCAP_PrintInfo(__FILE__, __LINE__, "get request body size[%d] is not correct %d: %d",
-					ulReqBodySize, pstrInfo - pstrInput);
-				return uRet;
-			}
-			pReqInfo->pstrReqBody = cpss_trim_left(pstrInfo - ulReqBodySize, CPSS_SEP_BUFF);
-			if (NULL == pReqInfo->pstrReqBody)
-			{
-				XCAP_PrintInfo(__FILE__, __LINE__, "get request body failed");
-				return uRet;
-			}
-			continue;
-		}
-		XCAP_PrintInfo(__FILE__, __LINE__, "get fields %s is failed", pstrInfo);
-	}
-/*	pstrTemp = xcap_find_fields(pMsgInfo, XCAP_REQ_FIELDE_REFERER);
-	if (NULL != pstrTemp)
-	{
-		XCAP_PrintInfo(__FILE__, __LINE__, "get fields %s: %s",
-			g_fields_req[XCAP_REQ_FIELDE_REFERER].m_fields.Key, pstrTemp);
-	}*/
-	uRet = VOS_OK;
-	return uRet;
-}
-/* ===  FUNCTION  ==============================================================
  *         Name:  set_xcap_fildes
  *  Description:  ½âÎöxcap ×Ö·û´®
  *  Input      :  
@@ -665,6 +691,10 @@ static VOS_CHAR* xcap_get_content_type(const VOS_CHAR *name){
 	}
 	dot = strrchr(name, '.');
 
+	if (NULL == dot)
+	{
+		return "text/html";
+	}
 	/* Text */
 	if (strcmp(dot, ".txt") == 0){
 		buf = "text/plain";
@@ -800,7 +830,7 @@ static VOS_UINT32 xcap_set_head(pXCAP_RESPONSE pxCap_Response)
 	VOS_Strcpy(pxCap_Response->Res_head.Request_version, "HTTP/1.1");
 	if (0 == pxCap_Response->Res_head.StatueCode)
 	{
-		pxCap_Response->Res_head.StatueCode = XCAP_RES_CODE_203;
+		pxCap_Response->Res_head.StatueCode = XCAP_RES_CODE_202;
 	}
 	xcap_set_fildes(XCAP_RES_FIELDE_SERVER, pxCap_Response, "Jance Xcap Server");
 	xcap_set_fildes(XCAP_RES_FIELDE_CONTENT_TYPE, pxCap_Response, 
@@ -1104,17 +1134,20 @@ VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo)
 	//pXcap_Msg_Mgr->xCap_Respone_Info.ulMsgID = pMsgInfo->ulMsgID;
 	
 	xcap_print_request(&pXcap_Msg_Mgr->xCap_Request_Info);
-	uRet = xcap_root(pXcap_Msg_Mgr);
+	uRet = xcap_url_root(pXcap_Msg_Mgr);
 	if (VOS_OK != uRet)
 	{
-		XCAP_PrintErr(__FILE__, __LINE__, "check xcap buffer error");
+		XCAP_PrintErr(__FILE__, __LINE__, "xcap root faild");
 		goto ERR_PROC;
 	}
-	uRet = xcap_responce_proc(pMsgInfo);
-	if (VOS_OK != uRet)
+	if (0 != pXcap_Msg_Mgr->xCap_Respone_Info.Res_head.StatueCode)
 	{
-		XCAP_PrintErr(__FILE__, __LINE__, "xcap responce error");
-		goto ERR_PROC;
+		uRet = xcap_responce_proc(pMsgInfo);
+		if (VOS_OK != uRet)
+		{
+			XCAP_PrintErr(__FILE__, __LINE__, "xcap responce error");
+			goto ERR_PROC;
+		}
 	}
 	return VOS_OK;
 ERR_PROC:
