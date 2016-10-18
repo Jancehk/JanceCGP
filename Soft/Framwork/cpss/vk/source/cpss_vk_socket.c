@@ -1599,6 +1599,7 @@ VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 
 	VOS_CHAR *			strSendBuff = NULL;
 	pCPSS_CPUID_TABLE	pstuCPuIDTemp = NULL;
 	CPSS_MSG *			pMsgInfo = NULL;
+	CPSS_COM_PID		stuPidTmp;
 
 	if (NULL == pVoidMsg)
 	{
@@ -1635,6 +1636,13 @@ VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 
 		}
 		ulRet = VOS_OK;
 		goto EXIT_OK;
+	}
+	if (VOS_SEND_RECV_RESPONSE == (uType & VOS_SEND_RECV_RESPONSE))
+	{
+		memcpy(&stuPidTmp, &pMsgInfo->Body.msghead.stDstProc, sizeof(stuPidTmp));
+		memcpy(&pMsgInfo->Body.msghead.stDstProc, &pMsgInfo->Body.msghead.stSrcProc, sizeof(stuPidTmp));
+		memcpy(&pMsgInfo->Body.msghead.stSrcProc, &stuPidTmp, sizeof(stuPidTmp));
+		pMsgInfo->Body.msghead.uType++;
 	}
 	if (VOS_SEND_ALL_OF_PID == (uType & VOS_SEND_ALL_OF_PID))
 	{

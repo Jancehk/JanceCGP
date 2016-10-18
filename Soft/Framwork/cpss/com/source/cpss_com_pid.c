@@ -574,7 +574,7 @@ VOS_UINT32 cpss_set_cpuid_pid(VOS_UINT32 ulSystemID, VOS_UINT32 ulSubSysID, VOS_
  *  OutPut     :    
  *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 cpss_get_cpuid_pid (VOS_UINT32 ulSubSys, VOS_UINT32 ulNo, VOS_UINT32 ulType)
+VOS_UINT32 cpss_get_cpuid_pid (VOS_UINT32 ulSysID, VOS_UINT32 ulSubSysID, VOS_UINT32 ulType)
 {
 	pCPSS_CPUID_TABLE pstuCPuIDTemp = NULL;
 	pstuCPuIDTemp = g_handleManagePid.pstuCPuIDList;
@@ -588,8 +588,8 @@ VOS_UINT32 cpss_get_cpuid_pid (VOS_UINT32 ulSubSys, VOS_UINT32 ulNo, VOS_UINT32 
 			continue;
 		}
 
-		if (pstuCPuIDTemp->stuCPuID_Info.ulSubsysID == ulNo &&
-			pstuCPuIDTemp->stuCPuID_Info.ulSystemID == ulSubSys)
+		if (pstuCPuIDTemp->stuCPuID_Info.ulSystemID == ulSysID && 
+			pstuCPuIDTemp->stuCPuID_Info.ulSubsysID == ulSubSysID)
 		{
 			break;
 		}

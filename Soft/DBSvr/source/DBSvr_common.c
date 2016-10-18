@@ -86,19 +86,15 @@ void DBSvr_PrintWarn (
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  dbsvr_send_data
- *  Description:  发送telnet的数据
+ *  Description:  应答数据
  *  Input      :  
  *  OutPut     :  
  *  Return     :  
  * ==========================================================================*/
-VOS_UINT32 dbsvr_send_data(VOS_VOID *pVoidMsg, VOS_VOID * pstuBuffer, VOS_UINT32 uBufLen,VOS_UINT32 uType)
+VOS_UINT32 send_resp_data(VOS_VOID *pVoidMsg, VOS_VOID * pstuBuffer, VOS_UINT32 uBufLen)
 {
-	VOS_UINT32 uRet = VOS_ERR;
-	pCPSS_MSG pMsgInfo = (pCPSS_MSG)pVoidMsg;
-	//pMsgInfo->pClient = g_psockHandle;
-	uRet = cpss_send_data(pVoidMsg,
-		pstuBuffer,uBufLen,
-		uType | VOS_SEND_SKT_TYPE_UDP);
+	VOS_UINT32		uRet = VOS_ERR;
+	uRet = cpss_send_data(pVoidMsg, pstuBuffer, uBufLen, VOS_SEND_RECV_RESPONSE | VOS_SEND_SKT_TYPE_UDP);
 	if (VOS_OK != uRet)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"send udp data error");

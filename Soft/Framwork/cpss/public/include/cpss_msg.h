@@ -52,17 +52,20 @@ typedef enum _CPSS_MSG_RS_STAT_M{
 /*   请求方式方法    */
 /****************/
 typedef enum CPSS_MSG_TYPE_M{
-	CPSS_MSG_INIT = 0x01,				/* 初始化 */
-	CPSS_MSG_UNIT,						/* 反初始化 */
-	CPSS_MSG_DEAL,						/* 处理 */
-	CPSS_MSG_REQ,						/* 请求 */
-	CPSS_MSG_RES,						/* 应答 */
-	CPSS_MSG_SET,						/* 设定 */
-	CPSS_MSG_DEL,						/* 删除 */
-	CPSS_MSG_REG,						/* 注册 */
-	CPSS_MSG_RESU,						/* 注册应答 */
-	CPSS_MSG_CHK,						/* 检查 */
-	CPSS_MSG_CHKRES,					/* 检查结果 */
+	CPSS_MSG_INIT = 0x01,				/* ->初始化 */
+	CPSS_MSG_UNIT,						/* <-反初始化 */
+	CPSS_MSG_DEAL,						/* ->处理 */
+	CPSS_MSG_DEALRES,					/* <-处理结果 */
+	CPSS_MSG_REQ,						/* ->请求 */
+	CPSS_MSG_RES,						/* <-应答 */
+	CPSS_MSG_SET,						/* ->设定 */
+	CPSS_MSG_SETRES,					/* <-设定结果 */
+	CPSS_MSG_DEL,						/* ->删除 */
+	CPSS_MSG_DELRES,					/* <-删除结果 */
+	CPSS_MSG_REG,						/* ->注册 */
+	CPSS_MSG_RESU,						/* <-注册应答 */
+	CPSS_MSG_CHK,						/* ->检查 */
+	CPSS_MSG_CHKRES,					/* <-检查结果 */
 };
 
 /****************/
@@ -116,12 +119,14 @@ typedef enum VOS_SOCKET_STAT_M{
 
 /* vos socket status*/
 typedef enum VOS_SEND_SKT_TYPE_M{
-	VOS_SEND_SKT_TYPE_FINISH = 0x00,
-	VOS_SEND_SKT_TYPE_INSERT = 0x01,
-	VOS_SEND_SKT_TYPE_TCP = 0x02,
-	VOS_SEND_SKT_TYPE_UDP = 0x04,
-	VOS_SEND_ALL_OF_PID = 0x10,
-	VOS_SEND_SAVE_TO_RECV = 0x20,
+	VOS_SEND_SKT_TYPE_FINISH	= 0x00000000,
+	VOS_SEND_SKT_TYPE_INSERT	= 0x00000001,
+	VOS_SEND_SKT_TYPE_TCP		= 0x00000002,
+	VOS_SEND_SKT_TYPE_UDP		= 0x00000004,
+	//VOS_SEND_REQ_AGAIN			= 0x00000008,
+	VOS_SEND_ALL_OF_PID			= 0x00000010,
+	VOS_SEND_SAVE_TO_RECV		= 0x00000020,
+	VOS_SEND_RECV_RESPONSE		= 0x00000040,
 };
 
 #define  CPSS_COMM_SEG_NAME		"JCPG"

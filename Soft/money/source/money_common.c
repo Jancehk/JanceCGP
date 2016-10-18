@@ -16,7 +16,6 @@
  * =====================================================================================
  */
 #include "money_common.h"
-
 /* ===  FUNCTION  =========================================================
  *         Name:  XCAP_PrintInfo
  *  Description:  
@@ -79,16 +78,21 @@ void Money_PrintWarn (
  *  OutPut     :  
  *  Return     :  
  * ==========================================================================*/
-static VOS_UINT32 send_udp_data(VOS_VOID *pVoidMsg,VOS_VOID * pstuBuffer, VOS_UINT32 uBufLen,VOS_UINT8 Type,
-								 VOS_UINT8 uType, VOS_UINT8 uSubType)
+static VOS_UINT32 send_DBsvr_data(VOS_VOID *pVoidMsg, VOS_VOID * pstuBuffer, VOS_UINT32 uBufLen, VOS_UINT32	uType)
 {
 	VOS_UINT32 uRet = VOS_ERR;
 	pCPSS_MSG pMsgInfo = (pCPSS_MSG)pVoidMsg;
-	pMsgInfo->Body.msghead.uType = uType;
-	//pMsgInfo->Body.msghead.uSubType = uSubType;
+	CPSS_MSG		MsgSend = { 0 };
 
-	uRet = cpss_send_data(pVoidMsg, pstuBuffer, uBufLen,
-		Type | VOS_SEND_SKT_TYPE_UDP);
+	cps_set_msg_from_cpuid(&MsgSend, M_CPUID, M_PID);
+
+	cps_set_msg_to_cpuid(&MsgSend, M_DBSVRCPUID, M_DBSVRPID);
+
+	MsgSend.Body.msghead.ulRecvMsgID = pMsgInfo->ulMsgID;
+	MsgSend.Body.msghead.uType = uType;// ;
+
+	uRet = cpss_send_data(&MsgSend, pstuBuffer, uBufLen,
+		 VOS_SEND_SKT_TYPE_UDP);
 	if (VOS_OK != uRet)
 	{
 		Money_PrintErr(__FILE__,__LINE__,"send udp data error");
@@ -184,8 +188,20 @@ VOS_UINT32 money_system_proc(VOS_VOID *pVoidMsg)
 * ==========================================================================*/
 VOS_UINT32 check_login_info(VOS_VOID * pMsgVoid, VOS_CHAR * pstrInput)
 {
-	VOS_UINT32 uRet = VOS_ERR;
-	return uRet;
+	VOS_UINT32		ulRet = VOS_ERR;
+	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pMsgVoid;
+	CPSS_USER_INFO  stuUserInfo;
+
+	//pstuUserInfo = (pCPSS_USER_INFO)pMsgVoid->Body.strDataBuf;
+	BZERO(&stuUserInfo, sizeof(CPSS_USER_INFO));
+
+	ulRet = send_DBsvr_data(pMsgVoid, &stuUserInfo, sizeof(CPSS_USER_INFO),
+		cps_set_msg_type(DBSVR_REQUEST_MGR, DBSVR_TYPE_USER, CPSS_MSG_CHK));
+	if (VOS_OK != ulRet)
+	{
+		Money_PrintErr(__FILE__, __LINE__, "send udp data error");
+	}
+	return ulRet;
 }
 /* ===  FUNCTION  ==============================================================
 *         Name:  money_url_manager_proc

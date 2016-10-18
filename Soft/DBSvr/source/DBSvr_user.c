@@ -30,12 +30,15 @@ static VOS_UINT32 dbsvr_check_user_proc(pCPSS_MSG pMsgInfo)
 	VOS_UINT32		ulRet = VOS_ERR;
 	VOS_VOID		*padoRecord = NULL;
 	pCPSS_USER_INFO pstuUserInfo = NULL;
-	VOS_UINT32		uBuffLen = 0;
-	VOS_CHAR		strBuffer[CPSS_MSG_BUFFER_SIZE]={0};
 	VOS_CHAR		strCmd[1024]={0};
-	CPSS_MSG		MsgInfo = {0};
 
 	pstuUserInfo = (pCPSS_USER_INFO)pMsgInfo->Body.strDataBuf;
+	if (sizeof(CPSS_USER_INFO) < pMsgInfo->Body.msghead.ulMsgLength)
+	{
+		DBSvr_PrintErr(__FILE__, __LINE__, "recv data size is not correct[%d=%d]", 
+			pMsgInfo->Body.msghead.ulMsgLength, sizeof(CPSS_USER_INFO));
+		ulRet = VOS_OK;
+	}
 	sprintf(strCmd,"select t.power from ManageUse t where t.usename = \"%s\" and t.passwd=\"%s\"",
 		pstuUserInfo->strUser,pstuUserInfo->strPass);
 	ulRet = open_record(strCmd, &padoRecord);
@@ -44,27 +47,16 @@ static VOS_UINT32 dbsvr_check_user_proc(pCPSS_MSG pMsgInfo)
 		DBSvr_PrintErr(__FILE__,__LINE__,"check user and password system error");
 		ulRet = VOS_OK;
 	}
-	pstuUserInfo->ulResult = VOS_OK;
-	if (1 != get_record_count(padoRecord))
+	pstuUserInfo->ulResult = VOS_ERR;
+	if (1 == get_record_count(padoRecord))
 	{
 		//DBSvr_PrintErr(__FILE__,__LINE__,"user or password is Error");
-		pstuUserInfo->ulResult = VOS_ERR;
+		pstuUserInfo->ulResult = VOS_OK;
 	}
 	free_record(padoRecord);
 	
-	BZERO(&MsgInfo, sizeof(CPSS_MSG));
-	
-	VOS_Memcpy(&MsgInfo.Body.msghead.stDstProc, 
-		&pMsgInfo->Body.msghead.stSrcProc,sizeof(CPSS_COM_PID));
-	VOS_Memcpy(&MsgInfo.Body.msghead.stSrcProc, 
-		&pMsgInfo->Body.msghead.stDstProc,sizeof(CPSS_COM_PID));
-	//MsgInfo.Body.msghead.uType	   = CPSS_RES_DBSVR_USE;
-	//MsgInfo.Body.msghead.uSubType  = CPSS_TYPE_CHECK_USE;
 
-	VOS_Memcpy(strBuffer, (VOS_CHAR *)pstuUserInfo,sizeof(CPSS_USER_INFO));
-	uBuffLen = sizeof(CPSS_USER_INFO);
-
-	ulRet = dbsvr_send_data(&MsgInfo, strBuffer, uBuffLen, VOS_SEND_SKT_TYPE_UDP);
+	ulRet = send_resp_data(pMsgInfo, pstuUserInfo, sizeof(CPSS_USER_INFO));
 	if (VOS_OK != ulRet)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"send udp data error");

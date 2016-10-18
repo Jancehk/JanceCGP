@@ -85,15 +85,12 @@ VOS_UINT32 free_record(VOS_UINT32 padoRecord);
  *  Description:  得到记录集个数
  * ==========================================================================*/
 VOS_UINT32 get_count_in_db(VOS_CHAR * pstrCmd);
-/* ===  FUNCTION  ==============================================================
- *         Name:  dbsvr_send_data
- *  Description:  发送telnet的数据
- * ==========================================================================*/
-VOS_UINT32 dbsvr_send_data(VOS_VOID *pVoidMsg, 
-						   VOS_VOID * pstuBuffer, 
-						   VOS_UINT32 uBufLen,
-						   VOS_UINT32 uType);
 
+/* ===  FUNCTION  ==============================================================
+*         Name:  dbsvr_send_data
+*  Description:  应答数据
+* ==========================================================================*/
+VOS_UINT32 send_resp_data(VOS_VOID *pVoidMsg, VOS_VOID * pstuBuffer, VOS_UINT32 uBufLen);
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  dbsvr_get_info_proc
