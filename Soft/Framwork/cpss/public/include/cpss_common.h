@@ -250,11 +250,6 @@ extern VOS_STRING cpss_getver();
 extern VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 uBufLen, VOS_UINT32 uType);
 
 /* ===  FUNCTION  ==============================================================
- *         Name:  cpss_copoy_msg
- * ==========================================================================*/
-extern VOS_UINT32 cpss_copy_msg(VOS_VOID *pVoidMsgRecv, VOS_VOID * pVoidMsgSend);
-
-/* ===  FUNCTION  ==============================================================
  *         Name:  cpss_send_data
  * ==========================================================================*/
 VOS_UINT32 cpss_send_data_msgid (VOS_UINT32 ulMsgID, VOS_VOID * strBuffer, VOS_UINT32 uBufLen, VOS_UINT32 uType);

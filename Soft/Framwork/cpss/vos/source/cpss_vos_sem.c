@@ -311,10 +311,11 @@ static CPSS_MSG * cpss_get_msg_use_id_in_tab(CPSS_MSG_TAB *pMsgTab, VOS_UINT32 u
 	tmpMsg = pMsgTab->pUseHead;
 	while(NULL != tmpMsg)
 	{
-		if (tmpMsg->ulMsgID = ulMsgID)
+		if (tmpMsg->ulMsgID == ulMsgID)
 		{
 			break;
 		}
+		tmpMsg = tmpMsg->next;
 	}
 	return tmpMsg;
 }
@@ -340,7 +341,7 @@ static VOS_UINT32 cpss_move_msg_a_to_b(CPSS_MSG_TAB *pMsgTab, CPSS_MSG * pMsgInf
 			a = cpss_msg_find_a_in_b(g_cpsMsgSem_Manage->msgtab.pFreeHead, pMsgInfo);
 			if (NULL != a)
 			{
-				uRet = VOS_OK;
+				uRet = VOS_OK1;
 			}
 			else
 			{
@@ -374,7 +375,7 @@ static VOS_UINT32 cpss_move_msg_a_to_b(CPSS_MSG_TAB *pMsgTab, CPSS_MSG * pMsgInf
 			a = cpss_msg_find_a_in_b(pMsgTab->pUseHead, pMsgInfo);
 			if (NULL != a)
 			{
-				uRet = VOS_OK;
+				uRet = VOS_OK1;
 			}
 			else
 			{
@@ -450,6 +451,10 @@ static VOS_UINT32 cpss_move_msg_use_msg(CPSS_MSG *pMsgInfo, VOS_UINT32 uType)
 	if (MOVE_TYPE_USE_MSG_RESE_TO_FREE == uType)
 	{
 		cpss_msg_memset(pMsgInfo);
+		if (0 != g_cpsMsgSem_Manage->nMsgLevel)
+		{
+			VOS_PrintDebug(__FILE__, __LINE__, "--MSG-:%p[%d]", pMsgInfo, pMsgInfo->ulMsgID);
+		}
 		goto END_PROC;
 	}
 	switch(uType)
@@ -504,7 +509,7 @@ static VOS_UINT32 cpss_move_msg_use_msg(CPSS_MSG *pMsgInfo, VOS_UINT32 uType)
 			pMsgtab, pTypeTable,pUsedCount);
 	}
 	uRet = cpss_move_msg_a_to_b(pTypeTable,pMsgInfo,nType);
-	if (VOS_OK != uRet)
+	if (VOS_OK > uRet)
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"move error Table:%p Msg:%p Count:%p:%d Type:%d:%s",
 			pTypeTable,pMsgInfo,pUsedCount,*pUsedCount,nType,
@@ -513,19 +518,37 @@ static VOS_UINT32 cpss_move_msg_use_msg(CPSS_MSG *pMsgInfo, VOS_UINT32 uType)
 	}
 	if (MOVE_USED_TO_FREE == nType)
 	{
-		*pUsedCount = *pUsedCount-1;
-		pMsgtab->nFreeCount++;
-		if (NULL != pMsgInfo->Body.strDataBuf)
+		if (VOS_OK == uRet)
 		{
-			VOS_Free(pMsgInfo->Body.strDataBuf, CPSS_MEM_HEAD_KEY_CPSS_SKT);
-			pMsgInfo->Body.strDataBuf = NULL;
+			*pUsedCount = *pUsedCount - 1;
+			pMsgtab->nFreeCount++;
+			if (NULL != pMsgInfo->Body.strDataBuf)
+			{
+				VOS_Free(pMsgInfo->Body.strDataBuf, CPSS_MEM_HEAD_KEY_CPSS_SKT);
+				pMsgInfo->Body.strDataBuf = NULL;
+			}
+			pMsgInfo->ulMsgLength = 0;
+			if (0 != g_cpsMsgSem_Manage->nMsgLevel)
+			{
+				VOS_PrintDebug(__FILE__, __LINE__, "--MSG--:%p[%d]", pMsgInfo, pMsgInfo->ulMsgID);
+			}
 		}
-		pMsgInfo->ulMsgLength = 0;
-	}else
-	if (MOVE_FREE_TO_USED == nType)
+		else
+		{
+			if (0 != g_cpsMsgSem_Manage->nMsgLevel)
+			{
+				VOS_PrintDebug(__FILE__, __LINE__, "--MSG=F:%p[%d]", pMsgInfo, pMsgInfo->ulMsgID);
+			}
+		}
+
+	}
+	else if (MOVE_FREE_TO_USED == nType)
 	{
-		pMsgtab->nFreeCount--;
-		*pUsedCount = *pUsedCount+1;
+		if (VOS_OK == uRet)
+		{
+			pMsgtab->nFreeCount--;
+			*pUsedCount = *pUsedCount + 1;
+		}
 	}
 	else
 	{
@@ -759,15 +782,14 @@ CPSS_MSG * cpss_get_msg_info()
 		pMsgTmp->prev = g_cpsMsgSem_Manage->msgtab.pFreeTial;
 		g_cpsMsgSem_Manage->msgtab.pFreeTial = pMsgTmp;
 	}
-	
 END_PROC:
+
 	if (g_cpsMsgSem_Manage->msgtab.nIDCount >= 0X7fffffff)
 	{
 		VOS_PrintInfo(__FILE__, __LINE__, "Msg Count is most big:%08x,and set zero",
 			g_cpsMsgSem_Manage->msgtab.nIDCount);
 		g_cpsMsgSem_Manage->msgtab.nIDCount = 0;
 	}
-
 ERROR_EXIT:
 	if (NULL != pMsgTmp)
 	{
@@ -777,6 +799,11 @@ ERROR_EXIT:
 		pMsgTmp->ulMsgLength = 0;
 		pMsgTmp->nSelfStat = CPSS_MSG_SELF_STAT_RESERVE;
 		pMsgTmp->nRState = CPSS_MSG_RS_STAT_FREE;
+
+		if (0 != g_cpsMsgSem_Manage->nMsgLevel)
+		{
+			VOS_PrintDebug(__FILE__, __LINE__, "++MSG++:%p[%d]", pMsgTmp, pMsgTmp->ulMsgID);
+		}
 	}
 	else
 	{
@@ -1202,18 +1229,24 @@ END_PROC:
 * ==========================================================================*/
 VOS_UINT32 cpss_move_recv_used_to_free(CPSS_MSG *pMsgInfo)
 {
-	CPSS_MSG *pPreRecvMsg = NULL;
+//	CPSS_MSG *pPreRecvMsg = NULL;
 	if (NULL == pMsgInfo)
 	{
 		return VOS_ERR;
 	}
+	if (CPSS_MSG_RS_STAT_SENDED != pMsgInfo->nRState &&
+		CPSS_MSG_RS_STAT_DOING != pMsgInfo->nRState )
+	{
+		return VOS_OK;
+	}
+	/*
 	if (0 != pMsgInfo->Body.msghead.ulRecvMsgID)
 	{
 		if (VOS_OK != cpss_move_recv_used_to_free(cpss_get_recv_msg_for_id(pMsgInfo->Body.msghead.ulRecvMsgID)))
 		{
 			return VOS_ERR;
 		}
-	}
+	}*/
 	cpss_move_recv_used_to_free_use_msgid(pMsgInfo->ulMsgID);
 	return VOS_OK;
 }
@@ -1446,6 +1479,46 @@ VOS_UINT8 cps_get_reqcontent_from_msg(VOS_UINT32 ulMsgType)
 VOS_UINT8 cps_get_msgtype_from_msg(VOS_UINT32 ulMsgType)
 {
 	return ulMsgType & 0x000000FF;
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_copy_msg
+*  Description:  发送telnet的数据
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_UINT32 cpss_copy_msg(
+	VOS_VOID *pVoidMsgRecv,
+	VOS_VOID * pVoidMsgSend,
+	VOS_UINT32 uType)
+{
+	CPSS_MSG	*  pMsgRecv = (CPSS_MSG	*)pVoidMsgRecv;
+	CPSS_MSG	*  pMsgSend = (CPSS_MSG	*)pVoidMsgSend;
+	if (NULL == pMsgRecv ||
+		NULL == pMsgSend)
+	{
+		return VOS_ERR;
+	}
+	VOS_Memcpy(&pMsgRecv->Body.msghead.stSrcProc,
+		&pMsgSend->Body.msghead.stSrcProc, sizeof(CPSS_COM_PID));
+	VOS_Memcpy(&pMsgRecv->Body.msghead.stDstProc,
+		&pMsgSend->Body.msghead.stDstProc, sizeof(CPSS_COM_PID));
+	if (CPSS_MSG_COPY_ID == (uType&CPSS_MSG_COPY_ID))
+	{
+		pMsgRecv->ulMsgID = pMsgSend->ulMsgID;
+	}
+	if (0 != pMsgSend->Body.msghead.ulRecvMsgID)
+	{
+		pMsgRecv->Body.msghead.ulRecvMsgID = pMsgSend->Body.msghead.ulRecvMsgID;
+	}
+	if (NULL != pMsgSend->pClient)
+	{
+		pMsgRecv->pClient = pMsgSend->pClient;
+	}
+	pMsgRecv->Body.msghead.uType = pMsgSend->Body.msghead.uType;
+	pMsgRecv->Body.msghead.uCmd = pMsgSend->Body.msghead.uCmd;
+	//pMsgRecv->Body.msghead.ulMsgID = pMsgSend->Body.msghead.ulMsgID;
+	return VOS_OK;
 }
 /* ===  FUNCTION  ==============================================================
 *         Name:  cps_uninit_msg_sem

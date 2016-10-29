@@ -185,7 +185,7 @@ typedef struct _XCAP_REQUEST_T
 	VOS_CHAR			strHost[XCAP_HOST_LENGTH];
 	VOS_UINT32			uPort;
 	VOS_UINT16			fields_num;
-	VOS_UINT32			ulMsgID;
+	VOS_VOID *			pstuMsgInfo;
 	XCAP_FIELDS			Req_head_fields[XCAP_FIELDS_NUM];
 	VOS_CHAR *			pstrReqBody;
 }XCAP_REQUEST,*pXCAP_REQUEST;
@@ -391,10 +391,21 @@ VOS_UINT32 xcap_analyzing_buffer(pXCAP_REQUEST pMsgInfo, VOS_CHAR * pstrInput, V
  * ==========================================================================*/
 VOS_VOID xcap_fileds_init();
 /* ===  FUNCTION  ==============================================================
+*         Name:  xcap_change_req_mode_proc
+*  Description:  xcap_change_req_mode_proc
+* ==========================================================================*/
+VOS_UINT32 xcap_change_req_mode_proc(pCPSS_MSG pMsgInfo, VOS_UINT8 nMode);
+/* ===  FUNCTION  ==============================================================
  *         Name:  send_xcap_URL
  *  Description:  给xcap服务器发送url请求
  * ==========================================================================*/
 VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo);
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  xcap_responce_DATA
+*  Description:  给xcap 服务器应答数据
+* ==========================================================================*/
+VOS_UINT32 xcap_responce_DATA(pCPSS_MSG pMsgInfo);
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  xcap_responce_data

@@ -60,6 +60,7 @@ typedef enum VOS_CLIENT_STAT_M{
 //#define CPSS_MSG_CHECKIN		3
 //#define CPSS_MSG_CHECKED		4
 
+
 typedef enum CPSS_CLIENT_CMD_M{
 	CPSS_CLIENT_WAIT_CMD = 1,	//1 需要
 	CPSS_CLIENT_NOWAIT_CMD,		//2 不需要 
@@ -201,18 +202,21 @@ CPSS_MSG_SEM_MANAGE * cpss_get_msgtab ();
  *  OutPut     : 
  *  Return     : 
  * ==========================================================================*/
-VOS_UINT32 cpss_send_data (VOS_VOID *pVoidMsg, VOS_VOID * strBuffer, VOS_UINT32 uBufLen, VOS_UINT32 uType);
+VOS_UINT32 cpss_send_data (	
+	VOS_VOID *	pVoidMsg, 
+	VOS_VOID *	strBuffer, 
+	VOS_UINT32	uBufLen, 
+	VOS_UINT32	uType);
 
-/* ===  FUNCTION  ==============================================================
- *         Name:  cpss_copy_msg
- *  Description:  发送telnet的数据
- * ==========================================================================*/
-VOS_UINT32 cpss_copy_msg(VOS_VOID *pVoidMsgRecv, VOS_VOID * pVoidMsgSend);
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_send_data
  * ==========================================================================*/
-VOS_UINT32 cpss_send_data_msgid (VOS_UINT32 ulMsgID, VOS_VOID * strBuffer, VOS_UINT32 uBufLen, VOS_UINT32 uType);
+VOS_UINT32 cpss_send_data_msgid (
+	VOS_UINT32 ulMsgID, 
+	VOS_VOID * strBuffer, 
+	VOS_UINT32 uBufLen, 
+	VOS_UINT32 uType);
 
 /* ===  FUNCTION  =================================================================
  *         Name:  cpss_get_msg_tab_info

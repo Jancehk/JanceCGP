@@ -54,7 +54,7 @@ static VOS_UINT32 dbsvr_check_user_proc(pCPSS_MSG pMsgInfo)
 		pstuUserInfo->ulResult = VOS_OK;
 	}
 	free_record(padoRecord);
-	
+
 
 	ulRet = send_resp_data(pMsgInfo, pstuUserInfo, sizeof(CPSS_USER_INFO));
 	if (VOS_OK != ulRet)

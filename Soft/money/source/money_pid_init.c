@@ -54,8 +54,16 @@ VOS_UINT32 pid_init_proc(VOS_VOID *arg)
 			Money_PrintErr(__FILE__, __LINE__, "money deal faild");
 		}
 		break;
+	case DBSVR_REQUEST_MGR:
+		uRet = money_dbsvr_deal_proc(pMsgInfo);
+		if (VOS_OK != uRet)
+		{
+			Money_PrintErr(__FILE__, __LINE__, "money's dbsvr deal faild");
+		}
+		break;
 	default:
-		Money_PrintErr(__FILE__, __LINE__, "this function is not support");
+		Money_PrintErr(__FILE__, __LINE__, "this function[%d] is not support",
+			cps_get_reqtype_from_msg(pMsgInfo->Body.msghead.uType));
 		break;
 	}
 	return uRet;

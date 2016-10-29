@@ -33,6 +33,9 @@
 #define  CPSS_MSG_RECV_TCP		0x04
 #define  CPSS_MSG_RECV_UDP		0x08
 
+
+#define CPSS_MSG_COPY_ID			0x00000001
+
 typedef enum _CPSS_MSG_SELF_STAT_M{
 	CPSS_MSG_SELF_STAT_FREE = 0x01,		/*空闲*/
 	CPSS_MSG_SELF_STAT_RESERVE,			/*预约*/
@@ -142,9 +145,9 @@ typedef struct _CPSS_COM_HEAD_T
 	VOS_UINT32			uType;
 	VOS_UINT32			uCmd;
 	/*--------------------16byte----------------*/
-	VOS_UINT32 			ulParentMsgID;	//父消息消息ID;
+	//VOS_UINT32 			ulParentMsgID;	//父消息消息ID;
 	VOS_UINT32 			ulRecvMsgID;	//接受消息ID
-	VOS_UINT8 			RFU2[8];		//下一个源消息ID
+	VOS_UINT8 			RFU2[12];		//下一个源消息ID
 	/*--------------------16byte----------------*/
 	CPSS_COM_PID 		stDstProc;		//目标地址
 	CPSS_COM_PID 		stSrcProc;		//源地址

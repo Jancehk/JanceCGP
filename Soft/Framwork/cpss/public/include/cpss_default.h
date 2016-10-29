@@ -26,7 +26,7 @@
 #endif
 #ifndef VOS_OK
 #define VOS_OK 		0
-#define VOS_ERR 	1
+#define VOS_ERR 	-1
 #define VOS_OK1 	2
 //#define VOS_ABN 	3
 #endif

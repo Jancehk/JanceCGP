@@ -85,6 +85,12 @@ VOS_UINT32 money_system_proc(VOS_VOID *pVoidMsg);
 VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg);
 
 /* ===  FUNCTION  ==============================================================
+*         Name:  money_dbsvr_deal_proc
+*  Description:  记账管理系统数据库应答处理
+* ==========================================================================*/
+VOS_UINT32 money_dbsvr_deal_proc(VOS_VOID *pVoidMsg);
+
+/* ===  FUNCTION  ==============================================================
  *         Name:  get_xcap_root_body
  *  Description:  得到root的body
  * ==========================================================================*/

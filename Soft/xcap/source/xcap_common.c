@@ -85,6 +85,147 @@ void XCAP_PrintWarn (
 	va_end(ap);
 }		/* -----  end of function VOS_Print_Info  ----- */
 
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  set_xcap_head
+*  Description:  解析xcap 字符串
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static VOS_CHAR* xcap_get_content_type(const VOS_CHAR *name){
+	char *dot, *buf;
+	if (NULL == name)
+	{
+		return "text/html";
+	}
+	dot = strrchr(name, '.');
+
+	if (NULL == dot)
+	{
+		return "text/html";
+	}
+	/* Text */
+	if (strcmp(dot, ".txt") == 0){
+		buf = "text/plain";
+	}
+	else if (strcmp(dot, ".css") == 0){
+		buf = "text/css";
+	}
+	else if (strcmp(dot, ".js") == 0){
+		buf = "text/javascript";
+	}
+	else if (strcmp(dot, ".xml") == 0 || strcmp(dot, ".xsl") == 0){
+		buf = "text/xml";
+	}
+	else if (strcmp(dot, ".xhtm") == 0 || strcmp(dot, ".xhtml") == 0 || strcmp(dot, ".xht") == 0){
+		buf = "application/xhtml+xml";
+	}
+	else if (strcmp(dot, ".html") == 0 || strcmp(dot, ".htm") == 0 || strcmp(dot, ".shtml") == 0 || strcmp(dot, ".hts") == 0){
+		buf = "text/html";
+
+		/* Images */
+	}
+	else if (strcmp(dot, ".gif") == 0){
+		buf = "image/gif";
+	}
+	else if (strcmp(dot, ".png") == 0){
+		buf = "image/png";
+	}
+	else if (strcmp(dot, ".bmp") == 0){
+		buf = "application/x-MS-bmp";
+	}
+	else if (strcmp(dot, ".jpg") == 0 || strcmp(dot, ".jpeg") == 0 || strcmp(dot, ".jpe") == 0 || strcmp(dot, ".jpz") == 0){
+		buf = "image/jpeg";
+		/* Audio & Video */
+	}
+	else if (strcmp(dot, ".wav") == 0){
+		buf = "audio/wav";
+	}
+	else if (strcmp(dot, ".wma") == 0){
+		buf = "audio/x-ms-wma";
+	}
+	else if (strcmp(dot, ".wmv") == 0){
+		buf = "audio/x-ms-wmv";
+	}
+	else if (strcmp(dot, ".au") == 0 || strcmp(dot, ".snd") == 0){
+		buf = "audio/basic";
+	}
+	else if (strcmp(dot, ".midi") == 0 || strcmp(dot, ".mid") == 0){
+		buf = "audio/midi";
+	}
+	else if (strcmp(dot, ".mp3") == 0 || strcmp(dot, ".mp2") == 0){
+		buf = "audio/x-mpeg";
+	}
+	else if (strcmp(dot, ".rm") == 0 || strcmp(dot, ".rmvb") == 0 || strcmp(dot, ".rmm") == 0){
+		buf = "audio/x-pn-realaudio";
+	}
+	else if (strcmp(dot, ".avi") == 0){
+		buf = "video/x-msvideo";
+	}
+	else if (strcmp(dot, ".3gp") == 0){
+		buf = "video/3gpp";
+	}
+	else if (strcmp(dot, ".mov") == 0){
+		buf = "video/quicktime";
+	}
+	else if (strcmp(dot, ".wmx") == 0){
+		buf = "video/x-ms-wmx";
+	}
+	else if (strcmp(dot, ".asf") == 0 || strcmp(dot, ".asx") == 0){
+		buf = "video/x-ms-asf";
+	}
+	else if (strcmp(dot, ".mp4") == 0 || strcmp(dot, ".mpg4") == 0){
+		buf = "video/mp4";
+	}
+	else if (strcmp(dot, ".mpe") == 0 || strcmp(dot, ".mpeg") == 0 || strcmp(dot, ".mpg") == 0 || strcmp(dot, ".mpga") == 0){
+		buf = "video/mpeg";
+
+		/* Documents */
+	}
+	else if (strcmp(dot, ".pdf") == 0){
+		buf = "application/pdf";
+	}
+	else if (strcmp(dot, ".rtf") == 0){
+		buf = "application/rtf";
+	}
+	else if (strcmp(dot, ".doc") == 0 || strcmp(dot, ".dot") == 0){
+		buf = "application/msword";
+	}
+	else if (strcmp(dot, ".xls") == 0 || strcmp(dot, ".xla") == 0){
+		buf = "application/msexcel";
+	}
+	else if (strcmp(dot, ".hlp") == 0 || strcmp(dot, ".chm") == 0){
+		buf = "application/mshelp";
+	}
+	else if (strcmp(dot, ".swf") == 0 || strcmp(dot, ".swfl") == 0 || strcmp(dot, ".cab") == 0){
+		buf = "application/x-shockwave-flash";
+	}
+	else if (strcmp(dot, ".ppt") == 0 || strcmp(dot, ".ppz") == 0 || strcmp(dot, ".pps") == 0 || strcmp(dot, ".pot") == 0){
+		buf = "application/mspowerpoint";
+		/* Binary & Packages */
+	}
+	else if (strcmp(dot, ".zip") == 0){
+		buf = "application/zip";
+	}
+	else if (strcmp(dot, ".rar") == 0){
+		buf = "application/x-rar-compressed";
+	}
+	else if (strcmp(dot, ".gz") == 0){
+		buf = "application/x-gzip";
+	}
+	else if (strcmp(dot, ".jar") == 0){
+		buf = "application/java-archive";
+	}
+	else if (strcmp(dot, ".tgz") == 0 || strcmp(dot, ".tar") == 0){
+		buf = "application/x-tar";
+	}
+	else {
+		buf = "application/octet-stream";
+	}
+	return buf;
+}
+
 /* ===  FUNCTION  ==============================================================
  *         Name:  xcap_get_response_status_code
  *  Description: 
@@ -408,6 +549,17 @@ static VOS_UINT32 xcap_server_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr,VOS_CHAR *st
 		XCAP_PrintErr(__FILE__, __LINE__, "document select parameter error");
 		goto ERR_EXIT;
 	}
+	if (NULL == pXcap_Msg_Mgr->xCap_Request_Info.pstuMsgInfo)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "request msg handle is null");
+		goto ERR_EXIT;
+	}
+	uRet = cpss_copy_msg(&MsgSend, pXcap_Msg_Mgr->xCap_Request_Info.pstuMsgInfo, CPSS_MSG_COPY_ID);
+	if (VOS_OK != uRet)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "copy send msg failed");
+		return uRet;
+	}
 	if (0 == pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI[0])
 	{
 		XCAP_PrintErr(__FILE__, __LINE__, "document select path is error");
@@ -420,16 +572,25 @@ static VOS_UINT32 xcap_server_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr,VOS_CHAR *st
 			g_stuServerMgr[nServerID].strServerName);
 		if (NULL != pstrTemp)
 		{
+			pstrTemp += VOS_Strlen(g_stuServerMgr[nServerID].strServerName);
+			if ('/' == *pstrTemp)
+			{
+				pstrTemp++;
+			}
 			break;
 		}
 		nServerID++;
 	}
-	ulCpuID = cpss_get_cpuid_pid(CPSS_SYSTEM_TYPE_SELF,	CPSS_SUBSYS_TYPE_MOCLI, CPSS_GET_TYPE_CPUID);
+	if (NULL == pstrTemp)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "not found server:%s", pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI);
+		return uRet;
+	}
+	ulCpuID = cpss_get_cpuid_pid(CPSS_SYSTEM_TYPE_XCAP,	CPSS_SUBSYS_TYPE_MOCLI, CPSS_GET_TYPE_CPUID);
 
-	ulPID = cpss_get_cpuid_pid(g_stuServerMgr[nServerID].ulSystemID,
-		g_stuServerMgr[nServerID].ulSubsysID, CPSS_GET_TYPE_PID);
+	ulPID = cpss_get_cpuid_pid(CPSS_SYSTEM_TYPE_XCAP, CPSS_SUBSYS_TYPE_MOCLI, CPSS_GET_TYPE_PID);
 
-	cps_set_msg_from_cpuid(&MsgSend, XCAP_MONEY_CPUID, XCAP_MONEY_PID);
+	cps_set_msg_from_cpuid(&MsgSend, ulCpuID, ulPID);
 
 	ulCpuID = cpss_get_cpuid_pid(g_stuServerMgr[nServerID].ulSystemID, 
 		g_stuServerMgr[nServerID].ulSubsysID, CPSS_GET_TYPE_CPUID);
@@ -455,6 +616,10 @@ static VOS_UINT32 xcap_server_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr,VOS_CHAR *st
 		XCAP_PrintErr(__FILE__, __LINE__, "memcpy is faild from url to req buffer");
 		goto ERR_EXIT;
 	}
+	XCAP_PrintInfo(__FILE__, __LINE__, "Msg[%d]R_ID[%d] send to pid[%d]", 
+		MsgSend.ulMsgID, 
+		MsgSend.Body.msghead.ulRecvMsgID,
+		MsgSend.Body.msghead.stDstProc.ulPID);
 
 	uRet = cpss_send_data(&MsgSend, pstrReqBuffer, VOS_XCAP_MemSize(pstrReqBuffer), VOS_SEND_SKT_TYPE_UDP);
 	if (VOS_OK != uRet)
@@ -469,6 +634,7 @@ TERM_LAB:
 		VOS_XCAP_Free(pstrReqBuffer);
 		pstrReqBuffer = NULL;
 	}
+	return uRet;
 ERR_EXIT:
 	goto TERM_LAB;
 }
@@ -492,17 +658,23 @@ static VOS_UINT32 xcap_document_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr)
 		XCAP_PrintErr(__FILE__, __LINE__, "document select parameter error");
 		return uRet;
 	}
-	if (0 == pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI[0])
+	pstrTemp = pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI;
+	if (0 == pstrTemp[0])
 	{
 		XCAP_PrintErr(__FILE__, __LINE__, "document select path is error");
 		return uRet;
 	}
-	if (0 == pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI[1])
+	if (0 == pstrTemp[1])
 	{
-		XCAP_PrintErr(__FILE__, __LINE__, "document select path is error");
-		return uRet;
+		if ('/' != pstrTemp[0])
+		{
+			XCAP_PrintErr(__FILE__, __LINE__, "document select path is error");
+			return uRet;
+		}
+		pstrTemp++;
+		VOS_Strcpy(pstrTemp, "money\\index.html");
 	}
-	pstrTemp = strstr(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI, "?");
+	pstrTemp = VOS_Strstr(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI, "?");
 	if (NULL != pstrTemp)
 	{
 		*pstrTemp = 0;
@@ -675,147 +847,6 @@ static VOS_VOID xcap_set_fildes(VOS_UINT32 ufildesNum, pXCAP_RESPONSE pxCap_Resp
 	pxCap_Response->fields_num ++;
 }
 
-
-/* ===  FUNCTION  ==============================================================
-*         Name:  set_xcap_head
-*  Description:  解析xcap 字符串
-*  Input      :
-*  OutPut     :
-*  Return     :
-* ==========================================================================*/
-static VOS_CHAR* xcap_get_content_type(const VOS_CHAR *name){
-	char *dot, *buf;
-	if (NULL == name)
-	{
-		return "text/html";
-	}
-	dot = strrchr(name, '.');
-
-	if (NULL == dot)
-	{
-		return "text/html";
-	}
-	/* Text */
-	if (strcmp(dot, ".txt") == 0){
-		buf = "text/plain";
-	}
-	else if (strcmp(dot, ".css") == 0){
-		buf = "text/css";
-	}
-	else if (strcmp(dot, ".js") == 0){
-		buf = "text/javascript";
-	}
-	else if (strcmp(dot, ".xml") == 0 || strcmp(dot, ".xsl") == 0){
-		buf = "text/xml";
-	}
-	else if (strcmp(dot, ".xhtm") == 0 || strcmp(dot, ".xhtml") == 0 || strcmp(dot, ".xht") == 0){
-		buf = "application/xhtml+xml";
-	}
-	else if (strcmp(dot, ".html") == 0 || strcmp(dot, ".htm") == 0 || strcmp(dot, ".shtml") == 0 || strcmp(dot, ".hts") == 0){
-		buf = "text/html";
-
-		/* Images */
-	}
-	else if (strcmp(dot, ".gif") == 0){
-		buf = "image/gif";
-	}
-	else if (strcmp(dot, ".png") == 0){
-		buf = "image/png";
-	}
-	else if (strcmp(dot, ".bmp") == 0){
-		buf = "application/x-MS-bmp";
-	}
-	else if (strcmp(dot, ".jpg") == 0 || strcmp(dot, ".jpeg") == 0 || strcmp(dot, ".jpe") == 0 || strcmp(dot, ".jpz") == 0){
-		buf = "image/jpeg";
-		/* Audio & Video */
-	}
-	else if (strcmp(dot, ".wav") == 0){
-		buf = "audio/wav";
-	}
-	else if (strcmp(dot, ".wma") == 0){
-		buf = "audio/x-ms-wma";
-	}
-	else if (strcmp(dot, ".wmv") == 0){
-		buf = "audio/x-ms-wmv";
-	}
-	else if (strcmp(dot, ".au") == 0 || strcmp(dot, ".snd") == 0){
-		buf = "audio/basic";
-	}
-	else if (strcmp(dot, ".midi") == 0 || strcmp(dot, ".mid") == 0){
-		buf = "audio/midi";
-	}
-	else if (strcmp(dot, ".mp3") == 0 || strcmp(dot, ".mp2") == 0){
-		buf = "audio/x-mpeg";
-	}
-	else if (strcmp(dot, ".rm") == 0 || strcmp(dot, ".rmvb") == 0 || strcmp(dot, ".rmm") == 0){
-		buf = "audio/x-pn-realaudio";
-	}
-	else if (strcmp(dot, ".avi") == 0){
-		buf = "video/x-msvideo";
-	}
-	else if (strcmp(dot, ".3gp") == 0){
-		buf = "video/3gpp";
-	}
-	else if (strcmp(dot, ".mov") == 0){
-		buf = "video/quicktime";
-	}
-	else if (strcmp(dot, ".wmx") == 0){
-		buf = "video/x-ms-wmx";
-	}
-	else if (strcmp(dot, ".asf") == 0 || strcmp(dot, ".asx") == 0){
-		buf = "video/x-ms-asf";
-	}
-	else if (strcmp(dot, ".mp4") == 0 || strcmp(dot, ".mpg4") == 0){
-		buf = "video/mp4";
-	}
-	else if (strcmp(dot, ".mpe") == 0 || strcmp(dot, ".mpeg") == 0 || strcmp(dot, ".mpg") == 0 || strcmp(dot, ".mpga") == 0){
-		buf = "video/mpeg";
-
-		/* Documents */
-	}
-	else if (strcmp(dot, ".pdf") == 0){
-		buf = "application/pdf";
-	}
-	else if (strcmp(dot, ".rtf") == 0){
-		buf = "application/rtf";
-	}
-	else if (strcmp(dot, ".doc") == 0 || strcmp(dot, ".dot") == 0){
-		buf = "application/msword";
-	}
-	else if (strcmp(dot, ".xls") == 0 || strcmp(dot, ".xla") == 0){
-		buf = "application/msexcel";
-	}
-	else if (strcmp(dot, ".hlp") == 0 || strcmp(dot, ".chm") == 0){
-		buf = "application/mshelp";
-	}
-	else if (strcmp(dot, ".swf") == 0 || strcmp(dot, ".swfl") == 0 || strcmp(dot, ".cab") == 0){
-		buf = "application/x-shockwave-flash";
-	}
-	else if (strcmp(dot, ".ppt") == 0 || strcmp(dot, ".ppz") == 0 || strcmp(dot, ".pps") == 0 || strcmp(dot, ".pot") == 0){
-		buf = "application/mspowerpoint";
-		/* Binary & Packages */
-	}
-	else if (strcmp(dot, ".zip") == 0){
-		buf = "application/zip";
-	}
-	else if (strcmp(dot, ".rar") == 0){
-		buf = "application/x-rar-compressed";
-	}
-	else if (strcmp(dot, ".gz") == 0){
-		buf = "application/x-gzip";
-	}
-	else if (strcmp(dot, ".jar") == 0){
-		buf = "application/java-archive";
-	}
-	else if (strcmp(dot, ".tgz") == 0 || strcmp(dot, ".tar") == 0){
-		buf = "application/x-tar";
-	}
-	else {
-		buf = "application/octet-stream";
-	}
-	return buf;
-}
-
 /* ===  FUNCTION  ==============================================================
  *         Name:  set_xcap_head
  *  Description:  解析xcap 字符串
@@ -959,7 +990,7 @@ static VOS_UINT32 xcap_set_responce_body(pCPSS_MSG pMsgInfo, pXCAP_RESPONSE pxCa
 		return uRet;
 	}
 	ulBodysize = VOS_XCAP_MemSize(pstrDataBuffer);
-	uRet = cpss_copy_msg(pMsgInfo, &stuSendMsgInfo);
+	uRet = cpss_copy_msg(&stuSendMsgInfo, pMsgInfo, 0);
 	if (VOS_OK != uRet)
 	{
 		XCAP_PrintErr(__FILE__, __LINE__, "get send msg failed");
@@ -972,60 +1003,6 @@ static VOS_UINT32 xcap_set_responce_body(pCPSS_MSG pMsgInfo, pXCAP_RESPONSE pxCa
 		XCAP_PrintErr(__FILE__, __LINE__, "send data failed");
 	}
 	VOS_PrintBufferRelease(pstrDataBuffer);
-	return uRet;
-}
-
-/* ===  FUNCTION  ==============================================================
-*         Name:  set_xcap_head
-*  Description:  解析xcap 字符串
-*  Input      :
-*  OutPut     :
-*  Return     :
-* ==========================================================================*/
-static VOS_UINT32 xcap_responce_data(pCPSS_MSG pMsgInfo)
-{
-	VOS_UINT32		uRet = VOS_ERR;
-	CPSS_MSG		MsgInfo;
-
-	BZERO(&MsgInfo, sizeof(CPSS_MSG));
-
-	MsgInfo.Body.msghead.stSrcProc.ulCpuID = cpss_get_cpuid_pid(
-		CPSS_SYSTEM_TYPE_XCAP, CPSS_SUBSYS_TYPE_MOCLI, CPSS_GET_TYPE_CPUID);
-	if (0 == MsgInfo.Body.msghead.stSrcProc.ulCpuID)
-	{
-		XCAP_PrintErr(__FILE__, __LINE__, "src cpuid is error");
-		return uRet;
-	}
-	MsgInfo.Body.msghead.stSrcProc.ulPID = cpss_get_cpuid_pid(
-		CPSS_SYSTEM_TYPE_XCAP, CPSS_SUBSYS_TYPE_MOCLI, CPSS_GET_TYPE_PID);
-	if (0 == MsgInfo.Body.msghead.stSrcProc.ulPID)
-	{
-		XCAP_PrintErr(__FILE__, __LINE__, "src pid is error");
-		return uRet;
-	}
-	MsgInfo.Body.msghead.stDstProc.ulCpuID = cpss_get_cpuid_pid(
-		CPSS_SYSTEM_TYPE_MONEY, CPSS_SUBSYS_TYPE_MONEY, CPSS_GET_TYPE_CPUID);
-	if (0 == MsgInfo.Body.msghead.stDstProc.ulCpuID)
-	{
-		XCAP_PrintErr(__FILE__, __LINE__, "dst cpuid is error");
-		return uRet;
-	}
-	MsgInfo.Body.msghead.stDstProc.ulPID = cpss_get_cpuid_pid(
-		CPSS_SYSTEM_TYPE_MONEY, CPSS_SUBSYS_TYPE_MONEY, CPSS_GET_TYPE_PID);
-	if (0 == MsgInfo.Body.msghead.stDstProc.ulPID)
-	{
-		XCAP_PrintErr(__FILE__, __LINE__, "dst pid is error");
-		return uRet;
-	}
-
-	MsgInfo.Body.msghead.ulParentMsgID = pMsgInfo->ulMsgID;
-	//MsgInfo.Body.msghead.uType = uType;
-
-	//uRet = money_send_data(&MsgInfo, pstuBuffer, uBufLen, VOS_SEND_SKT_TYPE_TCP);
-	if (VOS_OK != uRet)
-	{
-		XCAP_PrintErr(__FILE__, __LINE__, "send udp data error");
-	}
 	return uRet;
 }
 /* ===  FUNCTION  ==============================================================
@@ -1070,21 +1047,30 @@ VOS_UINT32 xcap_responce_proc(pCPSS_MSG pMsgInfo)
 	}
 	return VOS_OK;
 }
-
-
 /* ===  FUNCTION  ==============================================================
- *         Name:  get_xcap_user_body
- *  Description:  解析xcap 字符串
- *  Input      :  
- *  OutPut     :  
- *  Return     :  
- * ==========================================================================*/
-static VOS_UINT32 get_xcap_user_body(pXCAP_RESPONSE pxCap_Response)
+*         Name:  xcap_change_req_mode_proc
+*  Description:  xcap_change_req_mode_proc
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_UINT32 xcap_change_req_mode_proc(pCPSS_MSG pMsgInfo,VOS_UINT8 nMode)
 {
-	VOS_UINT32 uRet = VOS_ERR;
-//	set_xcap_head();
-	return uRet;
+	VOS_UINT32	uRet = VOS_ERR;
+	pXCAP_MSG_MANAGE  pXcap_Msg_Mgr = NULL;
+	if (NULL == pMsgInfo)
+	{
+		return uRet;
+	}
+	if (NULL == pMsgInfo->pXcapMgr)
+	{
+		return uRet;
+	}
+	pXcap_Msg_Mgr = (pXCAP_MSG_MANAGE)pMsgInfo->pXcapMgr;
+	pXcap_Msg_Mgr->xCap_Request_Info.Req_mothod = nMode;
+	return VOS_OK;
 }
+
 
 /* ===  FUNCTION  ==============================================================
  *         Name:  send_xcap_URL
@@ -1130,7 +1116,7 @@ VOS_UINT32 xcap_request_URL(pCPSS_MSG pMsgInfo)
 		XCAP_PrintErr(__FILE__, __LINE__, "check xcap buffer error");
 		goto ERR_PROC;
 	}
-	pXcap_Msg_Mgr->xCap_Request_Info.ulMsgID = pMsgInfo->ulMsgID;
+	pXcap_Msg_Mgr->xCap_Request_Info.pstuMsgInfo = pMsgInfo;
 	//pXcap_Msg_Mgr->xCap_Respone_Info.ulMsgID = pMsgInfo->ulMsgID;
 	
 	xcap_print_request(&pXcap_Msg_Mgr->xCap_Request_Info);
@@ -1158,6 +1144,61 @@ ERR_PROC:
 	return uRet;
 }
 
+/* ===  FUNCTION  ==============================================================
+*         Name:  xcap_responce_DATA
+*  Description:  给xcap 服务器应答数据
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_UINT32 xcap_responce_DATA(pCPSS_MSG pMsgInfo)
+{
+	VOS_UINT32 uRet = VOS_ERR;
+	pCPSS_MSG pXcapMsgInfo = NULL;
+	pXCAP_MSG_MANAGE  pXcap_Msg_Mgr = NULL;
+	if (NULL == pMsgInfo)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "xcap responce error");
+		goto ERR_PROC;
+	}
+	if (CPSS_MSG_REQ != cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "get address is error");
+		return uRet;
+	}
+	pXcapMsgInfo = (pCPSS_MSG)cpss_get_tcp_recv_msg_for_id(pMsgInfo->Body.msghead.ulRecvMsgID);
+	if (NULL == pXcapMsgInfo)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "find recv msg failed");
+		goto ERR_PROC;
+	}
+	pXcap_Msg_Mgr = (pXCAP_MSG_MANAGE)pXcapMsgInfo->pXcapMgr;
+	if (NULL == pXcap_Msg_Mgr)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "xcap mgr is null");
+		goto ERR_PROC;
+	}
+	uRet = xcap_url_root(pXcap_Msg_Mgr);
+	if (VOS_OK != uRet)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "xcap root faild");
+		goto ERR_PROC;
+	}
+	if (0 == pXcap_Msg_Mgr->xCap_Respone_Info.Res_head.StatueCode)
+	{
+		pXcap_Msg_Mgr->xCap_Respone_Info.Res_head.StatueCode = XCAP_RES_CODE_503;
+	}
+	uRet = xcap_responce_proc(pXcapMsgInfo);
+	if (VOS_OK != uRet)
+	{
+		XCAP_PrintErr(__FILE__, __LINE__, "xcap responce error");
+		goto ERR_PROC;
+	}
+OK_EXIT_PRO:
+	return uRet;
+ERR_PROC:
+	goto OK_EXIT_PRO;
+}
 /* ===  FUNCTION  ==============================================================
  *         Name:  money_send_data
  *  Description:  发送telnet的数据

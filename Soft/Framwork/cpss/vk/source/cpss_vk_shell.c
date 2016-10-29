@@ -198,7 +198,7 @@ static VOS_UINT32 cpss_check_use_info(pCPSS_USER_INFO pstuUserInfo)
 	MsgInfo.Body.msghead.stDstProc.ulPID   = DBSVRPID;
 	MsgInfo.Body.msghead.stSrcProc.ulPID = CPSSFWPID;
 
-	MsgInfo.pClient = cpss_get_info_for_pid(MsgInfo.Body.msghead.stSrcProc.ulPID,
+	MsgInfo.pClient = cpss_get_sktinfo_with_pid(MsgInfo.Body.msghead.stSrcProc.ulPID,
 		CPSS_GET_SKT_LINK_SOCKET);
 
 	//MsgInfo.Body.msghead.uType	   = CPSS_REQ_DBSVR_USE;

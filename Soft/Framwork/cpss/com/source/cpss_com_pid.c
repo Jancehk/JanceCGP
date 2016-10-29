@@ -59,7 +59,7 @@ static CPSS_MANAGE_PID g_handleManagePid;   //管理PID的全局变量
 static VOS_UINT32 cpss_check_pid (VOS_UINT32 ulProcessPid)
 {
 	VOS_UINT32 ulRet = VOS_ERR;
-	PCPSS_PID_TABLE cpsspidtmp = g_handleManagePid.pstuPidList;
+	pCPSS_PID_TABLE cpsspidtmp = g_handleManagePid.pstuPidList;
 	VOS_UINT32 uType = 0,uPort = 0;
 
 	uType = ulProcessPid & VOS_SOCKET_TYPE;
@@ -82,12 +82,17 @@ static VOS_UINT32 cpss_check_pid (VOS_UINT32 ulProcessPid)
 	}
 	while(NULL != cpsspidtmp)
 	{
-		if (cpsspidtmp->ulProcessPID != ulProcessPid)
+		if (NULL == cpsspidtmp->pCPuID)
 		{
 			cpsspidtmp = cpsspidtmp->next;
 			continue;
 		}
-		if (0 == (cpsspidtmp->ulProcessPID & VOS_SOCKET_PORT))
+		if (cpsspidtmp->pCPuID->stuCPuid.ulPid != ulProcessPid)
+		{
+			cpsspidtmp = cpsspidtmp->next;
+			continue;
+		}
+		if (0 == (cpsspidtmp->pCPuID->stuCPuid.ulPid & VOS_SOCKET_PORT))
 		{
 			cpsspidtmp = cpsspidtmp->next;
 			continue;
@@ -173,7 +178,7 @@ static VOS_UINT32 cpss_del_cpuid(pCPSS_CPUID_TABLE pstCpuID)
 	if (NULL == pstCpuIDTmp)
 	{
 		VOS_PrintErr(__FILE__, __LINE__, "del cpuid %d", pstCpuID->stuCPuID_Info.ulSubsysID);
-		VOS_Free(pstCpuID,sizeof(CPSS_CPUID_TABLE));
+		VOS_Pid_Free(pstCpuID);
 	}
 	else
 	{
@@ -201,7 +206,7 @@ static VOS_UINT32 cpss_del_cpuid(pCPSS_CPUID_TABLE pstCpuID)
 		pstCpuIDTmp->next = NULL;
 		pstCpuIDTmp->prev = NULL;
 	
-		VOS_Free(pstCpuIDTmp,sizeof(CPSS_CPUID_TABLE));
+		VOS_Pid_Free(pstCpuIDTmp);
 	}
 	return VOS_OK;
 }
@@ -315,7 +320,7 @@ pCPSS_CPUID_TABLE cpss_get_cpuid_header()
 *         Name:  cpss_get_cpuid_header
 *  Description:  取得cpuid的头地址信息
 * ==========================================================================*/
-PCPSS_PID_TABLE cpss_get_pid_header()
+pCPSS_PID_TABLE cpss_get_pid_header()
 {
 	return g_handleManagePid.pstuPidList;
 }
@@ -332,7 +337,7 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 {
 	VOS_UINT32 ulRet = VOS_ERR;
 	VOS_UINT32 ulPidIndex = 0;
-	PCPSS_PID_TABLE pstcpsspid = NULL, pstcpsspidtmp = g_handleManagePid.pstuPidList;
+	pCPSS_PID_TABLE pstcpsspid = NULL, pstcpsspidtmp = g_handleManagePid.pstuPidList;
 	CPSS_PID_THREAD_INFO * pPidThreadInfo = NULL;
 	pCPSS_CPUID_TABLE	pstuCPuIDInfo;
 
@@ -363,7 +368,7 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 		return ulRet;
 	}
 
-	pstcpsspid = (PCPSS_PID_TABLE)VOS_Pid_Malloc(sizeof(CPSS_PID_TABLE));
+	pstcpsspid = (pCPSS_PID_TABLE)VOS_Pid_Malloc(sizeof(CPSS_PID_TABLE));
 	BZERO(pstcpsspid, sizeof(CPSS_PID_TABLE));
 	if (NULL == pstcpsspid)
 	{
@@ -378,7 +383,7 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 		VOS_Pid_Free(pstcpsspid);
 		return ulRet;
 	}
-	pstcpsspid->ulProcessPID = ulProcessPid;
+	//pstcpsspid->ulProcessPID = ulProcessPid;
 	pstcpsspid->ulPidCount = ulProcessCount;
 	pstcpsspid->pPidListInfo = pPidThreadInfo;
 	VOS_Strcpy(pstcpsspid->szPidName, ulProcessPidName);
@@ -428,8 +433,8 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
 	pstuCPuIDInfo = g_handleManagePid.pstuCPuIDList;
 	while (NULL != pstuCPuIDInfo)
 	{
-		if (pstuCPuIDInfo->stuCPuID_Info.ulSubsysID == ulPidIndex &&
-			pstuCPuIDInfo->stuCPuID_Info.ulSystemID == g_ulSystemID)
+		if (pstuCPuIDInfo->stuCPuID_Info.ulSystemID == g_ulSystemID &&
+			pstuCPuIDInfo->stuCPuID_Info.ulSubsysID == ulPidIndex )
 		{
 			break;
 		}
@@ -452,10 +457,15 @@ VOS_UINT32 VOS_RegistPidInit(VOS_UINT32 ulSubSystem,
  * =========================================================================*/
 VOS_STRING cpss_get_pid_name(VOS_UINT32 ulProcessPid)
 {
-	PCPSS_PID_TABLE cpsspid = g_handleManagePid.pstuPidList;
+	pCPSS_PID_TABLE cpsspid = g_handleManagePid.pstuPidList;
 	while(NULL != cpsspid)
 	{
-		if (cpsspid->ulProcessPID != ulProcessPid)
+		if (NULL == cpsspid->pCPuID)
+		{
+			cpsspid = cpsspid->next;
+			continue;
+		}
+		if (cpsspid->pCPuID->stuCPuid.ulPid != ulProcessPid)
 		{
 			cpsspid = cpsspid->next;
 		}
@@ -468,10 +478,10 @@ VOS_STRING cpss_get_pid_name(VOS_UINT32 ulProcessPid)
 }		/* -----  end of function cpss_get_pid_name(VOS_UINT32 ulProcessPid)  ----- */
 
 /* ===  FUNCTION  ============================================================
- *         Name:  cpss_get_info_for_pid(VOS_UINT32 ulProcessPid)
+ *         Name:  cpss_get_sktinfo_with_pid(VOS_UINT32 ulProcessPid)
  *  Description:  通过PID得到PID对应的名称
  * =========================================================================*/
-VOS_VOID * cpss_get_info_for_pid(VOS_UINT32 ulProcessPid, VOS_UINT32 ulType)
+VOS_VOID * cpss_get_sktinfo_with_pid(VOS_UINT32 ulProcessPid, VOS_UINT32 ulType)
 {
 	VOS_VOID * pstuVoid = NULL;
 	CPSS_SOCKET_LINK * hSocketLink = g_handleiocpmanage.pUsedSocketHead;

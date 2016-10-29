@@ -34,12 +34,14 @@ typedef struct _CPSS_PID_THREAD_INFO_T
 }CPSS_PID_THREAD_INFO, *pCPSS_PID_THREAD_INFO;
 typedef struct CPSS_PID_TABLE_T
 {
+	/*
 	union {
 		VOS_UINT32 		ulProcessPID;
 		VOS_UINT8		ulSockInOut;
 		VOS_UINT8		ulSockType;
 		VOS_UINT16		ulSockPort;
 	};
+	*/
 	VOS_UINT32	ulPidCount;				// PID Count
 	pCPSS_CPUID_INFO pCPuID;			// CPUID/PID
 	//VOS_CHAR	*pszPidName;			// [CPSSPIDMAXNAME];
@@ -53,7 +55,7 @@ typedef struct CPSS_PID_TABLE_T
 	VOS_CHAR szPidName[CPSSPIDMAXNAME];
 	struct CPSS_PID_TABLE_T * prev;
 	struct CPSS_PID_TABLE_T * next;
-}CPSS_PID_TABLE,*PCPSS_PID_TABLE;
+}CPSS_PID_TABLE,*pCPSS_PID_TABLE;
 
 typedef struct _CPSS_CPUID_TABLE_T{
 	VOS_UINT8	ulStat;			//
@@ -67,7 +69,7 @@ typedef struct _CPSS_CPUID_TABLE_T{
 typedef struct CPSS_MANAGE_PID_T
 {
 	pCPSS_CPUID_TABLE	pstuCPuIDList;
-	PCPSS_PID_TABLE		pstuPidList;
+	pCPSS_PID_TABLE		pstuPidList;
 }CPSS_MANAGE_PID,*PCPSS_MANAGE_PID;
 
 typedef struct _CPSS_CPUID_PID_MAP_T
@@ -115,12 +117,12 @@ pCPSS_CPUID_TABLE cpss_get_cpuid_header();
 *         Name:  cpss_get_cpuid_header
 *  Description:  取得cpuid的头地址信息
 * ==========================================================================*/
-PCPSS_PID_TABLE cpss_get_pid_header();
+pCPSS_PID_TABLE cpss_get_pid_header();
 /* ===  FUNCTION  ============================================================
- *         Name:  cpss_get_info_for_pid(VOS_UINT32 ulProcessPid)
+ *         Name:  cpss_get_sktinfo_with_pid(VOS_UINT32 ulProcessPid)
  *  Description:  通过PID得到PID对应的名称
  * =========================================================================*/
-VOS_VOID * cpss_get_info_for_pid(VOS_UINT32 ulProcessPid, VOS_UINT32 ulType);
+VOS_VOID * cpss_get_sktinfo_with_pid(VOS_UINT32 ulProcessPid, VOS_UINT32 ulType);
 /* ===  FUNCTION  ==============================================================
  *         Name:  cpss_set_cpuid_pid
  *  Description:  设置cpss系统的cpuid和pid

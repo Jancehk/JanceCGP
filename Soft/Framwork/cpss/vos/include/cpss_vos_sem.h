@@ -22,8 +22,10 @@
 #include "cpss_public.h"
 #include "cpss_msg.h"
 
+
 #define MOVE_FREE_TO_USED   11
 #define MOVE_USED_TO_FREE	12
+
 typedef enum _MSG_TYPE_INFO_M{
 	GET_TCP_RECV_USED=1,
 	GET_UDP_RECV_USED,
@@ -69,8 +71,9 @@ typedef enum _SET_MSG_DATA_TYPE_M{
 };
 typedef struct _CPSS_MSG_SEM_MANAGE_T
 {
-	VOS_MUTEX hMutex;
-	CPSS_MSG_STYLE msgtab;
+	VOS_MUTEX		hMutex;
+	VOS_UINT32		nMsgLevel;
+	CPSS_MSG_STYLE	msgtab;
 }CPSS_MSG_SEM_MANAGE,*pCPSS_MSG_SEM_MANAGE;
 
 /* ===  FUNCTION  ==============================================================
@@ -303,5 +306,14 @@ CPSS_MSG * cpss_get_used_msg(VOS_UINT32 ulPID, VOS_UINT32 uType);
 *  Description:  利用消息ID在tcp 消息接受队列中移除到空闲队列
 * ==========================================================================*/
 VOS_UINT32 cpss_move_recv_used_to_free_use_msgid(VOS_UINT32 ulMsgID);
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_copy_msg
+*  Description:  复制消息
+* ==========================================================================*/
+VOS_UINT32 cpss_copy_msg(
+	VOS_VOID *pVoidMsgRecv,
+	VOS_VOID * pVoidMsgSend,
+	VOS_UINT32 uType);
 
 #endif

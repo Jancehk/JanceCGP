@@ -80,15 +80,19 @@ void Money_PrintWarn (
  * ==========================================================================*/
 static VOS_UINT32 send_DBsvr_data(VOS_VOID *pVoidMsg, VOS_VOID * pstuBuffer, VOS_UINT32 uBufLen, VOS_UINT32	uType)
 {
-	VOS_UINT32 uRet = VOS_ERR;
-	pCPSS_MSG pMsgInfo = (pCPSS_MSG)pVoidMsg;
+	VOS_UINT32		uRet = VOS_ERR;
 	CPSS_MSG		MsgSend = { 0 };
 
+	uRet = cpss_copy_msg(&MsgSend, pVoidMsg, CPSS_MSG_COPY_ID);
+	if (VOS_OK != uRet)
+	{
+		Money_PrintErr(__FILE__, __LINE__, "copy send msg failed");
+		return uRet;
+	}
 	cps_set_msg_from_cpuid(&MsgSend, M_CPUID, M_PID);
 
 	cps_set_msg_to_cpuid(&MsgSend, M_DBSVRCPUID, M_DBSVRPID);
 
-	MsgSend.Body.msghead.ulRecvMsgID = pMsgInfo->ulMsgID;
 	MsgSend.Body.msghead.uType = uType;// ;
 
 	uRet = cpss_send_data(&MsgSend, pstuBuffer, uBufLen,
@@ -96,6 +100,28 @@ static VOS_UINT32 send_DBsvr_data(VOS_VOID *pVoidMsg, VOS_VOID * pstuBuffer, VOS
 	if (VOS_OK != uRet)
 	{
 		Money_PrintErr(__FILE__,__LINE__,"send udp data error");
+	}
+	return uRet;
+}
+/* ===  FUNCTION  ==============================================================
+*         Name:  xcap_send_info_msgid
+*  Description:  发送telnet的数据
+*  IBnput      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+VOS_UINT32 money_responce_udp_data_msgid(
+	VOS_UINT32 uMsgID, 
+	VOS_VOID * pstuBuffer, 
+	VOS_UINT32 uBufLen)
+{
+	VOS_UINT32 uRet = VOS_ERR;
+
+	uRet = cpss_send_data_msgid(uMsgID,
+		pstuBuffer, uBufLen, VOS_SEND_SKT_TYPE_UDP);
+	if (VOS_OK != uRet)
+	{
+		Money_PrintErr(__FILE__, __LINE__, "send udp data error");
 	}
 	return uRet;
 }
@@ -137,6 +163,7 @@ static XCAP_ROOT_INFO* get_root_info(XCAP_ROOT_INFO *psturootInfo, VOS_UINT32 uC
 		pstrTmp = VOS_Strstr(pstrInput, psturootInfo[uIndex].RootUrlName);
 		if (NULL != pstrTmp && pstrTmp[0] == pstrInput[0])
 		{
+			pstrRoot = psturootInfo+uIndex;
 			break;
 		}
 	}
@@ -179,17 +206,53 @@ VOS_UINT32 money_system_proc(VOS_VOID *pVoidMsg)
 	}
 	return uRet;
 }
-/* ===  FUNCTION  ==============================================================
+/* ===  FUNCTION  =============================================================
+*         Name:  responce_money_client
+*  Description:  给money client应答结果
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ===========================================================================*/
+static VOS_UINT32 responce_money_client(VOS_VOID * pMsgVoid)
+{
+	VOS_UINT32		ulRet = VOS_ERR;
+	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pMsgVoid;
+	pCPSS_MSG		pRecvMsgInfo = NULL;
+	CPSS_MSG		MsgSend = { 0 };
+
+	pRecvMsgInfo = (pCPSS_MSG)cpss_get_udp_recv_msg_for_id(pMsgInfo->Body.msghead.ulRecvMsgID);
+	if (NULL == pRecvMsgInfo)
+	{
+		Money_PrintErr(__FILE__, __LINE__, "find recv msg failed");
+		return ulRet;
+	}
+	ulRet = cpss_copy_msg(&MsgSend, pRecvMsgInfo, CPSS_MSG_COPY_ID);
+	if (VOS_OK != ulRet)
+	{
+		Money_PrintErr(__FILE__, __LINE__, "copy send msg failed");
+		return ulRet;
+	}
+	ulRet = cpss_send_data(&MsgSend,
+		pMsgInfo->Body.strDataBuf,
+		pMsgInfo->Body.msghead.ulMsgLength,
+		VOS_SEND_RECV_RESPONSE|VOS_SEND_SKT_TYPE_UDP);
+	if (VOS_OK != ulRet)
+	{
+		Money_PrintErr(__FILE__, __LINE__, "send udp data error use msgid[%d=%d]",
+			pMsgInfo->ulMsgID, pMsgInfo->Body.msghead.ulRecvMsgID);
+	}
+	return ulRet;
+}
+/* ===  FUNCTION  =============================================================
 *         Name:  get_xcap_root_body
 *  Description:  得到root的body
 *  Input      :
 *  OutPut     :
 *  Return     :
-* ==========================================================================*/
-VOS_UINT32 check_login_info(VOS_VOID * pMsgVoid, VOS_CHAR * pstrInput)
+* ===========================================================================*/
+static VOS_UINT32 check_login_info(VOS_VOID * pMsgVoid, VOS_CHAR * pstrInput)
 {
 	VOS_UINT32		ulRet = VOS_ERR;
-	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pMsgVoid;
 	CPSS_USER_INFO  stuUserInfo;
 
 	//pstuUserInfo = (pCPSS_USER_INFO)pMsgVoid->Body.strDataBuf;
@@ -286,6 +349,45 @@ VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 	}
 	return uRet;
 }
+/* ===  FUNCTION  =============================================================
+*         Name:  money_dbsvr_deal_proc
+*  Description:  记账管理系统数据库应答处理
+* ===========================================================================*/
+VOS_UINT32 money_dbsvr_deal_proc(VOS_VOID *pVoidMsg)
+{
+	VOS_UINT32 uRet = VOS_ERR;
+	pCPSS_MSG		pMsgInfo = (pCPSS_MSG)pVoidMsg;
+
+	if (NULL == pMsgInfo)
+	{
+		Money_PrintErr(__FILE__, __LINE__, "msg head is null");
+		return uRet;
+	}
+
+	switch (cps_get_reqcontent_from_msg(pMsgInfo->Body.msghead.uType))
+	{
+	case DBSVR_TYPE_USER:
+		if (CPSS_MSG_CHKRES !=
+			cps_get_msgtype_from_msg(pMsgInfo->Body.msghead.uType))
+		{
+			Money_PrintErr(__FILE__, __LINE__, "msg msgtype is incorrect[%d]",
+				pMsgInfo->Body.msghead.uType );
+			break;
+		}
+		uRet = responce_money_client(pMsgInfo);
+		if (VOS_OK != uRet)
+		{
+			Money_PrintErr(__FILE__, __LINE__, "get all cpuid faild");
+		}
+		break;
+	default:
+		Money_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
+			pMsgInfo->Body.msghead.uType,
+			pMsgInfo->Body.msghead.uCmd);
+		break;
+	}
+	return uRet;
+}
 #if 0
 VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 {
@@ -340,7 +442,6 @@ VOS_UINT32 money_deal_proc(VOS_VOID *pVoidMsg)
 		VOS_Memcpy(&MsgInfo.Body.msghead.stDstProc,
 			&pMsgInfo->Body.msghead.stSrcProc,	sizeof(CPSS_COM_PID));
 
-		//MsgInfo.Body.msghead.ulRecvMsgID = pMsgInfo->Body.msghead.ulMsgID;
 		
 		//Money_PrintInfo(__FILE__,__LINE__,"Recv MsgID:%d\n", pMsgInfo->Body.msghead.ulMsgID);
 		

@@ -94,7 +94,14 @@ void DBSvr_PrintWarn (
 VOS_UINT32 send_resp_data(VOS_VOID *pVoidMsg, VOS_VOID * pstuBuffer, VOS_UINT32 uBufLen)
 {
 	VOS_UINT32		uRet = VOS_ERR;
-	uRet = cpss_send_data(pVoidMsg, pstuBuffer, uBufLen, VOS_SEND_RECV_RESPONSE | VOS_SEND_SKT_TYPE_UDP);
+	CPSS_MSG 		stuMsgInfo = { 0 };
+	uRet = cpss_copy_msg(&stuMsgInfo, pVoidMsg, 0);
+	if (VOS_OK != uRet)
+	{
+		DBSvr_PrintErr(__FILE__, __LINE__, "copy send msg failed");
+		return uRet;
+	}
+	uRet = cpss_send_data(&stuMsgInfo, pstuBuffer, uBufLen, VOS_SEND_RECV_RESPONSE | VOS_SEND_SKT_TYPE_UDP);
 	if (VOS_OK != uRet)
 	{
 		DBSvr_PrintErr(__FILE__,__LINE__,"send udp data error");

@@ -125,6 +125,13 @@ static VOS_UINT32 xcap_system_url_proc(pCPSS_MSG pMsgInfo)
 			XCAP_PrintErr(__FILE__, __LINE__, "analyzing request url");
 		}
 		break;
+	case XCAP_TYPE_DATA:
+		uRet = xcap_responce_DATA(pMsgInfo);
+		if (VOS_OK != uRet)
+		{
+			XCAP_PrintErr(__FILE__, __LINE__, "analyzing request url");
+		}
+		break;
 	default:
 		VOS_PrintErr(__FILE__, __LINE__, "Type:%08x,Cmd:%08x",
 			pMsgInfo->Body.msghead.uType,
