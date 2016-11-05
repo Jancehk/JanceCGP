@@ -1,7 +1,11 @@
 @echo off
-start DBSvr.exe
+del /s /q .\DBSvr\DBSvr.exe
+copy /Y .\DBSvr.exe .\DBSvr\DBSvr.exe
+start .\DBSvr\DBSvr.exe
 ping 127.0.0.1 -n 1 >null
-start money.exe
+del /s /q .\Money\money.exe
+copy /Y .\money.exe .\Money\money.exe
+start .\Money\money.exe
 ping 127.0.0.1 -n 1 >null
 start xcap.exe
 

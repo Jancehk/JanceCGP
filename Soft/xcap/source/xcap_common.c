@@ -686,6 +686,11 @@ static VOS_UINT32 xcap_document_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr)
 	{
 		goto ERR_EXIT;
 	}
+	pstrTemp = VOS_Strstr(pXcap_Msg_Mgr->xCap_Request_Info.Req_head.Request_URI, ".");
+	if (NULL != pstrTemp)
+	{
+		VOS_Strcpy(pXcap_Msg_Mgr->xCap_Respone_Info.strContentType, --pstrTemp);
+	}
 	pstrTemp = xcap_find_fields(&pXcap_Msg_Mgr->xCap_Request_Info, XCAP_REQ_FIELDE_ACCEPT);
 	if (NULL != pstrTemp && NULL != VOS_Strstr(pstrTemp,"text/html"))
 	{
@@ -709,7 +714,7 @@ static VOS_UINT32 xcap_document_select(XCAP_MSG_MANAGE *pXcap_Msg_Mgr)
 		pstrFileBuffer = (VOS_CHAR*)VOS_XCAP_Remset(pstrFileBufferTmp);
 		ulBodysize = VOS_XCAP_MemSize(pstrFileBuffer);
 	}
-	pXcap_Msg_Mgr->xCap_Respone_Info.Res_head.StatueCode = XCAP_RES_CODE_202;
+	pXcap_Msg_Mgr->xCap_Respone_Info.Res_head.StatueCode = XCAP_RES_CODE_200;
 	goto OK_EXIT;
 ERR_EXIT:
 	pXcap_Msg_Mgr->xCap_Respone_Info.Res_head.StatueCode = XCAP_RES_CODE_404;

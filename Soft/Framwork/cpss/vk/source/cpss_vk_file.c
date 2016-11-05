@@ -66,15 +66,16 @@ static VOS_STRING cpss_leftdir(VOS_STRING pszPath)
 VOS_UINT32 cpss_set_current_path (VOS_CHAR * pSelfPath)
 {
 	VOS_UINT32 ulRet = VOS_ERR;
-	VOS_CHAR strExePath[MAX_PATH] = {0};
+	VOS_CHAR strExePath[MAX_PATH] = { 0 };
+	if (NULL == getcwd(g_CurrentDir, MAX_PATH))
+	{
+		return ulRet;
+	}
+	return VOS_OK;
 	VOS_Strcpy(strExePath,pSelfPath);
 	cpss_leftdir(strExePath);
 	if (VOS_OK != chdir(strExePath))
 	{
-		if (NULL == getcwd(g_CurrentDir, MAX_PATH))
-		{
-			return ulRet;
-		}
 	}
 	else
 	{

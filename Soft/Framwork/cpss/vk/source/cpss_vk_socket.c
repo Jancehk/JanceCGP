@@ -30,6 +30,48 @@
 #define VOS_Skt_MemcatEx(pstrA,pstrB,ulSize)	VOS_MemcatEx((pstrA), (pstrB), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
 #define VOS_Skt_MemcatEx2(pstrA,pstrB,ulSize)	VOS_MemcatEx2((pstrA), (pstrB), (ulSize), (CPSS_MEM_HEAD_KEY_CPSS_SKT))
 #define VOS_Skt_Free(pstrads)					VOS_Free((pstrads), CPSS_MEM_HEAD_KEY_CPSS_SKT)
+
+/* ===  FUNCTION  ==============================================================
+*         Name:  cpss_socket_show_list
+*  Description:  将socket的链表上的内容全部打印出来
+*  Input      :
+*  OutPut     :
+*  Return     :
+* ==========================================================================*/
+static void cpss_socket_show_list()
+{
+	VOS_CHAR * pstrPrintBuffer = NULL;
+	CPSS_SOCKET_LINK *pSocketInfoTmp = NULL;
+	VOS_PrintBuffer(&pstrPrintBuffer, "Use H:%p T:%p\n", 
+		g_handleiocpmanage.pUsedSocketHead, 
+		g_handleiocpmanage.pUsedSocketTail);
+	pSocketInfoTmp = g_handleiocpmanage.pUsedSocketHead;
+	while (NULL != pSocketInfoTmp)
+	{
+		VOS_PrintBuffer(&pstrPrintBuffer, "Skt [%d]%p:%p->%p Pid:%p fd:%d Type:%d \n",
+			pSocketInfoTmp->uID, pSocketInfoTmp,
+			pSocketInfoTmp->next, pSocketInfoTmp->prev,
+			pSocketInfoTmp->pstuPid,
+			pSocketInfoTmp->nlSocketfd, pSocketInfoTmp->nlSocketType);
+		pSocketInfoTmp = pSocketInfoTmp->next;
+	}
+	VOS_PrintBuffer(&pstrPrintBuffer, "Use H:%p T:%p\n",
+		g_handleiocpmanage.pFreeSocketHead,
+		g_handleiocpmanage.pFreeSocketTail);
+	pSocketInfoTmp = g_handleiocpmanage.pFreeSocketHead;
+	while (NULL != pSocketInfoTmp)
+	{
+		VOS_PrintBuffer(&pstrPrintBuffer, "Skt [%d]%p:%p->%p Pid:%p fd:%d Type:%d \n",
+			pSocketInfoTmp->uID, pSocketInfoTmp,
+			pSocketInfoTmp->next, pSocketInfoTmp->prev,
+			pSocketInfoTmp->pstuPid,
+			pSocketInfoTmp->nlSocketfd, pSocketInfoTmp->nlSocketType);
+		pSocketInfoTmp = pSocketInfoTmp->next;
+	}
+	VOS_PrintDebug(__FILE__, __LINE__, "Socket List Info \n%s", pstrPrintBuffer);
+	VOS_PrintBufferRelease(pstrPrintBuffer);
+
+}
 /* ===  FUNCTION  ==============================================================
 *         Name:  cpss_socket_delete
 *  Description:  将socket从指定的链表上移出
@@ -40,9 +82,10 @@
 static VOS_UINT32 cpss_socket_delete(
 	CPSS_SOCKET_LINK **pSocketHead,
 	CPSS_SOCKET_LINK **pSocketTail,
-	CPSS_SOCKET_LINK *pSocketInfo)
+	CPSS_SOCKET_LINK **pSocketInfo)
 {
 	VOS_UINT32 uRtn = VOS_ERR;
+	CPSS_SOCKET_LINK *pSocketTmp = NULL;
 	if (NULL == pSocketInfo)
 	{
 		return uRtn;
@@ -55,26 +98,44 @@ static VOS_UINT32 cpss_socket_delete(
 	{
 		return uRtn;
 	}
-	if (NULL == pSocketInfo->next && NULL == pSocketInfo->prev)
+	if (NULL == pSocketInfo)
+	{
+		return uRtn;
+	}
+	if (NULL != *pSocketInfo)
+	{
+		pSocketTmp = *pSocketInfo;
+		pSocketTmp->nlSocketfd = SOCKET_ERROR;
+		pSocketTmp->uIStat = CPSS_SKT_STAT_CLOSE;
+	}
+	else
+	{
+		*pSocketInfo = g_handleiocpmanage.pFreeSocketHead;
+		pSocketTmp = *pSocketInfo;
+		pSocketTmp->uIStat = CPSS_SKT_STAT_CLOSE;
+	}
+	if (NULL == pSocketTmp->next && NULL == pSocketTmp->prev)
 	{
 		*pSocketHead = NULL;
 		*pSocketTail = NULL;
 	}
-	else if (NULL != pSocketInfo->next && NULL == pSocketInfo->prev)
+	else if (NULL != pSocketTmp->next && NULL == pSocketTmp->prev)
 	{
-		*pSocketHead = pSocketInfo->next;
+		*pSocketHead = pSocketTmp->next;
+		pSocketTmp->next->prev = NULL;
 	}
-	else if (NULL == pSocketInfo->next && NULL != pSocketInfo->prev)
+	else if (NULL == pSocketTmp->next && NULL != pSocketTmp->prev)
 	{
-		*pSocketTail = pSocketInfo->prev;
+		*pSocketTail = pSocketTmp->prev;
+		pSocketTmp->prev->next = NULL;
 	}
 	else
 	{
-		pSocketInfo->prev->next = pSocketInfo->next;
-		pSocketInfo->next->prev = pSocketInfo->prev;
+		pSocketTmp->prev->next = pSocketTmp->next;
+		pSocketTmp->next->prev = pSocketTmp->prev;
 	}
-	pSocketInfo->next = NULL;
-	pSocketInfo->prev = NULL;
+	pSocketTmp->next = NULL;
+	pSocketTmp->prev = NULL;
 	return VOS_Mutex_Unlock(&g_handleiocpmanage.hSocketMutex);
 }
 
@@ -113,6 +174,7 @@ static VOS_UINT32 cpss_socket_insert(
 		(*pSocketTail)->next = pSocketInfo;
 	}
 	*pSocketTail = pSocketInfo;
+	cpss_socket_show_list();
 	return VOS_Mutex_Unlock(&g_handleiocpmanage.hSocketMutex);
 }
 /* ===  FUNCTION  ==============================================================
@@ -137,12 +199,10 @@ static VOS_VOID cpss_close_socket(CPSS_SOCKET_LINK * pSocketLinkTInfo)
 		Close(pSocketLinkTInfo->nlSocketfd);
 #endif
 	}
-	pSocketLinkTInfo->nlSocketfd = SOCKET_ERROR;
-	pSocketLinkTInfo->uIStat = CPSS_SKT_STAT_CLOSE;
 	if (VOS_OK != cpss_socket_delete(
 		&g_handleiocpmanage.pUsedSocketHead,
 		&g_handleiocpmanage.pUsedSocketTail,
-		pSocketLinkTInfo))
+		&pSocketLinkTInfo))
 	{
 		VOS_PrintErr(__FILE__,__LINE__,"socket delete error");
 		return;
@@ -158,6 +218,8 @@ static VOS_VOID cpss_close_socket(CPSS_SOCKET_LINK * pSocketLinkTInfo)
 	{
 		VOS_Destroy_Event(&pSocketLinkTInfo->pstuPid->pMsgEvent, 0);
 	}
+	pSocketLinkTInfo->pstuPid = NULL;
+	pSocketLinkTInfo->nlSocketType = 0;
 }		/* -----  end of function cpss_iocp_close  ----- */
 
 /************************************************************************/
@@ -705,12 +767,10 @@ static CPSS_SOCKET_LINK * cpss_get_socket_from_pid(VOS_CHAR * szPidName, VOS_UIN
 	}
 	else
 	{
-		hSocketProcTmp = g_handleiocpmanage.pFreeSocketHead;
-		hSocketProcTmp->uIStat = CPSS_SKT_STAT_CLOSE;
 		nRtn = cpss_socket_delete(
 			&g_handleiocpmanage.pFreeSocketHead,
 			&g_handleiocpmanage.pFreeSocketTail,
-			hSocketProcTmp);
+			&hSocketProcTmp);
 		if (VOS_OK != nRtn)
 		{
 			VOS_PrintErr(__FILE__, __LINE__, "delete free socket error");
